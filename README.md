@@ -1,4 +1,4 @@
-perl-Dallycot
-=============
+Dallycot
+========
 
-A linked open code engine
+A linked open code engine.
