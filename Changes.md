@@ -1,5 +1,5 @@
 # Changes
 
-## v0.001
+## {{$NEXT}}
 
-* Initial release
+* Initial port to object-oriented architecture
