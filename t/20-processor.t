@@ -323,19 +323,21 @@ is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
 
 $processor -> context -> add_namespace(rdfs => 'http://www.w3.org/2000/01/rdf-schema#');
 
-$result = run("<http://dbpedia.org/resource/Semantic_Web> -> :rdfs:label");
+if($ENV{'NETWORK_TESTS'}) {
+  $result = run("<http://dbpedia.org/resource/Semantic_Web> -> :rdfs:label");
 
-ok $result, "We have a result";
+  ok $result, "We have a result";
 
-# # print STDERR Data::Dumper->Dump([$result]);
+  # # print STDERR Data::Dumper->Dump([$result]);
 
-ok ref($result), "It's a ref";
+  ok ref($result), "It's a ref";
 
-ok 0 < @$result, "We have at least one value returned";
+  ok 0 < @$result, "We have at least one value returned";
 
-($result) = map { $_->value } grep { $_->isa('Dallycot::Value::String') && $_->lang eq 'en' } @$result;
+  ($result) = map { $_->value } grep { $_->isa('Dallycot::Value::String') && $_->lang eq 'en' } @$result;
 
-is $result, "Semantic Web", "We should get the resource and parse it into a node";
+  is $result, "Semantic Web", "We should get the resource and parse it into a node";
+}
 
 done_testing();
 

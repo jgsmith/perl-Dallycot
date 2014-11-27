@@ -14,20 +14,24 @@ BEGIN { use_ok 'Dallycot::Resolver' };
 
 my $resolver = Dallycot::Resolver -> instance;
 
-my $cv = AnyEvent -> condvar;
+is $resolver, Dallycot::Resolver->instance, "Resolver is a singleton";
 
-$resolver->get("http://dbpedia.org/resource/Semantic_Web")->done(
-  sub { $cv -> send( @_ ); },
-  sub { $cv -> croak( @_ ); }
-);
+if($ENV{'NETWORK_TESTS'}) {
+  my $cv = AnyEvent -> condvar;
 
-my $data = eval {
-  $cv -> recv;
-};
-if($@) {
-  warn $@;
+  $resolver->get("http://dbpedia.org/resource/Semantic_Web")->done(
+    sub { $cv -> send( @_ ); },
+    sub { $cv -> croak( @_ ); }
+  );
+
+  my $data = eval {
+    $cv -> recv;
+  };
+  if($@) {
+    warn $@;
+  }
+
+  ok $data;
 }
-
-ok $data;
 
 done_testing();
