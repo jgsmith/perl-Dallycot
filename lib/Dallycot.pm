@@ -6,5 +6,6 @@ package Dallycot;
 
 use Dallycot::Parser;
 use Dallycot::Processor;
+use Dallycot::Value;
 
 1;

@@ -2,6 +2,12 @@ package Dallycot::Registry;
 
 use MooseX::Singleton;
 
+has type_handlers => (
+  is => 'ro',
+  isa => 'HashRef',
+  default => sub { +{} }
+);
+
 has namespaces => (
   is => 'ro',
   isa => 'HashRef',
@@ -38,6 +44,18 @@ sub register_namespace {
   if(!$self->has_namespace($ns)) {
     $self->namespaces->{$ns} = $context;
   }
+}
+
+sub initialize {
+  my $self = shift;
+
+  $self->SUPER::initialize(@_);
+
+  for my $type (Dallycot::Value -> types) {
+    $self->type_handlers->{$type->type} = $type;
+  }
+
+  $self;
 }
 
 1;

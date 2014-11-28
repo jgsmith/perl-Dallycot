@@ -189,11 +189,16 @@ sub _execute {
   my($self, $expected_types, $ast) = @_;
 
   my $d = deferred;
-  if($self -> add_cost(1)) {
-    $d -> reject("Exceeded maximum evaluation cost");
-  }
-  else {
-    $ast -> execute($self, $d);
+  eval {
+    if($self -> add_cost(1)) {
+      $d -> reject("Exceeded maximum evaluation cost");
+    }
+    else {
+      $ast -> execute($self, $d);
+    }
+  };
+  if($@) {
+    $d -> reject(@_);
   }
   $d -> promise;
 }
