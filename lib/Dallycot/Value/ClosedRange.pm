@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Value::ClosedRange;
 
 # No RDF equivalent - finite list of items

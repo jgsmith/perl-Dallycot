@@ -1,6 +1,6 @@
+use strict;
+use warnings;
 package Dallycot::TextResolver;
-
-use v5.20;
 
 use experimental qw(switch);
 
@@ -161,8 +161,8 @@ sub run {
           }
           my @sorted_types = grep {
             $acceptable_types{$_}
-          } sort { 
-            $types{$a}->[0] <=> $types{$b}->[0] 
+          } sort {
+            $types{$a}->[0] <=> $types{$b}->[0]
           } keys %types;
 
           # we'll take the first one we get
@@ -175,8 +175,8 @@ sub run {
         }
         if($new_uri) {
           $self->new(
-            ua => $ua, 
-            url => $new_uri, 
+            ua => $ua,
+            url => $new_uri,
             redirects => $self->redirects - 1,
             canonical_url => $self->canonical_url
           )->run->done(

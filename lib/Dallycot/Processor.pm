@@ -1,8 +1,8 @@
+use strict;
+use warnings;
 package Dallycot::Processor;
 
 # ABSTRACT: Run compiled Dallycot code.
-
-use v5.20;
 
 use Moose;
 
@@ -121,7 +121,7 @@ sub coerce {
   $d -> promise;
 }
 
-sub Lambda {
+sub make_lambda {
   my($self, $expression, $bindings, $bindings_with_defaults, $options) = @_;
 
   $bindings ||= [];
@@ -134,30 +134,27 @@ sub Lambda {
   );
 }
 
-sub Boolean {
+sub make_boolean {
   Dallycot::Value::Boolean->new($_[1]);
 }
 
-sub Numeric {
+sub make_numeric {
   Dallycot::Value::Numeric->new($_[1]);
 }
 
-sub String {
+sub make_string {
   shift;
   Dallycot::Value::String->new(@_);
 }
 
-sub Vector {
+sub make_vector {
   shift;
   Dallycot::Value::Vector->new(@_);
 }
 
-sub Undefined {
-  Dallycot::Value::Undefined->new;
-}
-
-use constant TRUE => Boolean(undef,1);
-use constant FALSE => Boolean(undef,'');
+use constant TRUE => make_boolean(undef,1);
+use constant FALSE => make_boolean(undef,'');
+use constant UNDEFINED => Dallycot::Value::Undefined->new;
 
 sub execute_all {
   my $self     = shift;
@@ -209,13 +206,13 @@ sub execute {
   my @expected_types = ('Any');
 
   if(@ast) {
-    my $last = pop @ast;
+    my $potential_types = pop @ast;
 
-    if('ARRAY' eq ref $last) {
-      @expected_types = @$last;
+    if('ARRAY' eq ref $potential_types) {
+      @expected_types = @$potential_types;
     }
     else {
-      push @ast, $last;
+      push @ast, $potential_types;
     }
   }
 
@@ -306,7 +303,7 @@ sub compose_lambdas {
     );
   }
 
-  $new_engine -> Lambda($expression, [ '#' ]);
+  $new_engine -> make_lambda($expression, [ '#' ]);
 }
 
 sub compose_filters {
@@ -330,7 +327,7 @@ sub compose_filters {
     );
   } @filters;
 
-  $new_engine -> Lambda(
+  $new_engine -> make_lambda(
     Dallycot::AST::All->new(@applications),
     [ '#' ]
   );
@@ -386,8 +383,7 @@ our $MAPPER = bless( [
   {}
 ], 'Dallycot::Value::Lambda' );
 
-our $MAP_APPLIER = #bless( [
-  bless( [
+our $MAP_APPLIER = bless( [
     bless( [ '__map_f' ], 'Dallycot::AST::Fetch' ),
     [
       bless( [ '__map_f' ], 'Dallycot::AST::Fetch' ),
@@ -395,11 +391,7 @@ our $MAP_APPLIER = #bless( [
       bless( [ 's' ], 'Dallycot::AST::Fetch' )
     ],
     {}
-  ], 'Dallycot::AST::Apply' ); #,
-#   [ 's' ],
-#   [],
-#   {}
-# ], 'Dallycot::AST::Lambda' );
+  ], 'Dallycot::AST::Apply' );
 
 sub make_map {
   my $self = shift;
@@ -411,7 +403,7 @@ sub make_map {
 
   $new_engine -> context -> add_assignment("__map_f", $MAPPER);
 
-  $new_engine -> Lambda($MAP_APPLIER, [ 's' ]);
+  $new_engine -> make_lambda($MAP_APPLIER, [ 's' ]);
 }
 
 # filter := (
@@ -508,7 +500,7 @@ sub make_filter {
 
   $new_engine -> context -> add_assignment("__filter_f", $FILTER);
 
-  $new_engine -> Lambda($FILTER_APPLIER, [ 's' ]);
+  $new_engine -> make_lambda($FILTER_APPLIER, [ 's' ]);
 }
 
 1;

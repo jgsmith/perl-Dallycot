@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Value::OpenRange;
 
 # No RDF equivalent - continuous list generation of items

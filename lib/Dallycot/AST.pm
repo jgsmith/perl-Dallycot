@@ -1,6 +1,6 @@
+use strict;
+use warnings;
 package Dallycot::AST;
-
-use v5.20;
 
 use experimental qw(switch);
 
@@ -244,7 +244,7 @@ sub execute {
     while(@values) {
       $acc *= (pop @values)
     }
-    $d->resolve($engine -> Numeric($acc));
+    $d->resolve($engine -> make_numeric($acc));
   }, sub {
     $d -> reject(@_);
   });
@@ -265,7 +265,7 @@ sub execute {
   my($self, $engine, $d) = @_;
 
   $engine->execute($self->[0], NUMERIC)->done(sub {
-    $d -> resolve($engine->Numeric(
+    $d -> resolve($engine->make_numeric(
       1 / ($_[0]->value)
     ));
   }, sub {
@@ -297,7 +297,7 @@ sub execute {
     while(@values) {
       $acc += (pop @values)
     }
-    $d->resolve($engine -> Numeric($acc));
+    $d->resolve($engine -> make_numeric($acc));
   }, sub {
     $d -> reject(@_);
   });
@@ -314,7 +314,7 @@ sub execute {
   my($self, $engine, $d) = @_;
 
   $engine->execute($self->[0], ['Numeric'])->done(sub {
-    $d -> resolve($engine->Numeric(
+    $d -> resolve($engine->make_numeric(
       -($_[0]->value)
     ));
   }, sub {
@@ -337,23 +337,23 @@ sub execute {
 
   my @expressions = @$self;
   $engine->execute((shift @expressions), ['Numeric'])->done(sub {
-    my($left) = @_;
+    my($left_value) = @_;
 
-    $self -> _loop($engine, $d, $left, @expressions);
+    $self -> _loop($engine, $d, $left_value, @expressions);
   }, sub {
     $d -> reject(@_);
   });
 }
 
 sub _loop {
-  my($self, $engine, $d, $left, $right_expr, @expressions) = @_;
+  my($self, $engine, $d, $left_value, $right_expr, @expressions) = @_;
 
   if(!@expressions) {
     $engine->execute($right_expr, ['Numeric'])->done(sub {
-      my($right) = @_;
+      my($right_value) = @_;
       $d -> resolve(
-        $engine->Numeric(
-          $left->value->copy->bmod($right->value)
+        $engine->make_numeric(
+          $left_value->value->copy->bmod($right_value->value)
         )
       );
     }, sub {
@@ -362,13 +362,13 @@ sub _loop {
   }
   else {
     $engine->execute($right_expr, ['Numeric']) -> done(sub {
-      my($right) = @_;
-      $left = $left->copy->bmod($right->value);
-      if($left->is_zero) {
-        $d->resolve($engine->Numeric($left));
+      my($right_value) = @_;
+      $left_value = $left_value->copy->bmod($right_value->value);
+      if($left_value->is_zero) {
+        $d->resolve($engine->make_numeric($left_value));
       }
       else {
-        $self->_loop($engine, $d, $left, @expressions);
+        $self->_loop($engine, $d, $left_value, @expressions);
       }
     }, sub {
       $d->reject(@_);
@@ -443,9 +443,9 @@ sub to_string {
 }
 
 sub _compare {
-  my($self, $engine, $d, $left, $right) = @_;
+  my($self, $engine, $d, $left_value, $right_value) = @_;
 
-  $left->is_equal($engine, $d, $right);
+  $left_value->is_equal($engine, $d, $right_value);
 }
 
 #-----------------------------------------------------------------------------
@@ -458,9 +458,9 @@ sub to_string {
 }
 
 sub _compare {
-  my($self, $engine, $d, $left, $right) = @_;
+  my($self, $engine, $d, $left_value, $right_value) = @_;
 
-  $left->is_less($engine, $d, $right);
+  $left_value->is_less($engine, $d, $right_value);
 }
 
 #-----------------------------------------------------------------------------
@@ -473,9 +473,9 @@ sub to_string {
 }
 
 sub _compare {
-  my($self, $engine, $d, $left, $right) = @_;
+  my($self, $engine, $d, $left_value, $right_value) = @_;
 
-  $left->is_less_or_equal($engine, $d, $right);
+  $left_value->is_less_or_equal($engine, $d, $right_value);
 }
 
 #-----------------------------------------------------------------------------
@@ -488,9 +488,9 @@ sub to_string {
 }
 
 sub _compare {
-  my($self, $engine, $d, $left, $right) = @_;
+  my($self, $engine, $d, $left_value, $right_value) = @_;
 
-  $left->is_greater_or_equal($engine, $d, $right);
+  $left_value->is_greater_or_equal($engine, $d, $right_value);
 }
 
 #-----------------------------------------------------------------------------
@@ -503,9 +503,9 @@ sub to_string {
 }
 
 sub _compare {
-  my($self, $engine, $d, $left, $right) = @_;
+  my($self, $engine, $d, $left_value, $right_value) = @_;
 
-  $left->is_greater($engine, $d, $right);
+  $left_value->is_greater($engine, $d, $right_value);
 }
 
 #-----------------------------------------------------------------------------
@@ -582,7 +582,7 @@ sub _loop {
     }
   }
   else {
-    $d->resolve($engine->Undefined);
+    $d->resolve($engine->UNDEFINED);
   }
 }
 
@@ -612,7 +612,7 @@ sub execute {
   my($self, $engine, $d) = @_;
 
   $d -> resolve(
-    $engine -> Lambda(
+    $engine -> make_lambda(
       @$self
     )
   );
@@ -721,16 +721,16 @@ sub execute {
   }
   else {
     $engine->collect(@$self)->done(sub {
-      my($left, $right) = @_;
+      my($left_value, $right_value) = @_;
 
       my $less_p = deferred;
-      $left->is_less($engine, $less_p, $right);
+      $left_value->is_less($engine, $less_p, $right_value);
 
       $less_p -> promise -> done(sub {
         my($f) = @_;
 
         $d -> resolve( bless [
-            $left, $right, $f ? 1 : -1
+            $left_value, $right_value, $f ? 1 : -1
           ] => 'Dallycot::Value::ClosedRange'
         );
       }, sub {
@@ -924,7 +924,7 @@ sub execute {
         push @expressions, $last_expr;
       }
       else {
-        $promise = $engine->Lambda($last_expr);
+        $promise = $engine->make_lambda($last_expr);
       }
       $engine->collect(@expressions)->done(sub {
         my(@items) = @_;
@@ -1132,7 +1132,7 @@ sub execute {
     my($res) = @_;
 
     if($res->isa('Dallycot::Value::Boolean')) {
-      $d -> resolve($engine->Boolean(!$res->value));
+      $d -> resolve($engine->make_boolean(!$res->value));
     }
     elsif($res->isa('Dallycot::Value::Lambda')) {
       $d -> resolve(
@@ -1143,7 +1143,7 @@ sub execute {
       );
     }
     else {
-      $d -> resolve($engine->Boolean(!$res->is_defined));
+      $d -> resolve($engine->make_boolean(!$res->is_defined));
     }
   }, sub {
     $d -> reject(@_);

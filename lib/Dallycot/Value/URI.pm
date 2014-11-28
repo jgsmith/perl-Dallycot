@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Value::URI;
 
 use parent 'Dallycot::Value::Any';

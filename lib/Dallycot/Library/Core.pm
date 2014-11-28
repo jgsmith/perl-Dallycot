@@ -1,6 +1,6 @@
+use strict;
+use warnings;
 package Dallycot::Library::Core;
-
-use v5.14;
 
 use MooseX::Singleton;
 
@@ -42,7 +42,7 @@ sub initialize {
 sub call_function {
   my($self, $name, $parent_engine, $d, @bindings) = @_;
 
-  my $method = "do" . $name;
+  my $method = "do_" . $name;
   if($self->can($method)) {
 
     my $engine = Dallycot::Processor->new(
@@ -91,7 +91,7 @@ sub run_bindings_and_then {
 ##
 # eventually, this will be for string lengths
 #
-sub doLength {
+sub do_length {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -101,7 +101,7 @@ sub doLength {
   });
 }
 
-sub doDivisibleBy {
+sub do_divisible_by {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -112,12 +112,12 @@ sub doDivisibleBy {
     else {
       my $xcopy = $x->value->copy();
       $xcopy -> bmod($n->value);
-      $d -> resolve($engine->Boolean($xcopy->is_zero));
+      $d -> resolve($engine->make_boolean($xcopy->is_zero));
     }
   });
 }
 
-sub doEvenQ {
+sub do_even_q {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -126,12 +126,12 @@ sub doEvenQ {
       $d -> reject("even? expects a numeric argument");
     }
     else {
-      $d -> resolve($engine->Boolean($x -> [0] -> is_even));
+      $d -> resolve($engine->make_boolean($x -> [0] -> is_even));
     }
   });
 }
 
-sub doOddQ {
+sub do_odd_q {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -140,12 +140,12 @@ sub doOddQ {
       $d -> reject("odd? expects a numeric argument");
     }
     else {
-      $d -> resolve($engine->Boolean($x -> [0] -> is_odd));
+      $d -> resolve($engine->make_boolean($x -> [0] -> is_odd));
     }
   });
 }
 
-sub doFactorial {
+sub do_factorial {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -154,18 +154,18 @@ sub doFactorial {
       $d -> reject("factorial expects a numeric argument");
     }
     elsif($x->value -> is_int) {
-      $d -> resolve($engine->Numeric(
+      $d -> resolve($engine->make_numeric(
         $x->value -> copy() -> bfac()
       ));
     }
     else {
       # TODO: handle non-integer arguments to gamma function
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
   });
 }
 
-sub doCeil {
+sub do_ceil {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -175,13 +175,13 @@ sub doCeil {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->bceil)
+        $engine->make_numeric($x->value->copy->bceil)
       );
     }
   });
 }
 
-sub doFloor {
+sub do_floor {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -191,13 +191,13 @@ sub doFloor {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->bfloor)
+        $engine->make_numeric($x->value->copy->bfloor)
       );
     }
   });
 }
 
-sub doAbs {
+sub do_abs {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -207,13 +207,13 @@ sub doAbs {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->babs)
+        $engine->make_numeric($x->value->copy->babs)
       );
     }
   });
 }
 
-sub doBinomial {
+sub do_binomial {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -223,7 +223,7 @@ sub doBinomial {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->bnok($y->value))
+        $engine->make_numeric($x->value->copy->bnok($y->value))
       );
     }
   });
@@ -234,7 +234,7 @@ sub doBinomial {
 # Basic string functions
 
 
-our @leonardoNumbers = (
+our @LEONARDO_NUMBERS = (
   1, 1, 3, 5, 9,
   15, 25, 41, 67, 109,
   177, 287, 465, 753, 1219,
@@ -257,7 +257,7 @@ sub _calculate_sort {
 
 }
 
-sub doSort {
+sub do_sort {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -281,17 +281,17 @@ sub doSort {
   });
 }
 
-sub doStringTake {
+sub do_string_take {
   my($self, $engine, $d, @bindings) = @_;
 
   $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
     my($string, $spec) = @_;
 
     if(!$string) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     elsif(!$spec) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     else {
       if($spec -> isa('Dallycot::Value::Numeric')) {
@@ -347,17 +347,17 @@ sub doStringTake {
   });
 }
 
-sub doStringDrop {
+sub do_string_drop {
   my($self, $engine, $d, @bindings) = @_;
 
   $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
     my($string, $spec) = @_;
 
     if(!$string) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     elsif(!$spec) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     elsif($spec->isa('Dallycot::Value::Numeric')) {
         my $offset = $spec -> value -> numify;
@@ -377,7 +377,7 @@ sub doStringDrop {
 #
 # Textual/Linguistic functions
 
-sub doStopWords {
+sub do_stop_words {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -501,7 +501,7 @@ our %language_codes_for_classifier = qw(
 
 our %language_codes_from_classifier = reverse %language_codes_for_classifier;
 
-sub doBuildLanguageClassifier {
+sub do_build_language_classifier {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -521,7 +521,7 @@ sub doBuildLanguageClassifier {
   });
 }
 
-sub doGetAvailableLanguagesForClassifier {
+sub do_get_available_languages_for_classifier {
   my($self, $engine, $d) = @_;
 
   $d -> resolve(Dallycot::Value::Vector->new);
@@ -545,7 +545,7 @@ sub doGetAvailableLanguagesForClassifier {
   })
 }
 
-sub doClassifyTextLanguage {
+sub do_classify_text_language {
   my($self, $engine, $d, @bindings) = @_;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
@@ -631,13 +631,13 @@ __DATA__
 
 (* basic helpers *)
 
-length(x) :> call("Length", x);
+length(x) :> call("length", x);
 
-divisible-by?(x,n) :> call("DivisibleBy", x, n);
+divisible-by?(x,n) :> call("divisible_by", x, n);
 
-even?(x) :> call("EvenQ", x);
+even?(x) :> call("even_q", x);
 
-odd?(x) :> call("OddQ", x);
+odd?(x) :> call("odd_q", x);
 
 upfrom := (
   upfrom_f(ff, n) :> [ n, ff(ff, n + 1) ];
@@ -673,15 +673,15 @@ streamLength := (
 
 (* Math routines *)
 
-factorial(x) :> call("Factorial", x);
+factorial(x) :> call("factorial", x);
 
-floor(x) :> call("Floor", x);
+floor(x) :> call("floor", x);
 
-ceiling(x) :> call("Ceil", x);
+ceiling(x) :> call("ceil", x);
 
-binomial-coefficient(x,y) :> call("Binomial", x, y);
+binomial-coefficient(x,y) :> call("binomial", x, y);
 
-abs(x) :> call("Abs", x);
+abs(x) :> call("abs", x);
 
 sum(s) :> 0 << { #1 + #2 }/2 << s;
 
@@ -716,21 +716,21 @@ differences := (
 
 (* basic string functions *)
 
-string-take(string, spec) :> call("StringTake", string, spec);
+string-take(string, spec) :> call("string_take", string, spec);
 
-string-drop(string, spec) :> call("StringDrop", string, spec);
+string-drop(string, spec) :> call("string_drop", string, spec);
 
 (* textual routines *)
 
-stop-words(language) :> call("StopWords", language);
+stop-words(language) :> call("stop_words", language);
 
 stop-word-languages := [ "da", "nl", "en", "fi", "fr", "de", "hu", "it", "no", "pt", "es", "sv", "ru" ];
 
-language-classifier(linguas) :> call("BuildLanguageClassifier", linguas);
+language-classifier(linguas) :> call("build_language_classifier", linguas);
 
-language-classifier-languages := call("GetAvailableLanguagesForClassifier");
+language-classifier-languages := call("get_available_languages_for_classifier");
 
-language-classify(classifier, text) :> call("ClassifyTextLanguage", classifier, text);
+language-classify(classifier, text) :> call("classify_text_language", classifier, text);
 
 (* special streams *)
 

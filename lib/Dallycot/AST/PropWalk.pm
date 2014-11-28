@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::AST::PropWalk;
 
 use parent 'Dallycot::AST::LoopBase';
@@ -49,7 +51,7 @@ sub _loop {
       $d -> resolve(@results);
     }
     else {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
   }, sub {
     $d -> reject(@_);
@@ -69,8 +71,8 @@ sub step {
   my $d = deferred;
 
   $engine -> execute($self->[0]) -> done(sub {
-    my($propName) = @_;
-    my $prop = $propName -> value;
+    my($prop_name) = @_;
+    my $prop = $prop_name -> value;
     $root -> fetch_property($engine, $d, $prop);
   }, sub {
     $d -> reject(@_);

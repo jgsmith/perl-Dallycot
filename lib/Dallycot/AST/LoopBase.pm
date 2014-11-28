@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::AST::LoopBase;
 
 use parent 'Dallycot::AST';

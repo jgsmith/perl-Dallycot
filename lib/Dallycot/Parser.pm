@@ -1,8 +1,7 @@
-package Dallycot::Parser;
-
-use v5.20;
 use strict;
 use warnings;
+package Dallycot::Parser;
+
 use experimental qw(switch);
 
 use Marpa::R2;
@@ -39,7 +38,7 @@ sub _parse {
   };
   if($@) {
     print STDERR $@;
-    return undef;
+    return;
   }
   my $parse = $re->value;
   my $result;
@@ -133,32 +132,32 @@ sub invert {
 
 sub build_sum_product {
 
-  my(undef, $Sum, $Negation, $left, $right) = @_;
+  my(undef, $sum_class, $negation_class, $left_value, $right_value) = @_;
 
   my $ret;
 
   my @expressions;
 
   # combine left/right as appropriate into a single sum
-  given(ref $left) {
-    when($Sum) {
-      @expressions = @{$left};
-      given(ref $right) {
-        when($Sum) {
-          push @expressions, @{$right};
+  given(ref $left_value) {
+    when($sum_class) {
+      @expressions = @{$left_value};
+      given(ref $right_value) {
+        when($sum_class) {
+          push @expressions, @{$right_value};
         }
         default {
-          push @expressions, $right;
+          push @expressions, $right_value;
         }
       }
     }
     default {
-      given(ref $right) {
-        when($Sum) {
-          @expressions = ($left, @{$right});
+      given(ref $right_value) {
+        when($sum_class) {
+          @expressions = ($left_value, @{$right_value});
         }
         default {
-          @expressions = ($left, $right);
+          @expressions = ($left_value, $right_value);
         }
       }
     }
@@ -169,12 +168,12 @@ sub build_sum_product {
 
   foreach my $expr (@expressions) {
     given(ref $expr) {
-      when($Sum) {
+      when($sum_class) {
         foreach my $sub_expr (@{$expr}) {
           given(ref $sub_expr) {
-            when($Negation) { # adding -(...)
+            when($negation_class) { # adding -(...)
               given(ref $sub_expr->[0]) {
-                when($Sum) { # adding -(a+b+...)
+                when($sum_class) { # adding -(a+b+...)
                   push @differences, @{$sub_expr->[0]};
                 }
                 default {
@@ -188,12 +187,12 @@ sub build_sum_product {
           }
         }
       }
-      when($Negation) {
+      when($negation_class) {
         given(ref $expr->[0]) {
-          when($Sum) {
+          when($sum_class) {
             foreach my $sub_expr (@{$expr->[0]}) {
               given(ref $sub_expr) {
-                when($Negation) {
+                when($negation_class) {
                   push @sums, $sub_expr->[0];
                 }
                 default {
@@ -202,7 +201,7 @@ sub build_sum_product {
               }
             }
           }
-          when($Negation) {
+          when($negation_class) {
             push @sums, $expr->[0];
           }
           default {
@@ -219,23 +218,23 @@ sub build_sum_product {
   given(scalar(@differences)) {
     when(0) { }
     when(1) {
-      push @sums, bless [ $differences[0] ] => $Negation
+      push @sums, bless [ $differences[0] ] => $negation_class
     }
     default {
       push @sums,
         bless [
-          bless [ @differences ] => $Sum
-        ] => $Negation;
+          bless [ @differences ] => $sum_class
+        ] => $negation_class;
     }
   }
 
-  bless [ @sums ] => $Sum;
+  bless \@sums => $sum_class;
 }
 
 sub product {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  build_sum_product(undef, 'Dallycot::AST::Product', 'Dallycot::AST::Reciprocal', $left, $right);
+  build_sum_product(undef, 'Dallycot::AST::Product', 'Dallycot::AST::Reciprocal', $left_value, $right_value);
 }
 
 sub divide {
@@ -259,15 +258,15 @@ sub modulus {
 }
 
 sub sum {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  build_sum_product(undef, 'Dallycot::AST::Sum', 'Dallycot::AST::Negation', $left, $right);
+  build_sum_product(undef, 'Dallycot::AST::Sum', 'Dallycot::AST::Negation', $left_value, $right_value);
 }
 
 sub subtract {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  sum(undef, $left, bless [ $right ] => 'Dallycot::AST::Negation');
+  sum(undef, $left_value, bless [ $right_value ] => 'Dallycot::AST::Negation');
 }
 
 my %ops = qw(
@@ -280,46 +279,46 @@ my %ops = qw(
 );
 
 sub inequality {
-  my(undef, $left, $op, $right) = @_;
+  my(undef, $left_value, $op, $right_value) = @_;
 
-  if(ref $left eq $ops{$op} && ref $right eq ref $left) {
-    push @{$left}, @{$right};
-    $left;
+  if(ref $left_value eq $ops{$op} && ref $right_value eq ref $left_value) {
+    push @{$left_value}, @{$right_value};
+    $left_value;
   }
-  elsif(ref $left eq $ops{$op}) {
-    push @{$left}, $right;
-    $left;
+  elsif(ref $left_value eq $ops{$op}) {
+    push @{$left_value}, $right_value;
+    $left_value;
   }
-  elsif(ref $right eq $ops{$op}) {
-    unshift @{$right}, $left;
-    $right;
+  elsif(ref $right_value eq $ops{$op}) {
+    unshift @{$right_value}, $left_value;
+    $right_value;
   }
   else {
-    bless [ $left, $right ] => $ops{$op};
+    bless [ $left_value, $right_value ] => $ops{$op};
   }
 }
 
 sub all {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  if(ref $left eq 'Dallycot::AST::All') {
-    push @{$left}, $right;
-    $left;
+  if(ref $left_value eq 'Dallycot::AST::All') {
+    push @{$left_value}, $right_value;
+    $left_value;
   }
   else {
-    bless [ $left, $right ] => 'Dallycot::AST::All';
+    bless [ $left_value, $right_value ] => 'Dallycot::AST::All';
   }
 }
 
 sub any {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  if(ref $left eq 'Dallycot::AST::Any') {
-    push @{$left}, $right;
-    $left;
+  if(ref $left_value eq 'Dallycot::AST::Any') {
+    push @{$left_value}, $right_value;
+    $left_value;
   }
   else {
-    bless [ $left, $right ] => 'Dallycot::AST::Any';
+    bless [ $left_value, $right_value ] => 'Dallycot::AST::Any';
   }
 }
 
@@ -708,14 +707,14 @@ sub prop_literal {
 }
 
 sub prop_alternatives {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  if(ref $left eq 'Dallycot::AST::AnyProperty') {
-    push @{$left}, $right;
-    $left;
+  if(ref $left_value eq 'Dallycot::AST::AnyProperty') {
+    push @{$left_value}, $right_value;
+    $left_value;
   }
   else {
-    bless [ $left, $right ] => 'Dallycot::AST::AnyProperty';
+    bless [ $left_value, $right_value ] => 'Dallycot::AST::AnyProperty';
   }
 }
 
@@ -757,24 +756,24 @@ sub stream_constant {
 }
 
 sub zip {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  if(ref $left eq 'Dallycot::AST::Zip') {
-    if($right eq 'Dallycot::AST::Zip') {
-      push @{$left}, @{$right};
-      $left;
+  if(ref $left_value eq 'Dallycot::AST::Zip') {
+    if($right_value eq 'Dallycot::AST::Zip') {
+      push @{$left_value}, @{$right_value};
+      $left_value;
     }
     else {
-      push @{$left}, $right;
-      $left;
+      push @{$left_value}, $right_value;
+      $left_value;
     }
   }
-  elsif(ref $right eq 'Dallycot::AST::Zip') {
-    unshift @$right, $left;
-    $right;
+  elsif(ref $right_value eq 'Dallycot::AST::Zip') {
+    unshift @$right_value, $left_value;
+    $right_value;
   }
   else {
-    bless [ $left, $right ] => 'Dallycot::AST::Zip';
+    bless [ $left_value, $right_value ] => 'Dallycot::AST::Zip';
   }
 }
 
@@ -824,9 +823,9 @@ sub semi_range {
 }
 
 sub closed_range {
-  my(undef, $left, $right) = @_;
+  my(undef, $left_value, $right_value) = @_;
 
-  bless [ $left, $right ] => 'Dallycot::AST::BuildRange';
+  bless [ $left_value, $right_value ] => 'Dallycot::AST::BuildRange';
 }
 
 sub stream_reduction {

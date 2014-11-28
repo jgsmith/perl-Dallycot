@@ -1,13 +1,13 @@
+use strict;
+use warnings;
 package Dallycot::Value::Stream;
 
-use v5.14;
-
 # RDF List
-use constant {
-  HEAD => 0,
-  TAIL => 1,
-  TAIL_PROMISE => 2
-};
+use Readonly;
+
+Readonly my $HEAD => 0;
+Readonly my $TAIL => 1;
+Readonly my $TAIL_PROMISE => 2;
 
 use parent 'Dallycot::Value::Collection';
 
@@ -23,20 +23,20 @@ sub new {
 sub _resolve_tail_promise {
   my($self, $engine) = @_;
   #$engine->execute($self->[TAIL_PROMISE])->then(sub {
-  $self->[TAIL_PROMISE]->apply($engine,{})->then(sub {
+  $self->[$TAIL_PROMISE]->apply($engine,{})->then(sub {
     my($list_tail) = @_;
     given(ref $list_tail) {
       when(__PACKAGE__) {
-        $self->[TAIL] = $list_tail;
-        $self->[TAIL_PROMISE] = undef;
+        $self->[$TAIL] = $list_tail;
+        $self->[$TAIL_PROMISE] = undef;
       }
       when('Dallycot::Value::Vector') {
         # convert finite vector into linked list
         my @values = @$list_tail;
         my $point = $self;
         while(@values) {
-          $point->[TAIL] = $self->new(shift @values);
-          $point = $point->[TAIL];
+          $point->[$TAIL] = $self->new(shift @values);
+          $point = $point->[$TAIL];
         }
       }
     }
@@ -80,7 +80,7 @@ sub value_at {
   my $d = deferred;
 
   if($index < 1) {
-    $d -> resolve($engine->Undefined);
+    $d -> resolve($engine->UNDEFINED);
   }
   else {
     # we want to keep resolving tails until we get somewhere
@@ -125,7 +125,7 @@ sub head {
 
   my $p = deferred;
 
-  if(defined $self->[HEAD]) {
+  if(defined $self->[$HEAD]) {
     $p -> resolve($self->[0]);
   }
   else {
@@ -140,13 +140,13 @@ sub tail {
 
   my $p = deferred;
 
-  if(defined $self->[TAIL]) {
-    $p -> resolve($self->[TAIL]);
+  if(defined $self->[$TAIL]) {
+    $p -> resolve($self->[$TAIL]);
   }
-  elsif(defined $self->[TAIL_PROMISE]) {
+  elsif(defined $self->[$TAIL_PROMISE]) {
     $self->_resolve_tail_promise($engine)->done(sub {
-      if(defined $self->[TAIL]) {
-        $p -> resolve($self->[TAIL]);
+      if(defined $self->[$TAIL]) {
+        $p -> resolve($self->[$TAIL]);
       }
       else {
         $p -> reject('The tail operator expects a stream-like object.');

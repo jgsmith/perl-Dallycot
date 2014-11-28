@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Value::Boolean;
 
 use parent 'Dallycot::Value::Any';
@@ -18,7 +20,7 @@ sub id {
 sub length {
   my($self, $engine, $d) = @_;
 
-  $d -> resolve($engine->Numeric(1));
+  $d -> resolve($engine->make_numeric(1));
 }
 
 sub is_equal {

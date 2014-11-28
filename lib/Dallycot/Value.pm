@@ -1,7 +1,6 @@
-package Dallycot::Value;
-
 use strict;
 use warnings;
+package Dallycot::Value;
 
 use Carp qw(croak);
 
@@ -36,7 +35,7 @@ sub identifiers { () }
 sub length {
   my($self, $engine, $d) = @_;
 
-  $d -> resolve($engine -> Numeric(0));
+  $d -> resolve($engine -> make_numeric(0));
 }
 
 sub execute {

@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Library;
 
 # ABSTRACT: Base for adding namespaced functions to Dallycot.
@@ -11,8 +13,6 @@ has functions ( isa => 'HashRef', is => 'ro', default => sub { +{ } } );
 
 sub instance {
   my($self) = @_;
-
-  no strict 'refs';
 
   my $class = ref $self || $self;
   ${"${class}::INSTANCE"} ||= $class -> new;

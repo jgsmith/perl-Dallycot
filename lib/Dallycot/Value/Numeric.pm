@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Value::Numeric;
 
 use parent 'Dallycot::Value::Any';
@@ -19,7 +21,7 @@ sub value {
 sub length {
   my($self, $engine, $d) = @_;
 
-  $d -> resolve($engine->Numeric($self->[0]->copy->bfloor->length));
+  $d -> resolve($self -> new( $self->[0]->copy->bfloor->length ));
 }
 
 sub is_equal {

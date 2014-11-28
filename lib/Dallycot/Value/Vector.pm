@@ -1,6 +1,6 @@
+use strict;
+use warnings;
 package Dallycot::Value::Vector;
-
-# RDF Sequence
 
 use parent 'Dallycot::Value::Collection';
 
@@ -14,7 +14,7 @@ sub new {
 sub length {
   my($self, $engine, $d) = @_;
 
-  $d -> resolve($engine->Number(scalar @$self));
+  $d -> resolve($engine->make_numeric(scalar @$self));
 }
 
 sub apply_map {
@@ -53,7 +53,7 @@ sub value_at {
   my $d = deferred;
 
   if($index > @$self || $index < 1) {
-    $d -> resolve($engine->Undefined);
+    $d -> resolve($engine->UNDEFINED);
   }
   else {
     $d -> resolve($self->[$index-1]);
@@ -70,7 +70,7 @@ sub head {
     $d -> resolve($self->[0]);
   }
   else {
-    $d -> resolve($engine -> Undefined);
+    $d -> resolve($engine -> UNDEFINED);
   }
 
   $d -> promise;

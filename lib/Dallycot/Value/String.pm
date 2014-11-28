@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Value::String;
 
 use parent 'Dallycot::Value::Any';
@@ -19,7 +21,7 @@ sub id {
 sub length {
   my($self, $engine, $d) = @_;
 
-  $d -> resolve($engine->Numeric(CORE::length $self->[0]));
+  $d -> resolve($engine->make_numeric(CORE::length $self->[0]));
 }
 
 sub take_range {

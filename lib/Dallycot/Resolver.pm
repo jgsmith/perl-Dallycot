@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::Resolver;
 
 use MooseX::Singleton;

@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package Dallycot::AST::ComparisonBase;
 
 use parent 'Dallycot::AST';
@@ -17,16 +19,16 @@ sub execute {
 }
 
 sub _loop {
-  my($self, $engine, $d, $left, @expressions) = @_;
+  my($self, $engine, $d, $left_value, @expressions) = @_;
 
   if(!@expressions) {
     $d -> resolve($engine->TRUE);
   }
   else {
     $engine -> execute(shift @expressions)->done(sub {
-      my($right) = @_;
+      my($right_value) = @_;
       my $d2 = deferred;
-      $engine->coerce($left, $right, [$left->type, $right->type])->done(sub {
+      $engine->coerce($left_value, $right_value, [$left_value->type, $right_value->type])->done(sub {
         my($cleft, $cright) = @_;
         $self->_compare($engine, $d2, $cleft, $cright);
       }, sub {
@@ -34,7 +36,7 @@ sub _loop {
       });
       $d2 -> promise -> done(sub {
         if($_[0]) {
-          $self -> _loop($engine, $d, $right, @expressions);
+          $self -> _loop($engine, $d, $right_value, @expressions);
         }
         else {
           $d -> resolve($engine->FALSE);
@@ -49,7 +51,7 @@ sub _loop {
 }
 
 sub _compare {
-  my($engine, $d2, $left, $right) = @_;
+  my($engine, $d2, $left_value, $right_value) = @_;
 
   $d2 -> reject("Comparison not defined");
 }
