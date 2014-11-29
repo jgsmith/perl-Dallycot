@@ -1,6 +1,7 @@
+package Dallycot::Library::Core;
+
 use strict;
 use warnings;
-package Dallycot::Library::Core;
 
 use MooseX::Singleton;
 
@@ -29,18 +30,19 @@ sub initialize {
     do { local($/); my $s = <DATA>; $s; }
   );
 
-  $engine->execute(@$parse)->then(
+  return $engine->execute(@$parse)->then(
     sub {
       Dallycot::Registry->instance->register_namespace(
         '', $context
       );
-      #print STDERR Data::Dumper->Dump([$context]);
     }
   );
 }
 
 sub call_function {
-  my($self, $name, $parent_engine, $d, @bindings) = @_;
+  my($self, $name, $parent_engine, @bindings) = @_;
+
+  my $d = deferred;
 
   my $method = "do_" . $name;
   if($self->can($method)) {
@@ -53,11 +55,7 @@ sub call_function {
       max_cost => $parent_engine -> max_cost
     );
 
-    my $d2 = deferred;
-
-    $self->$method($engine, $d2, @bindings);
-
-    $d2->promise->done(sub {
+    $self->$method($engine, @bindings)->done(sub {
       $parent_engine->cost($engine->cost);
       $d->resolve(@_);
     }, sub {
@@ -68,6 +66,8 @@ sub call_function {
   else {
     $d -> reject("undefined function called in library");
   }
+
+  return $d -> promise;
 }
 
 sub run_bindings_and_then {
@@ -86,23 +86,35 @@ sub run_bindings_and_then {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 ##
 # eventually, this will be for string lengths
 #
 sub do_length {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($thing) = @_;
     my $length = 0;
-    $thing -> length($engine, $d);
+    $thing -> calculate_length($engine) -> then(sub {
+      $d -> resolve(@_);
+    }, sub {
+      $d -> reject(@_);
+    });
   });
+
+  return $d -> promise;
 }
 
 sub do_divisible_by {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x, $n) = @_;
@@ -115,10 +127,14 @@ sub do_divisible_by {
       $d -> resolve($engine->make_boolean($xcopy->is_zero));
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_even_q {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -129,10 +145,14 @@ sub do_even_q {
       $d -> resolve($engine->make_boolean($x -> [0] -> is_even));
     }
   });
+
+  return $d;
 }
 
 sub do_odd_q {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -143,10 +163,14 @@ sub do_odd_q {
       $d -> resolve($engine->make_boolean($x -> [0] -> is_odd));
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_factorial {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -163,10 +187,14 @@ sub do_factorial {
       $d -> resolve($engine->UNDEFINED);
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_ceil {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -179,10 +207,14 @@ sub do_ceil {
       );
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_floor {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -195,10 +227,14 @@ sub do_floor {
       );
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_abs {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -211,10 +247,14 @@ sub do_abs {
       );
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_binomial {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x, $y) = @_;
@@ -227,6 +267,8 @@ sub do_binomial {
       );
     }
   });
+
+  return $d -> promise;
 }
 
 #====================================================================
@@ -255,10 +297,13 @@ sub _calculate_sort {
   # sort function :-/
   my @work = @$vector;
 
+  return;
 }
 
 sub do_sort {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($stream, $sort_function) = @_;
@@ -279,10 +324,14 @@ sub do_sort {
       }
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_string_take {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
     my($string, $spec) = @_;
@@ -345,10 +394,14 @@ sub do_string_take {
       }
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_string_drop {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
     my($string, $spec) = @_;
@@ -371,6 +424,8 @@ sub do_string_drop {
       $d -> reject("string-drop requires a numeric second argument");
     }
   });
+
+  return $d -> promise;
 }
 
 #====================================================================
@@ -378,7 +433,9 @@ sub do_string_drop {
 # Textual/Linguistic functions
 
 sub do_stop_words {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($language) = @_;
@@ -396,6 +453,8 @@ sub do_stop_words {
       ));
     }
   });
+
+  return $d -> promise;
 }
 
 our %language_codes_for_classifier = qw(
@@ -502,7 +561,9 @@ our %language_codes_for_classifier = qw(
 our %language_codes_from_classifier = reverse %language_codes_for_classifier;
 
 sub do_build_language_classifier {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($languages) = @_;
@@ -519,34 +580,42 @@ sub do_build_language_classifier {
       ] => 'Dallycot::Library::Core::LanguageClassifier');
     }
   });
+
+  return $d -> promise;
 }
 
 sub do_get_available_languages_for_classifier {
-  my($self, $engine, $d) = @_;
+  my($self, $engine) = @_;
+
+  my $d = deferred;
 
   $d -> resolve(Dallycot::Value::Vector->new);
-  return;
-  $d -> resolve({
-    a => 'Vector',
-    value => [
-      map {
-        +{
-          a => 'String',
-          value => $_,
-          language => 'en'
-        }
-      } grep {
-        $_
-      }
-      map {
-        $language_codes_for_classifier{$_}
-      } @{Lingua::YALI::LanguageIdentifier->new->get_available_languages}
-    ]
-  })
+
+  return $d -> promise;
+
+  # $d -> resolve({
+  #   a => 'Vector',
+  #   value => [
+  #     map {
+  #       +{
+  #         a => 'String',
+  #         value => $_,
+  #         language => 'en'
+  #       }
+  #     } grep {
+  #       $_
+  #     }
+  #     map {
+  #       $language_codes_for_classifier{$_}
+  #     } @{Lingua::YALI::LanguageIdentifier->new->get_available_languages}
+  #   ]
+  # })
 }
 
 sub do_classify_text_language {
-  my($self, $engine, $d, @bindings) = @_;
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($classifier, $text) = @_;
@@ -618,6 +687,8 @@ sub do_classify_text_language {
       }
     }
   });
+
+  return $d -> promise;
 }
 
 ##

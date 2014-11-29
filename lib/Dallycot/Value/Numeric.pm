@@ -1,55 +1,90 @@
+package Dallycot::Value::Numeric;
+
 use strict;
 use warnings;
-package Dallycot::Value::Numeric;
 
 use parent 'Dallycot::Value::Any';
 
 use Promises qw(deferred);
 
 sub new {
-  bless [ ref($_[1]) ? $_[1] : Math::BigRat->new($_[1]) ] => __PACKAGE__;
+  my($class, $value) = @_;
+
+  $class = ref $class || $class;
+
+  return bless [
+    ref($value) ? $value : Math::BigRat->new($value)
+  ] => $class;
 }
 
 sub id {
-  shift -> [0] -> bstr . "^^Numeric";
+  my($self) = @_;
+  return $self -> [0] -> bstr . "^^Numeric";
 }
 
 sub value {
-  shift -> [0]
+  my($self) = @_;
+  return $self -> [0]
 }
 
-sub length {
-  my($self, $engine, $d) = @_;
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
 
   $d -> resolve($self -> new( $self->[0]->copy->bfloor->length ));
+
+  return $d -> promise;
 }
 
 sub is_equal {
-  my($self, $engine, $promise, $other) = @_;
-  $promise -> resolve($self->value == $other->value);
+  my($self, $engine, $other) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($self->value == $other->value);
+
+  return $d -> promise;
 }
 
 sub is_less {
-  my($self, $engine, $promise, $other) = @_;
-  $promise -> resolve($self->value < $other->value);
+  my($self, $engine, $other) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($self->value < $other->value);
+
+  return $d -> promise;
 }
 
 sub is_less_or_equal {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve($self->value <= $other->value);
+  my $d = deferred;
+
+  $d -> resolve($self->value <= $other->value);
+
+  return $d -> promise;
 }
 
 sub is_greater {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve($self->value > $other->value);
+  my $d = deferred;
+
+  $d -> resolve($self->value > $other->value);
+
+  return $d -> promise;
 }
 
 sub is_greater_or_equal {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve($self->value >= $other->value);
+  my $d = deferred;
+
+  $d -> resolve($self->value >= $other->value);
+
+  return $d -> promise;
 }
 
 sub successor {
@@ -57,9 +92,9 @@ sub successor {
 
   my $d = deferred;
 
-  $d -> resolve(bless [ $self->[0]->copy->binc ] => __PACKAGE__);
+  $d -> resolve($self -> new($self->[0]->copy->binc));
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub predecessor {
@@ -67,7 +102,9 @@ sub predecessor {
 
   my $d = deferred;
 
-  $d -> resolve(bless [ $self->[0]->copy->bdec ] => __PACKAGE__);
+  $d -> resolve($self -> new($self->[0]->copy->bdec));
+
+  return $d -> promise;
 }
 
 1;

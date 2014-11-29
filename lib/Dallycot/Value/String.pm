@@ -1,27 +1,46 @@
+package Dallycot::Value::String;
+
 use strict;
 use warnings;
-package Dallycot::Value::String;
 
 use parent 'Dallycot::Value::Any';
 
 use Promises qw(deferred);
 
 sub new {
-  bless [ $_[1], $_[2] || 'en' ] => __PACKAGE__;
+  my($class, $value, $lang) = @_;
+
+  $class = ref $class || $class;
+
+  return bless [ $value // '', $lang // 'en' ] => $class;
 }
 
-sub lang { shift->[1] }
+sub lang { return shift->[1] }
 
 sub id {
   my($self) = @_;
 
-  $self->[0] . "@" . $self->[1] . "^^String";
+  return $self->[0] . "@" . $self->[1] . "^^String";
 }
 
-sub length {
-  my($self, $engine, $d) = @_;
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
 
   $d -> resolve($engine->make_numeric(CORE::length $self->[0]));
+
+  return $d -> promise;
+}
+
+sub calculate_reverse {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($self->new(reverse($self->value), $self->lang));
+
+  return $d -> promise;
 }
 
 sub take_range {
@@ -29,14 +48,14 @@ sub take_range {
 
   my $d = deferred;
 
-  if(abs($offset) > CORE::length($self->[0])) {
+  if(abs($offset) > length($self->[0])) {
     $d -> resolve($self -> new('', $self->lang));
   }
   else {
     $d -> resolve($self -> new(substr($self->value, $offset-1, $length - $offset + 1), $self->lang));
   }
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub drop {
@@ -44,7 +63,7 @@ sub drop {
 
   my $d = deferred;
 
-  if(abs($offset) > CORE::length($self->value)) {
+  if(abs($offset) > length($self->value)) {
     $d -> resolve($self -> new('', $self->lang));
   }
   else {
@@ -54,7 +73,7 @@ sub drop {
     ));
   }
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub value_at {
@@ -62,63 +81,83 @@ sub value_at {
 
   my $d = deferred;
 
-  if(!$index || abs($index) > CORE::length($self -> [0])) {
+  if(!$index || abs($index) > length($self -> [0])) {
     $d -> resolve($self -> new('', $self -> [1]));
   }
   else {
     $d -> resolve($self->new(substr($self->[0], $index-1, 1), $self->[1]));
   }
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub is_equal {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve(
+  my $d = deferred;
+
+  $d -> resolve(
     $self->lang eq $other->lang
     && $self->value eq $other->value
   );
+
+  return $d -> promise;
 }
 
 sub is_less {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve(
+  my $d = deferred;
+
+  $d -> resolve(
     $self->lang lt $other->lang
     || $self->lang eq $other->lang
        && $self->value lt $other->value
   );
+
+  return $d -> promise;
 }
 
 sub is_less_or_equal {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve(
+  my $d = deferred;
+
+  $d -> resolve(
     $self->lang lt $other->lang
     || $self->lang eq $other->lang
        && $self->value le $other->value
   );
+
+  return $d -> promise;
 }
 
 sub is_greater {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve(
+  my $d = deferred;
+
+  $d -> resolve(
     $self->lang gt $other->lang
     || $self->lang eq $other->lang
        && $self->value gt $other->value
   );
+
+  return $d -> promise;
 }
 
 sub is_greater_or_equal {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve(
+  my $d = deferred;
+
+  $d -> resolve(
     $self->lang gt $other->lang
     || $self->lang eq $other->lang
        && $self->value ge $other->value
   );
+
+  return $d -> promise;
 }
 
 1;

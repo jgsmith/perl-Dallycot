@@ -1,6 +1,7 @@
+package Dallycot::AST::PropWalk;
+
 use strict;
 use warnings;
-package Dallycot::AST::PropWalk;
 
 use parent 'Dallycot::AST::LoopBase';
 
@@ -30,6 +31,8 @@ sub execute {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub _loop {
@@ -56,48 +59,9 @@ sub _loop {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
-#-----------------------------------------------------------------------------
-package Dallycot::AST::ForwardWalk;
-
-use parent 'Dallycot::AST';
-
-use Promises qw(deferred);
-
-sub step {
-  my($self, $engine, $root) = @_;
-
-  my $d = deferred;
-
-  $engine -> execute($self->[0]) -> done(sub {
-    my($prop_name) = @_;
-    my $prop = $prop_name -> value;
-    $root -> fetch_property($engine, $d, $prop);
-  }, sub {
-    $d -> reject(@_);
-  });
-
-  $d -> promise;
-}
-
-#-----------------------------------------------------------------------------
-package Dallycot::AST::PropertyLit;
-
-use parent 'Dallycot::AST';
-
-sub execute {
-  my($self, $engine, $d) = @_;
-
-  my($ns, $prop) = @$self;
-
-  if($engine -> has_namespace($ns)) {
-    my $nshref = $engine -> get_namespace($ns);
-    $d -> resolve(Dallycot::Value::URI->new($nshref . $prop));
-  }
-  else {
-    $d -> reject("Undefined namespace '$ns'");
-  }
-}
 
 1;

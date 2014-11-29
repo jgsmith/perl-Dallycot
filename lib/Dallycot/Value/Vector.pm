@@ -1,20 +1,35 @@
+package Dallycot::Value::Vector;
 use strict;
 use warnings;
-package Dallycot::Value::Vector;
 
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred collect);
 
 sub new {
-  shift;
-  bless \@_ => __PACKAGE__;
+  my($class, @values) = @_;
+  $class = ref $class || $class;
+  return bless \@values => $class;
 }
 
-sub length {
-  my($self, $engine, $d) = @_;
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
 
   $d -> resolve($engine->make_numeric(scalar @$self));
+
+  return $d->promise;
+}
+
+sub calculate_reverse {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($self -> new(reverse @$self));
+
+  return $d -> promise;
 }
 
 sub apply_map {
@@ -28,6 +43,8 @@ sub apply_map {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub apply_filter {
@@ -45,6 +62,8 @@ sub apply_filter {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub value_at {
@@ -58,7 +77,8 @@ sub value_at {
   else {
     $d -> resolve($self->[$index-1]);
   }
-  $d -> promise;
+
+  return $d -> promise;
 }
 
 sub head {
@@ -73,7 +93,7 @@ sub head {
     $d -> resolve($engine -> UNDEFINED);
   }
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub tail {
@@ -88,7 +108,7 @@ sub tail {
     $d -> resolve(bless [] => __PACKAGE__);
   }
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub reduce {
@@ -98,7 +118,7 @@ sub reduce {
 
   $self->_reduce_loop($engine, $promise, $start, $lambda, 0);
 
-  $promise->promise;
+  return $promise->promise;
 }
 
 sub _reduce_loop {
@@ -115,6 +135,7 @@ sub _reduce_loop {
   else {
     $promise -> resolve($start);
   }
+  return;
 }
 
 1;

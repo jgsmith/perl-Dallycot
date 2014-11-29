@@ -1,14 +1,19 @@
+package Dallycot::Value::Any;
+
 use strict;
 use warnings;
-package Dallycot::Value::Any;
 
 use parent 'Dallycot::Value';
 
 use Promises qw(deferred);
 
-sub value { $_[0][0] }
+sub value {
+  my($self) = @_;
 
-sub is_defined { 1 }
+  return $self->[0];
+}
+
+sub is_defined { return 1 }
 
 sub successor {
   my($self) = @_;
@@ -17,7 +22,7 @@ sub successor {
 
   $d -> reject($self->type . " has no successor");
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub predecessor {
@@ -27,9 +32,12 @@ sub predecessor {
 
   $d -> reject($self->type . " has no predecessor");
 
-  $d -> promise;
+  return $d -> promise;
 }
 
-sub to_string { shift -> id }
+sub to_string {
+  my($self) = @_;
+  return $self -> id;
+}
 
 1;

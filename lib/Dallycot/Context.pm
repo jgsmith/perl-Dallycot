@@ -1,6 +1,7 @@
+package Dallycot::Context;
+
 use strict;
 use warnings;
-package Dallycot::Context;
 
 use Moose;
 use Array::Utils qw(unique array_minus);
@@ -29,24 +30,26 @@ sub add_namespace {
     die "Namespaces may not be defined multiple times in a sub-context or closure";
   }
   $self->namespaces->{$ns} = $href;
+
+  return;
 }
 
 sub get_namespace {
   my($self, $ns) = @_;
 
   if(defined($self -> namespaces -> {$ns})) {
-    $self -> namespaces -> {$ns};
+    return $self -> namespaces -> {$ns};
   }
   elsif($self -> has_parent) {
-    $self -> parent -> get_namespace($ns);
+    return $self -> parent -> get_namespace($ns);
   }
 }
 
 sub has_namespace {
   my($self, $prefix) = @_;
 
-  exists($self->namespaces->{$prefix}) ||
-  $self -> has_parent && $self -> parent -> has_namespace($prefix);
+  return exists($self->namespaces->{$prefix}) ||
+         $self -> has_parent && $self -> parent -> has_namespace($prefix);
 }
 
 sub add_assignment {
@@ -56,24 +59,25 @@ sub add_assignment {
     die "Identifiers may not be redefined in a sub-context or closure";
   }
   $self->environment->{$identifier} = $expr;
+  return;
 }
 
 sub get_assignment {
   my($self, $identifier) = @_;
 
   if(defined($self->environment->{$identifier})) {
-    $self -> environment -> {$identifier};
+    return $self -> environment -> {$identifier};
   }
   elsif($self -> has_parent) {
-    $self -> parent -> get_assignment($identifier);
+    return $self -> parent -> get_assignment($identifier);
   }
 }
 
 sub has_assignment {
   my($self, $identifier) = @_;
 
-  exists($self->environment->{$identifier}) ||
-  $self -> has_parent && $self -> parent -> has_assignment($identifier);
+  return exists($self->environment->{$identifier}) ||
+         $self -> has_parent && $self -> parent -> has_assignment($identifier);
 }
 
 sub make_closure {
@@ -116,7 +120,7 @@ sub make_closure {
   }
 
   # making the closure a child/parent allows setting overrides once in the closure code
-  $self -> new(
+  return $self -> new(
     namespaces => \%namespaces,
     environment => \%environment,
   );

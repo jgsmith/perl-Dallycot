@@ -1,10 +1,23 @@
+package Dallycot::Value::TripleStore;
+
 use strict;
 use warnings;
-package Dallycot::Value::TripleStore;
 
 use parent 'Dallycot::Value::Any';
 
 use experimental qw(switch);
+
+use Promises qw(deferred);
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($engine->make_numeric($self->[2]->size()));
+
+  return $d -> promise;
+}
 
 sub fetch_property {
   my($self, $engine, $d, $prop) = @_;
@@ -54,6 +67,8 @@ sub fetch_property {
   if($@) {
     $d -> reject($@);
   }
+
+  return;
 }
 
 1;

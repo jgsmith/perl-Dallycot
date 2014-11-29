@@ -1,6 +1,7 @@
+package Dallycot::Value::Stream;
+
 use strict;
 use warnings;
-package Dallycot::Value::Stream;
 
 # RDF List
 use Readonly;
@@ -17,13 +18,37 @@ use Promises qw(deferred);
 
 sub new {
   my($class, $head, $tail, $promise) = @_;
-  bless [ $head, $tail, $promise ] => __PACKAGE__;
+  $class = ref $class || $class;
+  return bless [ $head, $tail, $promise ] => $class;
+}
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  my $ptr = $self;
+
+  my $count = 1;
+
+  while($ptr -> [$TAIL]) {
+    $ptr = $ptr -> [$TAIL];
+  }
+
+  if($ptr->[$TAIL_PROMISE]) {
+    $d -> resolve($engine->make_numeric(Math::BigRat -> binf()));
+  }
+  else {
+    $d -> resolve($engine->make_numeric($count));
+  }
+
+  return $d -> promise;
 }
 
 sub _resolve_tail_promise {
   my($self, $engine) = @_;
-  #$engine->execute($self->[TAIL_PROMISE])->then(sub {
-  $self->[$TAIL_PROMISE]->apply($engine,{})->then(sub {
+
+  return $self->[$TAIL_PROMISE]->apply($engine,{})->then(sub {
     my($list_tail) = @_;
     given(ref $list_tail) {
       when(__PACKAGE__) {
@@ -39,6 +64,10 @@ sub _resolve_tail_promise {
           $point = $point->[$TAIL];
         }
       }
+      default {
+        $self->[$TAIL] = $list_tail;
+        $self->[$TAIL_PROMISE] = undef;
+      }
     }
   });
 }
@@ -53,6 +82,8 @@ sub apply_map {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub apply_filter {
@@ -65,14 +96,19 @@ sub apply_filter {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub drop {
+  my($self, $engine) = @_;
 
+  return;
 }
 
 sub value_at {
   my($self, $engine, $index) = @_;
+
   if($index == 1) {
     return $self -> head($engine);
   }
@@ -94,7 +130,8 @@ sub value_at {
       $d -> reject(@_);
     });
   }
-  $d -> promise;
+
+  return $d -> promise;
 }
 
 sub _walk_tail {
@@ -117,7 +154,8 @@ sub _walk_tail {
   else {
     $d -> resolve($self);
   }
-  $d -> promise;
+
+  return $d -> promise;
 }
 
 sub head {
@@ -132,7 +170,7 @@ sub head {
     $p -> resolve(bless [] => 'Dallycot::Value::Undefined');
   }
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 sub tail {
@@ -159,7 +197,7 @@ sub tail {
     $p->resolve(bless [] => 'Dallycot::Value::EmptyStream');
   }
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 sub reduce {
@@ -169,7 +207,7 @@ sub reduce {
 
   $self->_reduce_loop($engine, $promise, $start, $lambda, $self);
 
-  $promise->promise;
+  return $promise->promise;
 }
 
 sub _reduce_loop {
@@ -198,6 +236,8 @@ sub _reduce_loop {
   else {
     $promise -> resolve($start);
   }
+
+  return;
 }
 
 1;

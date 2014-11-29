@@ -1,21 +1,46 @@
+package Dallycot::Value::EmptyStream;
+
 use strict;
 use warnings;
-package Dallycot::Value::EmptyStream;
 
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
 
+our $INSTANCE;
+
 sub new {
-  bless [] => __PACKAGE__;
+  return $INSTANCE ||= bless [] => __PACKAGE__;
 }
 
-sub is_defined { 0 }
+sub is_defined { return 0 }
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($engine->make_numeric(0));
+
+  return $d -> promise;
+}
+
+sub calculate_reverse {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($self);
+
+  return $d -> promise;
+}
 
 sub apply_map {
   my($self, $engine, $d, $transform) = @_;
 
-  $d->resolve($self->new);
+  $d->resolve($self);
+
+  return;
 }
 
 sub value_at {
@@ -23,7 +48,7 @@ sub value_at {
 
   $p -> resolve(Dallycot::Value::Undefined->new);
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 sub head {
@@ -31,15 +56,17 @@ sub head {
 
   $p -> resolve(Dallycot::Value::Undefined->new);
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 sub tail {
+  my($self) = @_;
+
   my $p = deferred;
 
-  $p -> resolve($_[0]->new);
+  $p -> resolve($self);
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 sub reduce {
@@ -49,7 +76,7 @@ sub reduce {
 
   $p -> resolve($start);
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 1;

@@ -1,6 +1,7 @@
+package Dallycot::Library;
+
 use strict;
 use warnings;
-package Dallycot::Library;
 
 # ABSTRACT: Base for adding namespaced functions to Dallycot.
 
@@ -15,7 +16,7 @@ sub instance {
   my($self) = @_;
 
   my $class = ref $self || $self;
-  ${"${class}::INSTANCE"} ||= $class -> new;
+  return ${"${class}::INSTANCE"} ||= $class -> new;
 }
 
 sub execute {
@@ -47,6 +48,8 @@ sub execute {
       }
     );
   }
+
+  return;
 }
 
 1;

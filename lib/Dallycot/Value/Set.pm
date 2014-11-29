@@ -1,6 +1,7 @@
+package Dallycot::Value::Set;
+
 use strict;
 use warnings;
-package Dallycot::Value::Set;
 
 # RDF Bag
 

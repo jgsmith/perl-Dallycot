@@ -1,15 +1,18 @@
+package Dallycot::Value;
+
 use strict;
 use warnings;
-package Dallycot::Value;
 
 use Carp qw(croak);
 
 use Module::Pluggable require => 1, sub_name => '_types', search_path => 'Dallycot::Value';
 
+use Promises qw(deferred);
+
 our @TYPES;
 
 sub types {
-  @TYPES = @TYPES || shift -> _types;
+  return @TYPES = @TYPES || shift -> _types;
 }
 
 __PACKAGE__ -> types;
@@ -19,29 +22,47 @@ sub type {
 
   my $type = ref $self;
 
-  substr($type, CORE::length(__PACKAGE__)+2);
+  return substr($type, CORE::length(__PACKAGE__)+2);
 }
 
-sub simplify { shift }
+sub simplify {
+  my($self) = @_;
 
-sub to_json { croak "to_json not defined for " . (ref($_[0]) || $_[0]); }
+  return $self;
+}
 
-sub to_string { croak "to_string not defined for ". (ref($_[0]) || $_[0]); }
+sub to_json {
+  my($self) = @_;
 
-sub child_nodes { () }
+  croak "to_json not defined for " . (blessed($self) || $self);
+}
 
-sub identifiers { () }
+sub to_string {
+  my($self) = @_;
 
-sub length {
-  my($self, $engine, $d) = @_;
+  croak "to_string not defined for ". (blessed($self) || $self);
+}
 
-  $d -> resolve($engine -> make_numeric(0));
+sub child_nodes { return () }
+
+sub identifiers { return () }
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($engine -> ZERO);
+
+  return $d -> promise;
 }
 
 sub execute {
   my($self, $engine, $d) = @_;
 
   $d->resolve($self);
+
+  return;
 }
 
 1;

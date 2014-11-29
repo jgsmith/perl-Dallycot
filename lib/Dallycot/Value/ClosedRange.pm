@@ -1,6 +1,7 @@
+package Dallycot::Value::ClosedRange;
+
 use strict;
 use warnings;
-package Dallycot::Value::ClosedRange;
 
 # No RDF equivalent - finite list of items
 
@@ -8,32 +9,42 @@ use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
 
-use constant {
-  FIRST => 0,
-  LAST => 1,
-  DIRECTION => 2
-};
+use Readonly;
 
-sub reverse {
+Readonly my $FIRST => 0;
+Readonly my $LAST => 1;
+Readonly my $DIRECTION => 2;
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($engine->make_numeric(abs($self->[$LAST] - $self->[$FIRST])));
+
+  return $d -> promise;
+}
+
+sub calculate_reverse {
   my($self) = @_;
 
   my $d = deferred;
 
-  $d -> resolve(bless [ $self->[0], $self->[1], -$self->[2] ] => __PACKAGE__);
+  $d -> resolve(bless [ $self->[$LAST], $self->[$FIRST], -$self->[$DIRECTION] ] => __PACKAGE__);
 
-  $d -> promise;
+  return $d -> promise;
 }
 
-sub type { 'Range' }
+sub type { return 'Range' }
 
 sub head {
   my($self) = @_;
 
   my $d = deferred;
 
-  $d -> resolve($self->[0]);
+  $d -> resolve($self->[$FIRST]);
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub tail {
@@ -41,29 +52,26 @@ sub tail {
 
   my $d = deferred;
 
-  my $equal_p = deferred;
-
-  $self->[0]->is_equal($engine, $equal_p, $self->[1]);
-  $equal_p -> promise -> done(sub {
+  $self->[$FIRST]->is_equal($engine, $self->[$LAST]) -> done(sub {
     my($f) = @_;
 
     if($f) {
-      $d -> resolve(bless [] => 'Dallycot::Value::EmptyStream');
+      $d -> resolve(Dallycot::Value::EmptyStream -> new());
     }
     else {
       my $next_p = deferred;
-      if($self->[DIRECTION] > 0) {
-        $next_p = $self->[0]->successor;
+      if($self->[$DIRECTION] > 0) {
+        $next_p = $self->[$FIRST]->successor;
       }
       else {
-        $next_p = $self->[0]->predecessor;
+        $next_p = $self->[$FIRST]->predecessor;
       }
       $next_p -> done(sub {
         my($next) = @_;
         $d -> resolve(bless [
             $next,
-            $self->[LAST],
-            $self->[DIRECTION]
+            $self->[$LAST],
+            $self->[$DIRECTION]
           ] => __PACKAGE__
         );
       }, sub {
@@ -74,14 +82,14 @@ sub tail {
     $d -> reject(@_);
   });
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 # We pass each value in the range through the reduction
 sub reduce {
   my($self, $engine, $start, $lambda) = @_;
 
-  if($self->[DIRECTION] < 0) {
+  if($self->[$DIRECTION] < 0) {
     return $self -> reverse -> then(sub {
       $_[0]->reduce($engine, $start, $lambda);
     });
@@ -89,17 +97,15 @@ sub reduce {
 
   my $d = deferred;
 
-  $self->_reduce_loop($engine, $d, $start, $lambda, $self->[0]);
+  $self->_reduce_loop($engine, $d, $start, $lambda, $self->[$FIRST]);
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub _reduce_loop {
   my($self, $engine, $promise, $start, $lambda, $value) = @_;
 
-  my $d = deferred;
-  $value->is_less_or_equal($engine, $d, $self->[1]);
-  $d -> done(sub {
+  $value->is_less_or_equal($engine, $self->[$LAST]) -> done(sub {
     my($flag) = @_;
 
     if($flag) {
@@ -121,6 +127,8 @@ sub _reduce_loop {
   }, sub {
     $promise -> reject(@_);
   });
+
+  return;
 }
 
 1;

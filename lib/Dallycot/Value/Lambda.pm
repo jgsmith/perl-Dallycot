@@ -1,34 +1,36 @@
+package Dallycot::Value::Lambda;
+
 use strict;
 use warnings;
-package Dallycot::Value::Lambda;
 
 use parent 'Dallycot::Value::Any';
 
 use Promises qw(deferred collect);
 
-use constant {
-  EXPRESSION => 0,
-  BINDINGS => 1,
-  BINDINGS_WITH_DEFAULTS => 2,
-  OPTIONS => 3,
-  CLOSURE_ENVIRONMENT => 4,
-  CLOSURE_NAMESPACES => 5
-};
+use Scalar::Util qw(blessed);
+
+use Readonly;
+
+Readonly my $EXPRESSION => 0;
+Readonly my $BINDINGS => 1;
+Readonly my $BINDINGS_WITH_DEFAULTS => 2;
+Readonly my $OPTIONS => 3;
+Readonly my $CLOSURE_ENVIRONMENT => 4;
+Readonly my $CLOSURE_NAMESPACES => 5;
 
 sub new {
-  my $class = shift;
+  my($class, $expression, $bindings, $bindings_with_defaults, $options, $closure_environment, $closure_namespaces) = @_;
+
   $class = ref $class || $class;
 
-  my $engine = pop;
+  my($engine, $closure_context);
 
-  my $closure_context;
-
-  if(!UNIVERSAL::isa($engine, 'Dallycot::Processor')) {
-    push @_, $engine;
-    $engine = undef;
+  if(blessed $closure_environment && $closure_environment->isa('Dallycot::Processor')) {
+    $engine = $closure_environment;
   }
-
-  my($expression, $bindings, $bindings_with_defaults, $options, $closure_environment, $closure_namespaces) = @_;
+  elsif(blessed $closure_namespaces && $closure_namespaces->isa('Dallycot::Processor')) {
+    $engine = $closure_namespaces;
+  }
 
   $bindings ||= [];
   $bindings_with_defaults ||= [];
@@ -46,30 +48,32 @@ sub new {
     $closure_namespaces = $closure_context->namespaces;
   }
 
-  bless [ $expression, $bindings, $bindings_with_defaults, $options,
-          $closure_environment, $closure_namespaces ] => $class;
+  return bless [
+    $expression, $bindings, $bindings_with_defaults, $options,
+    $closure_environment, $closure_namespaces
+  ] => $class;
 }
 
 sub id {
-  '^^Lambda';
+  return '^^Lambda';
 }
 
 sub arity {
   my($self) = @_;
-  my $min = scalar(@{$self->[BINDINGS]});
-  my $more = scalar(@{$self->[BINDINGS_WITH_DEFAULTS]});
+  my $min = scalar(@{$self->[$BINDINGS]});
+  my $more = scalar(@{$self->[$BINDINGS_WITH_DEFAULTS]});
   if(wantarray) {
-    ($min, $min+$more);
+    return ($min, $min+$more);
   }
   else {
-    $min+$more;
+    return $min+$more;
   }
 }
 
 sub min_arity {
   my($self) = @_;
 
-  scalar(@{$self->[BINDINGS]});
+  return scalar(@{$self->[$BINDINGS]});
 }
 
 sub _arity_in_range {
@@ -92,7 +96,7 @@ sub _options_are_good {
 
   if(%$options) {
     my @bad_options = grep {
-      not exists ${$self->[OPTIONS]}{$_}
+      not exists ${$self->[$OPTIONS]}{$_}
     } keys %$options;
     if(@bad_options > 1) {
       $promise -> reject("Options ".join(", ", sort(@bad_options))." are not allowed.");
@@ -107,7 +111,8 @@ sub _options_are_good {
 }
 
 sub _is_placeholder {
-  UNIVERSAL::isa($_[1], 'Dallycot::AST::Placeholder');
+  my($self, $obj) = @_;
+  return UNIVERSAL::isa($obj, 'Dallycot::AST::Placeholder');
 }
 
 sub _get_bindings {
@@ -122,28 +127,28 @@ sub _get_bindings {
 
   foreach my $idx (0..$min_arity-1) {
     if($self->_is_placeholder($bindings[$idx])) {
-      push @new_bindings, $self->[BINDINGS][$idx];
+      push @new_bindings, $self->[$BINDINGS][$idx];
     }
     else {
       push @filled_bindings, $bindings[$idx];
-      push @filled_identifiers, $self->[BINDINGS][$idx];
+      push @filled_identifiers, $self->[$BINDINGS][$idx];
     }
   }
   if($arity > $min_arity) {
     foreach my $idx ($min_arity .. $arity-1) {
       if($self->_is_placeholder($bindings[$idx])) {
-        push @new_bindings_with_defaults, $self->[BINDINGS_WITH_DEFAULTS][$idx - $min_arity];
+        push @new_bindings_with_defaults, $self->[$BINDINGS_WITH_DEFAULTS][$idx - $min_arity];
       }
       else {
         push @filled_bindings, $bindings[$idx];
-        push @filled_identifiers, $self->[BINDINGS_WITH_DEFAULTS][$idx - $min_arity]->[0];
+        push @filled_identifiers, $self->[$BINDINGS_WITH_DEFAULTS][$idx - $min_arity]->[0];
       }
     }
   }
   if($arity < $max_arity) {
     foreach my $idx ($arity..$max_arity-1) {
-      push @filled_bindings, $self->[BINDINGS_WITH_DEFAULTS][$idx - $min_arity]->[1];
-      push @filled_identifiers, $self->[BINDINGS_WITH_DEFAULTS][$idx - $min_arity]->[0];
+      push @filled_bindings, $self->[$BINDINGS_WITH_DEFAULTS][$idx - $min_arity]->[1];
+      push @filled_identifiers, $self->[$BINDINGS_WITH_DEFAULTS][$idx - $min_arity]->[0];
     }
   }
 
@@ -156,7 +161,7 @@ sub _get_bindings {
     $d -> reject(@_);
   });
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub _get_options {
@@ -169,22 +174,22 @@ sub _get_options {
   $engine->collect(
     @{$options}{@option_names}
   )->done(sub {
-    my(@option_values) = @_; #map { @$_ } @_;
+    my(@option_values) = @_;
     my %options;
 
     @options{@option_names} = @option_values;
     $d -> resolve(+{
-      %{$self->[OPTIONS]},
+      %{$self->[$OPTIONS]},
       %options
     });
   }, sub {
     $d -> reject(@_);
   });
 
-  $d -> promise;
+  return $d -> promise;
 }
 
-sub child_nodes { () }
+sub child_nodes { return () }
 
 sub apply {
   my($self, $engine, $options, @bindings) = @_;
@@ -205,25 +210,25 @@ sub apply {
       $self->_get_options($engine, $options)->done(sub {
         my($filled_options) = @_;
 
-        my %environment = (%{$self->[CLOSURE_ENVIRONMENT]||{}}, %$filled_bindings);
+        my %environment = (%{$self->[$CLOSURE_ENVIRONMENT]||{}}, %$filled_bindings);
 
         if(@$new_bindings || @$new_bindings_with_defaults) {
           $promise -> resolve( bless [
-              $self->[EXPRESSION],
+              $self->[$EXPRESSION],
               $new_bindings,
               $new_bindings_with_defaults,
               $filled_options,
               \%environment,
-              $self->[CLOSURE_NAMESPACES]
+              $self->[$CLOSURE_NAMESPACES]
             ] => __PACKAGE__
           );
         }
         else {
           my $new_engine = $engine->with_new_closure(
-            { %environment, %{$filled_options} },
-            $self->[CLOSURE_NAMESPACES],
+            +{ %environment, %{$filled_options} },
+            $self->[$CLOSURE_NAMESPACES],
           );
-          $new_engine->execute($self->[EXPRESSION])->done(sub {
+          $new_engine->execute($self->[$EXPRESSION])->done(sub {
             $promise->resolve(@_);
           }, sub {
             $promise->reject(@_);
@@ -236,7 +241,8 @@ sub apply {
       $promise -> reject(@_);
     });
   }
-  $promise->promise;
+
+  return $promise->promise;
 }
 
 1;

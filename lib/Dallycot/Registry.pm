@@ -1,6 +1,7 @@
+package Dallycot::Registry;
+
 use strict;
 use warnings;
-package Dallycot::Registry;
 
 use MooseX::Singleton;
 
@@ -19,8 +20,8 @@ has namespaces => (
 sub has_assignment {
   my($self, $ns, $symbol) = @_;
 
-  $self->namespaces->{$ns} &&
-  $self->namespaces->{$ns}->has_assignment($symbol);
+  return $self->namespaces->{$ns} &&
+         $self->namespaces->{$ns}->has_assignment($symbol);
 }
 
 sub get_assignment {
@@ -32,12 +33,14 @@ sub get_assignment {
       return $ns -> get_assignment($symbol);
     }
   }
+
+  return;
 }
 
 sub has_namespace {
   my($self, $ns) = @_;
 
-  exists $self->namespaces->{$ns};
+  return exists $self->namespaces->{$ns};
 }
 
 sub register_namespace {
@@ -46,6 +49,8 @@ sub register_namespace {
   if(!$self->has_namespace($ns)) {
     $self->namespaces->{$ns} = $context;
   }
+
+  return;
 }
 
 sub initialize {
@@ -57,7 +62,7 @@ sub initialize {
     $self->type_handlers->{$type->type} = $type;
   }
 
-  $self;
+  return $self;
 }
 
 1;
