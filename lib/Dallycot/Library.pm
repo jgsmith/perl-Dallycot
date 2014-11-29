@@ -1,7 +1,11 @@
 package Dallycot::Library;
 
+use strict;
+use warnings;
+
 # ABSTRACT: Base for adding namespaced functions to Dallycot.
 
+use utf8;
 use Moose;
 
 use Dallycot::Processor;
@@ -12,10 +16,8 @@ has functions ( isa => 'HashRef', is => 'ro', default => sub { +{ } } );
 sub instance {
   my($self) = @_;
 
-  no strict 'refs';
-
   my $class = ref $self || $self;
-  ${"${class}::INSTANCE"} ||= $class -> new;
+  return ${"${class}::INSTANCE"} ||= $class -> new;
 }
 
 sub execute {
@@ -47,6 +49,8 @@ sub execute {
       }
     );
   }
+
+  return;
 }
 
 1;

@@ -1,5 +1,9 @@
 package Dallycot::Value::URI;
 
+use strict;
+use warnings;
+
+use utf8;
 use parent 'Dallycot::Value::Any';
 
 use Promises qw(deferred);
@@ -11,13 +15,17 @@ sub new {
 
   $class = ref $class || $class;
 
-  bless [ $uri ] => $class;
+  return bless [ $uri ] => $class;
 }
 
-sub length {
-  my($self, $engine, $d) = @_;
+sub calculate_length {
+  my($self, $engine) = @_;
 
-  $d -> resolve($engine->Numeric(CORE::length $self->[0]));
+  my $d = deferred;
+
+  $d -> resolve($engine->make_numeric(length $self->[0]));
+
+  return $d -> promise;
 }
 
 sub value_at {
@@ -27,7 +35,7 @@ sub value_at {
 
   $d -> resolve(bless [ substr($self->[0], $index-1, 1), 'en' ] => 'Dallycot::Value::String');
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub execute {
@@ -41,6 +49,8 @@ sub execute {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 1;

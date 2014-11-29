@@ -2,8 +2,10 @@ package Dallycot::Processor;
 
 # ABSTRACT: Run compiled Dallycot code.
 
-use v5.20;
+use strict;
+use warnings;
 
+use utf8;
 use Moose;
 
 use Promises qw(deferred);
@@ -16,18 +18,20 @@ use Dallycot::Resolver;
 use Dallycot::Value;
 use Dallycot::AST;
 
+use Readonly;
+
 use Math::BigRat try => 'GMP';
 
 has context => (
   is => 'ro',
   isa => 'Dallycot::Context',
-  # handles => qw[
-  #   has_assignment
-  #   get_assignment
-  #   add_assignment
-  #   has_namespace
-  #   get_namespace
-  # ],
+  handles => [ qw[
+    has_assignment
+    get_assignment
+    add_assignment
+    has_namespace
+    get_namespace
+  ] ],
   default => sub {
     Dallycot::Context -> new
   }
@@ -51,28 +55,22 @@ has parent => (
   isa => __PACKAGE__
 );
 
-sub has_assignment { shift -> context -> has_assignment(@_) }
-sub get_assignment { shift -> context -> get_assignment(@_) }
-sub add_assignment { shift -> context -> add_assignment(@_) }
-sub has_namespace { shift -> context -> has_namespace(@_) }
-sub get_namespace { shift -> context -> get_namespace(@_) }
-
 sub add_cost {
   my($self, $delta) = @_;
 
   if($self -> has_parent) {
-    $self -> parent -> add_cost($delta);
+    return $self -> parent -> add_cost($delta);
   }
   else {
     $self -> cost($self -> cost + $delta);
-    $self -> cost > $self -> max_cost;
+    return $self -> cost > $self -> max_cost;
   }
 }
 
 sub with_child_scope {
   my($self) = @_;
 
-  $self -> new(
+  return $self -> new(
     parent => $self,
     context => $self -> context -> new(
       parent => $self -> context
@@ -83,7 +81,7 @@ sub with_child_scope {
 sub with_new_closure {
   my($self, $environment, $namespaces) = @_;
 
-  $self -> new(
+  return $self -> new(
     parent => $self,
     context => $self -> context -> new(
       environment => $environment,
@@ -92,19 +90,22 @@ sub with_new_closure {
   );
 }
 
-sub collect {
-  my $self = shift;
+sub _execute_expr {
+  my($self, $expr) = @_;
 
-  Promises::collect(
-    map {
-      my $expr = $_;
-      if('ARRAY' eq ref $expr) {
-        $self->execute(@$expr);
-      }
-      else {
-        $self->execute($expr);
-      }
-    } @_
+  if('ARRAY' eq ref $expr) {
+    return $self -> execute(@$expr);
+  }
+  else {
+    return $self -> execute($expr);
+  }
+}
+
+sub collect {
+  my($self, @exprs) = @_;
+
+  return Promises::collect(
+    map { $self->_execute_expr($_) } @exprs
   )->then(sub {
     map { @$_ } @_;
   });
@@ -118,58 +119,68 @@ sub coerce {
 
   $d -> resolve($a, $b);
 
-  $d -> promise;
+  return $d -> promise;
 }
 
-sub Lambda {
+sub make_lambda {
   my($self, $expression, $bindings, $bindings_with_defaults, $options) = @_;
 
   $bindings ||= [];
   $bindings_with_defaults ||= [];
   $options ||= {};
 
-  Dallycot::Value::Lambda->new(
-    $expression, $bindings, $bindings_with_defaults, $options,
-    $self
+  return Dallycot::Value::Lambda->new(
+    expression => $expression,
+    bindings => $bindings,
+    bindings_with_defaults => $bindings_with_defaults,
+    options => $options,
+    engine => $self
   );
 }
 
-sub Boolean {
-  Dallycot::Value::Boolean->new($_[1]);
+sub make_boolean {
+  my($self, $f) = @_;
+  return Dallycot::Value::Boolean->new($f);
 }
 
-sub Numeric {
-  Dallycot::Value::Numeric->new($_[1]);
+sub make_numeric {
+  my($self, $n) = @_;
+  return Dallycot::Value::Numeric->new($n);
 }
 
-sub String {
-  shift;
-  Dallycot::Value::String->new(@_);
+sub make_string {
+  my($self, $value, $lang) = @_;
+  return Dallycot::Value::String->new($value, $lang);
 }
 
-sub Vector {
-  shift;
-  Dallycot::Value::Vector->new(@_);
+sub make_vector {
+  my($self, @things) = @_;
+  return Dallycot::Value::Vector->new(@things);
 }
 
-sub Undefined {
-  Dallycot::Value::Undefined->new;
-}
+Readonly my $TRUE => make_boolean(undef,1);
+Readonly my $FALSE => make_boolean(undef,'');
+Readonly my $UNDEFINED => Dallycot::Value::Undefined->new;
+Readonly my $ZERO => make_numeric(undef, Math::BigRat->bzero());
+Readonly my $ONE  => make_numeric(undef, Math::BigRat->bone());
 
-use constant TRUE => Boolean(undef,1);
-use constant FALSE => Boolean(undef,'');
+sub TRUE () { return $TRUE }
+sub FALSE () { return $FALSE }
+sub UNDEFINED () { return $UNDEFINED }
+sub ZERO () { return $ZERO }
+sub ONE () { return $ONE }
 
 sub execute_all {
-  my $self     = shift;
-  my $deferred = shift;
+  my($self, $deferred, @stmts) = @_;
 
-  $self->_execute_loop($deferred, ['Any'], @_);
+  $self->_execute_loop($deferred, ['Any'], @stmts);
+  return;
 }
 
 sub _execute_loop {
-  my ($self,$deferred, $expected_types, $stmt, @stmts) = @_;
+  my($self, $deferred, $expected_types, $stmt, @stmts) = @_;
 
-  if ( !@stmts ) {
+  if( !@stmts ) {
     $self -> _execute($expected_types, $stmt)
           -> done(
             sub { $deferred -> resolve(@_); },
@@ -182,6 +193,7 @@ sub _execute_loop {
           sub { $self -> _execute_loop($deferred, $expected_types, @stmts) },
           sub { $deferred -> reject(@_); }
         );
+  return;
 }
 
 
@@ -189,18 +201,22 @@ sub _execute {
   my($self, $expected_types, $ast) = @_;
 
   my $d = deferred;
-  eval {
+  my $worked = eval {
     if($self -> add_cost(1)) {
       $d -> reject("Exceeded maximum evaluation cost");
     }
     else {
       $ast -> execute($self, $d);
     }
+    1;
   };
   if($@) {
-    $d -> reject(@_);
+    $d -> reject($@);
   }
-  $d -> promise;
+  elsif(!$worked) {
+    $d -> reject("Unable to evaluate");
+  }
+  return $d -> promise;
 }
 
 sub execute {
@@ -209,13 +225,13 @@ sub execute {
   my @expected_types = ('Any');
 
   if(@ast) {
-    my $last = pop @ast;
+    my $potential_types = pop @ast;
 
-    if('ARRAY' eq ref $last) {
-      @expected_types = @$last;
+    if('ARRAY' eq ref $potential_types) {
+      @expected_types = @$potential_types;
     }
     else {
-      push @ast, $last;
+      push @ast, $potential_types;
     }
   }
 
@@ -230,69 +246,41 @@ sub execute {
       sub { $d -> reject(@_); }
     );
   }
-  $d -> promise;
+  return $d -> promise;
 }
 
-sub stream_to_vector {
-  my($self, $d, $stream, $vector_values) = (@_, []);
-
-  my $d_head = deferred;
-  $self -> _get_head($stream, $d_head);
-  $d_head->done(sub {
-    my($head) = @_;
-    if(defined $head) {
-      push @{$vector_values}, $head;
-      my $d_tail = deferred;
-      $self -> _get_tail($stream, $d_tail);
-      $d_tail->done(sub {
-        my($tail) = @_;
-        if(defined $tail) {
-          $self -> stream_to_vector($d, $tail, $vector_values);
-        }
-        else {
-          $d -> resolve({
-            a => 'Vector',
-            value => $vector_values
-          });
-        }
-      }, sub {
-        $d -> reject(@_);
-      });
-    }
-  }, sub {
-    $d -> reject(@_);
-  });
-}
-
-sub _run_apply {
-  my($self, $d, $function, $bindings, $options) = (@_, {});
-  my $cardinality = scalar(@$bindings);
-
-  if('HASH' eq ref $function) {
-    if($function->{'a'} eq 'Graph') {
-      if($cardinality != 1) {
-        $d -> reject("Expected one and only one argument when applying a graph. Found $cardinality.");
-      }
-      else {
-        $self -> execute($bindings->[0])->done(sub {
-          my($key) = @_;
-          if(ref $key) {
-            $d -> reject("Expected a scalar argument when applying a graph.");
-          }
-          else {
-            $d -> resolve($function->{'@graph'}->{$key});
-          }
-        }, sub {
-          $d->reject(@_);
-        });
-      }
-    }
-  }
-}
+# sub _run_apply {
+#   my($self, $d, $function, $bindings, $options) = @_;
+#   $options //= {};
+#   my $cardinality = scalar(@$bindings);
+#
+#   if('HASH' eq ref $function) {
+#     if($function->{'a'} eq 'Graph') {
+#       if($cardinality != 1) {
+#         $d -> reject("Expected one and only one argument when applying a graph. Found $cardinality.");
+#       }
+#       else {
+#         $self -> execute($bindings->[0])->done(sub {
+#           my($key) = @_;
+#           if(ref $key) {
+#             $d -> reject("Expected a scalar argument when applying a graph.");
+#           }
+#           else {
+#             $d -> resolve($function->{'@graph'}->{$key});
+#           }
+#         }, sub {
+#           $d->reject(@_);
+#         });
+#       }
+#     }
+#   }
+#
+#   return;
+# }
 
 sub compose_lambdas {
-  my $self = shift;
-  my @lambdas = reverse @_;
+  my($self, @lambdas) = @_;
+  @lambdas = reverse @lambdas;
 
   my $new_engine = $self -> with_child_scope;
 
@@ -306,12 +294,21 @@ sub compose_lambdas {
     );
   }
 
-  $new_engine -> Lambda($expression, [ '#' ]);
+  return $new_engine -> make_lambda($expression, [ '#' ]);
+}
+
+sub _add_filter_to_context {
+  my($engine, $idx, $filter, $expression) = @_;
+
+  $engine -> context -> add_assignment("__lambda_".$idx, $filter);
+  return Dallycot::AST::Apply->new(
+    Dallycot::AST::Fetch->new('__lambda_'.$idx),
+    [ $expression ]
+  );
 }
 
 sub compose_filters {
-  my $self = shift;
-  my @filters = @_;
+  my($self, @filters) = @_;
 
   if(@filters == 1) {
     return $filters[0];
@@ -322,15 +319,17 @@ sub compose_filters {
   my $expression = Dallycot::AST::Fetch->new('#');
   my $idx = 0;
   my @applications = map {
-    $idx += 1;
-    $new_engine -> context -> add_assignment("__lambda_".$idx, $_);
-    Dallycot::AST::Apply->new(
-      Dallycot::AST::Fetch->new('__lambda_'.$idx),
-      [ $expression ]
-    );
+    _add_filter_to_context($new_engine, $idx++, $_, $expression)
   } @filters;
+  #   $idx += 1;
+  #   $new_engine -> context -> add_assignment("__lambda_".$idx, $_);
+  #   Dallycot::AST::Apply->new(
+  #     Dallycot::AST::Fetch->new('__lambda_'.$idx),
+  #     [ $expression ]
+  #   );
+  # } @filters;
 
-  $new_engine -> Lambda(
+  return $new_engine -> make_lambda(
     Dallycot::AST::All->new(@applications),
     [ '#' ]
   );
@@ -345,7 +344,7 @@ sub compose_filters {
 # ___transform := t
 # map_t := { map_f(map_f, ___transorm, #) }
 #
-our $MAPPER = bless( [
+my $MAPPER = bless( [
   bless( [
     [
       bless( [
@@ -386,8 +385,7 @@ our $MAPPER = bless( [
   {}
 ], 'Dallycot::Value::Lambda' );
 
-our $MAP_APPLIER = #bless( [
-  bless( [
+my $MAP_APPLIER = bless( [
     bless( [ '__map_f' ], 'Dallycot::AST::Fetch' ),
     [
       bless( [ '__map_f' ], 'Dallycot::AST::Fetch' ),
@@ -395,15 +393,10 @@ our $MAP_APPLIER = #bless( [
       bless( [ 's' ], 'Dallycot::AST::Fetch' )
     ],
     {}
-  ], 'Dallycot::AST::Apply' ); #,
-#   [ 's' ],
-#   [],
-#   {}
-# ], 'Dallycot::AST::Lambda' );
+  ], 'Dallycot::AST::Apply' );
 
 sub make_map {
-  my $self = shift;
-  my $transform = shift;
+  my($self, $transform) = @_;
 
   my $new_engine = $self -> with_child_scope;
 
@@ -411,7 +404,7 @@ sub make_map {
 
   $new_engine -> context -> add_assignment("__map_f", $MAPPER);
 
-  $new_engine -> Lambda($MAP_APPLIER, [ 's' ]);
+  return $new_engine -> make_lambda($MAP_APPLIER, [ 's' ]);
 }
 
 # filter := (
@@ -426,7 +419,7 @@ sub make_map {
 # );
 # filter(f, _)
 #
-our $FILTER = bless( [
+my $FILTER = bless( [
   bless( [
     [
       bless( [
@@ -488,7 +481,7 @@ our $FILTER = bless( [
   {}
 ], 'Dallycot::Value::Lambda' );
 
-our $FILTER_APPLIER = bless( [
+my $FILTER_APPLIER = bless( [
   bless( [ '__filter_f' ], 'Dallycot::AST::Fetch' ),
   [
     bless( [ '__filter_f' ], 'Dallycot::AST::Fetch' ),
@@ -499,8 +492,7 @@ our $FILTER_APPLIER = bless( [
 ], 'Dallycot::AST::Apply' );
 
 sub make_filter {
-  my $self = shift;
-  my $filter = shift;
+  my($self, $filter) = @_;
 
   my $new_engine = $self -> with_child_scope;
 
@@ -508,7 +500,7 @@ sub make_filter {
 
   $new_engine -> context -> add_assignment("__filter_f", $FILTER);
 
-  $new_engine -> Lambda($FILTER_APPLIER, [ 's' ]);
+  return $new_engine -> make_lambda($FILTER_APPLIER, [ 's' ]);
 }
 
 1;

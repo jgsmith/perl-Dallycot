@@ -1,7 +1,13 @@
 package Dallycot::Context;
 
+use strict;
+use warnings;
+
+use utf8;
 use Moose;
 use Array::Utils qw(unique array_minus);
+
+use Carp qw(croak cluck);
 
 use experimental qw(switch);
 
@@ -24,54 +30,57 @@ sub add_namespace {
   my($self, $ns, $href) = @_;
 
   if(($self -> is_closure || $self -> has_parent) && defined($self->namespaces->{$ns})) {
-    die "Namespaces may not be defined multiple times in a sub-context or closure";
+    croak "Namespaces may not be defined multiple times in a sub-context or closure";
   }
   $self->namespaces->{$ns} = $href;
+
+  return;
 }
 
 sub get_namespace {
   my($self, $ns) = @_;
 
   if(defined($self -> namespaces -> {$ns})) {
-    $self -> namespaces -> {$ns};
+    return $self -> namespaces -> {$ns};
   }
   elsif($self -> has_parent) {
-    $self -> parent -> get_namespace($ns);
+    return $self -> parent -> get_namespace($ns);
   }
 }
 
 sub has_namespace {
   my($self, $prefix) = @_;
 
-  exists($self->namespaces->{$prefix}) ||
-  $self -> has_parent && $self -> parent -> has_namespace($prefix);
+  return exists($self->namespaces->{$prefix}) ||
+         $self -> has_parent && $self -> parent -> has_namespace($prefix);
 }
 
 sub add_assignment {
   my($self, $identifier, $expr) = @_;
 
   if(($self -> is_closure || $self->has_parent) && defined($self->environment->{$identifier})) {
-    die "Identifiers may not be redefined in a sub-context or closure";
+    croak "Identifiers may not be redefined in a sub-context or closure";
   }
   $self->environment->{$identifier} = $expr;
+  return;
 }
 
 sub get_assignment {
   my($self, $identifier) = @_;
 
   if(defined($self->environment->{$identifier})) {
-    $self -> environment -> {$identifier};
+    return $self -> environment -> {$identifier};
   }
   elsif($self -> has_parent) {
-    $self -> parent -> get_assignment($identifier);
+    return $self -> parent -> get_assignment($identifier);
   }
 }
 
 sub has_assignment {
   my($self, $identifier) = @_;
 
-  exists($self->environment->{$identifier}) ||
-  $self -> has_parent && $self -> parent -> has_assignment($identifier);
+  return exists($self->environment->{$identifier}) ||
+         $self -> has_parent && $self -> parent -> has_assignment($identifier);
 }
 
 sub make_closure {
@@ -84,9 +93,9 @@ sub make_closure {
   my @identifiers = ();
 
   while(@stack) {
-    my $node = shift @stack;
+    $node = shift @stack;
     if(!ref $node) {
-      Carp::cluck "We have a non-ref node! ($node)";
+      cluck "We have a non-ref node! ($node)";
     }
 
     push @stack, $node->child_nodes;
@@ -114,7 +123,7 @@ sub make_closure {
   }
 
   # making the closure a child/parent allows setting overrides once in the closure code
-  $self -> new(
+  return $self -> new(
     namespaces => \%namespaces,
     environment => \%environment,
   );

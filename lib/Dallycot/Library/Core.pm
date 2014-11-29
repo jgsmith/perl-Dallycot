@@ -1,7 +1,9 @@
 package Dallycot::Library::Core;
 
-use v5.14;
+use strict;
+use warnings;
 
+use utf8;
 use MooseX::Singleton;
 
 use Dallycot::Context;
@@ -26,23 +28,24 @@ sub initialize {
 
   my $parse = $parser -> parse_library(
     __PACKAGE__,
-    do { local($/); my $s = <DATA>; $s; }
+    do { local($/) = undef; my $s = <DATA>; $s; }
   );
 
-  $engine->execute(@$parse)->then(
+  return $engine->execute(@$parse)->then(
     sub {
       Dallycot::Registry->instance->register_namespace(
         '', $context
       );
-      #print STDERR Data::Dumper->Dump([$context]);
     }
   );
 }
 
 sub call_function {
-  my($self, $name, $parent_engine, $d, @bindings) = @_;
+  my($self, $name, $parent_engine, @bindings) = @_;
 
-  my $method = "do" . $name;
+  my $d = deferred;
+
+  my $method = "do_" . $name;
   if($self->can($method)) {
 
     my $engine = Dallycot::Processor->new(
@@ -53,11 +56,7 @@ sub call_function {
       max_cost => $parent_engine -> max_cost
     );
 
-    my $d2 = deferred;
-
-    $self->$method($engine, $d2, @bindings);
-
-    $d2->promise->done(sub {
+    $self->$method($engine, @bindings)->done(sub {
       $parent_engine->cost($engine->cost);
       $d->resolve(@_);
     }, sub {
@@ -68,6 +67,8 @@ sub call_function {
   else {
     $d -> reject("undefined function called in library");
   }
+
+  return $d -> promise;
 }
 
 sub run_bindings_and_then {
@@ -77,32 +78,48 @@ sub run_bindings_and_then {
     map { $engine->execute($_) } @$bindings
   )->done(sub {
     # print STDERR "Bindings collected for cb: ", Data::Dumper->Dump([\@_]);
-    eval {
+    my $worked = eval {
       $cb->(map { @{$_} } @_);
+      1;
     };
     if($@) {
       $d -> reject($@);
     }
+    elsif(!$worked) {
+      $d -> reject("Unable to run core function.");
+    }
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 ##
 # eventually, this will be for string lengths
 #
-sub doLength {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_length {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($thing) = @_;
     my $length = 0;
-    $thing -> length($engine, $d);
+    $thing -> calculate_length($engine) -> then(sub {
+      $d -> resolve(@_);
+    }, sub {
+      $d -> reject(@_);
+    });
   });
+
+  return $d -> promise;
 }
 
-sub doDivisibleBy {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_divisible_by {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x, $n) = @_;
@@ -112,13 +129,17 @@ sub doDivisibleBy {
     else {
       my $xcopy = $x->value->copy();
       $xcopy -> bmod($n->value);
-      $d -> resolve($engine->Boolean($xcopy->is_zero));
+      $d -> resolve($engine->make_boolean($xcopy->is_zero));
     }
   });
+
+  return $d -> promise;
 }
 
-sub doEvenQ {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_even_q {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -126,13 +147,17 @@ sub doEvenQ {
       $d -> reject("even? expects a numeric argument");
     }
     else {
-      $d -> resolve($engine->Boolean($x -> [0] -> is_even));
+      $d -> resolve($engine->make_boolean($x -> [0] -> is_even));
     }
   });
+
+  return $d;
 }
 
-sub doOddQ {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_odd_q {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -140,13 +165,17 @@ sub doOddQ {
       $d -> reject("odd? expects a numeric argument");
     }
     else {
-      $d -> resolve($engine->Boolean($x -> [0] -> is_odd));
+      $d -> resolve($engine->make_boolean($x -> [0] -> is_odd));
     }
   });
+
+  return $d -> promise;
 }
 
-sub doFactorial {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_factorial {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -154,19 +183,23 @@ sub doFactorial {
       $d -> reject("factorial expects a numeric argument");
     }
     elsif($x->value -> is_int) {
-      $d -> resolve($engine->Numeric(
+      $d -> resolve($engine->make_numeric(
         $x->value -> copy() -> bfac()
       ));
     }
     else {
       # TODO: handle non-integer arguments to gamma function
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
   });
+
+  return $d -> promise;
 }
 
-sub doCeil {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_ceil {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -175,14 +208,18 @@ sub doCeil {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->bceil)
+        $engine->make_numeric($x->value->copy->bceil)
       );
     }
   });
+
+  return $d -> promise;
 }
 
-sub doFloor {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_floor {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -191,14 +228,18 @@ sub doFloor {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->bfloor)
+        $engine->make_numeric($x->value->copy->bfloor)
       );
     }
   });
+
+  return $d -> promise;
 }
 
-sub doAbs {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_abs {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x) = @_;
@@ -207,14 +248,18 @@ sub doAbs {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->babs)
+        $engine->make_numeric($x->value->copy->babs)
       );
     }
   });
+
+  return $d -> promise;
 }
 
-sub doBinomial {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_binomial {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($x, $y) = @_;
@@ -223,75 +268,31 @@ sub doBinomial {
     }
     else {
       $d -> resolve(
-        $engine->Numeric($x->value->copy->bnok($y->value))
+        $engine->make_numeric($x->value->copy->bnok($y->value))
       );
     }
   });
+
+  return $d -> promise;
 }
 
 #====================================================================
 #
 # Basic string functions
 
+sub do_string_take {
+  my($self, $engine, @bindings) = @_;
 
-our @leonardoNumbers = (
-  1, 1, 3, 5, 9,
-  15, 25, 41, 67, 109,
-  177, 287, 465, 753, 1219,
-  1973, 3193, 5167, 8361, 13529,
-  21891, 35421, 57313, 92735, 150049,
-  242785, 392835, 635621, 1028457, 1664079,
-  2692537, 4356617, 7049155, 11405773, 18454929,
-  29860703, 48315633, 78176337, 126491971, 204668309,
-  331160281, 535828591, 866988873, 1402817465, 2269806339,
-  3_672_623_805
-);
-
-sub _calculate_sort {
-  my($self, $engine, $d, $vector, $sort_function, $return_as_stream) = @_;
-
-  # we use $sort_function to tell us if two items need to be swapped
-  # because we're promise based, we have to sort without using Perl's
-  # sort function :-/
-  my @work = @$vector;
-
-}
-
-sub doSort {
-  my($self, $engine, $d, @bindings) = @_;
-
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($stream, $sort_function) = @_;
-
-    given($stream->{'a'}) {
-      when('Vector') {
-        $self -> _calculate_sort($engine, $d, $stream, $sort_function);
-      }
-      when('Stream') {
-        my $vector_d = deferred;
-        $engine->stream_to_vector($vector_d, $stream);
-        $vector_d -> done(sub {
-          my($vector) = @_;
-          $self -> _calculate_sort($engine, $d, $vector, $sort_function, 1);
-        }, sub {
-          $d -> reject(@_);
-        });
-      }
-    }
-  });
-}
-
-sub doStringTake {
-  my($self, $engine, $d, @bindings) = @_;
+  my $d = deferred;
 
   $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
     my($string, $spec) = @_;
 
     if(!$string) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     elsif(!$spec) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     else {
       if($spec -> isa('Dallycot::Value::Numeric')) {
@@ -345,19 +346,23 @@ sub doStringTake {
       }
     }
   });
+
+  return $d -> promise;
 }
 
-sub doStringDrop {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_string_drop {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
     my($string, $spec) = @_;
 
     if(!$string) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     elsif(!$spec) {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
     elsif($spec->isa('Dallycot::Value::Numeric')) {
         my $offset = $spec -> value -> numify;
@@ -371,14 +376,18 @@ sub doStringDrop {
       $d -> reject("string-drop requires a numeric second argument");
     }
   });
+
+  return $d -> promise;
 }
 
 #====================================================================
 #
 # Textual/Linguistic functions
 
-sub doStopWords {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_stop_words {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($language) = @_;
@@ -396,9 +405,11 @@ sub doStopWords {
       ));
     }
   });
+
+  return $d -> promise;
 }
 
-our %language_codes_for_classifier = qw(
+my %language_codes_for_classifier = qw(
   af afr
   am amh
   ar ara
@@ -499,10 +510,12 @@ our %language_codes_for_classifier = qw(
   zh zho
 );
 
-our %language_codes_from_classifier = reverse %language_codes_for_classifier;
+my %language_codes_from_classifier = reverse %language_codes_for_classifier;
 
-sub doBuildLanguageClassifier {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_build_language_classifier {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($languages) = @_;
@@ -519,34 +532,42 @@ sub doBuildLanguageClassifier {
       ] => 'Dallycot::Library::Core::LanguageClassifier');
     }
   });
+
+  return $d -> promise;
 }
 
-sub doGetAvailableLanguagesForClassifier {
-  my($self, $engine, $d) = @_;
+sub do_get_available_languages_for_classifier {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
 
   $d -> resolve(Dallycot::Value::Vector->new);
-  return;
-  $d -> resolve({
-    a => 'Vector',
-    value => [
-      map {
-        +{
-          a => 'String',
-          value => $_,
-          language => 'en'
-        }
-      } grep {
-        $_
-      }
-      map {
-        $language_codes_for_classifier{$_}
-      } @{Lingua::YALI::LanguageIdentifier->new->get_available_languages}
-    ]
-  })
+
+  return $d -> promise;
+
+  # $d -> resolve({
+  #   a => 'Vector',
+  #   value => [
+  #     map {
+  #       +{
+  #         a => 'String',
+  #         value => $_,
+  #         language => 'en'
+  #       }
+  #     } grep {
+  #       $_
+  #     }
+  #     map {
+  #       $language_codes_for_classifier{$_}
+  #     } @{Lingua::YALI::LanguageIdentifier->new->get_available_languages}
+  #   ]
+  # })
 }
 
-sub doClassifyTextLanguage {
-  my($self, $engine, $d, @bindings) = @_;
+sub do_classify_text_language {
+  my($self, $engine, @bindings) = @_;
+
+  my $d = deferred;
 
   $self->run_bindings_and_then($engine, $d, \@bindings, sub {
     my($classifier, $text) = @_;
@@ -594,7 +615,7 @@ sub doClassifyTextLanguage {
                 return;
               }
             }
-            eval {
+            my $worked = eval {
               my $identifier = Lingua::YALI::LanguageIdentifier->new();
               $identifier->add_language(@{$classifier->{'languages'}});
               # TODO: make '4096' a tunable parameter
@@ -605,9 +626,13 @@ sub doClassifyTextLanguage {
                 value => $language_codes_from_classifier{$result->[0]->[0]},
                 language => 'en'
               });
+              1;
             };
             if($@) {
               $d -> reject($@);
+            }
+            elsif(!$worked) {
+              $d -> reject("Unable to identify language.");
             }
           }, sub {
             $d -> reject(@_);
@@ -618,6 +643,8 @@ sub doClassifyTextLanguage {
       }
     }
   });
+
+  return $d -> promise;
 }
 
 ##
@@ -631,13 +658,13 @@ __DATA__
 
 (* basic helpers *)
 
-length(x) :> call("Length", x);
+length(x) :> call("length", x);
 
-divisible-by?(x,n) :> call("DivisibleBy", x, n);
+divisible-by?(x,n) :> call("divisible_by", x, n);
 
-even?(x) :> call("EvenQ", x);
+even?(x) :> call("even_q", x);
 
-odd?(x) :> call("OddQ", x);
+odd?(x) :> call("odd_q", x);
 
 upfrom := (
   upfrom_f(ff, n) :> [ n, ff(ff, n + 1) ];
@@ -673,15 +700,15 @@ streamLength := (
 
 (* Math routines *)
 
-factorial(x) :> call("Factorial", x);
+factorial(x) :> call("factorial", x);
 
-floor(x) :> call("Floor", x);
+floor(x) :> call("floor", x);
 
-ceiling(x) :> call("Ceil", x);
+ceiling(x) :> call("ceil", x);
 
-binomial-coefficient(x,y) :> call("Binomial", x, y);
+binomial-coefficient(x,y) :> call("binomial", x, y);
 
-abs(x) :> call("Abs", x);
+abs(x) :> call("abs", x);
 
 sum(s) :> 0 << { #1 + #2 }/2 << s;
 
@@ -716,21 +743,21 @@ differences := (
 
 (* basic string functions *)
 
-string-take(string, spec) :> call("StringTake", string, spec);
+string-take(string, spec) :> call("string_take", string, spec);
 
-string-drop(string, spec) :> call("StringDrop", string, spec);
+string-drop(string, spec) :> call("string_drop", string, spec);
 
 (* textual routines *)
 
-stop-words(language) :> call("StopWords", language);
+stop-words(language) :> call("stop_words", language);
 
 stop-word-languages := [ "da", "nl", "en", "fi", "fr", "de", "hu", "it", "no", "pt", "es", "sv", "ru" ];
 
-language-classifier(linguas) :> call("BuildLanguageClassifier", linguas);
+language-classifier(linguas) :> call("build_language_classifier", linguas);
 
-language-classifier-languages := call("GetAvailableLanguagesForClassifier");
+language-classifier-languages := call("get_available_languages_for_classifier");
 
-language-classify(classifier, text) :> call("ClassifyTextLanguage", classifier, text);
+language-classify(classifier, text) :> call("classify_text_language", classifier, text);
 
 (* special streams *)
 

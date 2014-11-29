@@ -1,12 +1,26 @@
 package Dallycot::Value::OpenRange;
 
+use strict;
+use warnings;
+
 # No RDF equivalent - continuous list generation of items
 
+use utf8;
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
 
-sub type { 'Range' }
+sub type { return 'Range' }
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($engine->make_numeric(Math::BigRat->binf()));
+
+  return $d -> promise;
+}
 
 sub head {
   my($self) = @_;
@@ -15,7 +29,7 @@ sub head {
 
   $d -> resolve($self->[0]);
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub tail {
@@ -31,7 +45,7 @@ sub tail {
     $d -> reject(@_);
   });
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub apply_map {
@@ -44,6 +58,8 @@ sub apply_map {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub apply_filter {
@@ -56,6 +72,8 @@ sub apply_filter {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub reduce {
@@ -68,7 +86,7 @@ sub reduce {
 
   $promise -> reject("An open-ended Range can not be reduced.");
 
-  $promise -> promise;
+  return $promise -> promise;
 }
 
 1;

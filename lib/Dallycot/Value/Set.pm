@@ -1,7 +1,11 @@
 package Dallycot::Value::Set;
 
+use strict;
+use warnings;
+
 # RDF Bag
 
+use utf8;
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);

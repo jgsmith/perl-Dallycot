@@ -1,33 +1,59 @@
 package Dallycot::Value::Undefined;
 
+use strict;
+use warnings;
+
+use utf8;
 use parent 'Dallycot::Value::Any';
 
-sub new { bless [] => __PACKAGE__ }
+use Promises qw(deferred);
 
-sub value { undef }
+our $INSTANCE;
 
-sub id { '^^Undefined' }
+sub new { return $INSTANCE ||= bless [] => __PACKAGE__; }
 
-sub is_defined { 0 }
+sub value { }
+
+sub id { return '^^Undefined' }
+
+sub is_defined { return 0 }
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($engine->ZERO);
+
+  return $d -> promise;
+}
 
 sub is_equal {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  if(UNIVERSAL::isa($other, __PACKAGE__)) {
-    $promise -> resolve($engine->TRUE);
+  my $d = deferred;
+
+  if($self eq $INSTANCE) {
+    $d -> resolve($engine-> TRUE);
   }
   else {
-    $promise -> resolve($engine->FALSE);
+    $d -> resolve($engine-> FALSE);
   }
+
+  return $d -> promise;
 }
 
 *is_less_or_equal = \&is_equal;
 *is_greater_or_equal = \&is_equal;
 
 sub is_less {
-  my($self, $engine, $promise, $other) = @_;
+  my($self, $engine, $other) = @_;
 
-  $promise -> resolve($engine->FALSE);
+  my $d = deferred;
+
+  $d -> resolve($engine-> FALSE);
+
+  return $d;
 }
 
 *is_greater = \&is_less;

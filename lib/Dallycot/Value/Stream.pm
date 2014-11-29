@@ -1,13 +1,15 @@
 package Dallycot::Value::Stream;
 
-use v5.14;
+use strict;
+use warnings;
 
 # RDF List
-use constant {
-  HEAD => 0,
-  TAIL => 1,
-  TAIL_PROMISE => 2
-};
+use utf8;
+use Readonly;
+
+Readonly my $HEAD => 0;
+Readonly my $TAIL => 1;
+Readonly my $TAIL_PROMISE => 2;
 
 use parent 'Dallycot::Value::Collection';
 
@@ -17,27 +19,55 @@ use Promises qw(deferred);
 
 sub new {
   my($class, $head, $tail, $promise) = @_;
-  bless [ $head, $tail, $promise ] => __PACKAGE__;
+  $class = ref $class || $class;
+  return bless [ $head, $tail, $promise ] => $class;
+}
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  my $ptr = $self;
+
+  my $count = 1;
+
+  while($ptr -> [$TAIL]) {
+    $ptr = $ptr -> [$TAIL];
+  }
+
+  if($ptr->[$TAIL_PROMISE]) {
+    $d -> resolve($engine->make_numeric(Math::BigRat -> binf()));
+  }
+  else {
+    $d -> resolve($engine->make_numeric($count));
+  }
+
+  return $d -> promise;
 }
 
 sub _resolve_tail_promise {
   my($self, $engine) = @_;
-  #$engine->execute($self->[TAIL_PROMISE])->then(sub {
-  $self->[TAIL_PROMISE]->apply($engine,{})->then(sub {
+
+  return $self->[$TAIL_PROMISE]->apply($engine,{})->then(sub {
     my($list_tail) = @_;
     given(ref $list_tail) {
       when(__PACKAGE__) {
-        $self->[TAIL] = $list_tail;
-        $self->[TAIL_PROMISE] = undef;
+        $self->[$TAIL] = $list_tail;
+        $self->[$TAIL_PROMISE] = undef;
       }
       when('Dallycot::Value::Vector') {
         # convert finite vector into linked list
         my @values = @$list_tail;
         my $point = $self;
         while(@values) {
-          $point->[TAIL] = $self->new(shift @values);
-          $point = $point->[TAIL];
+          $point->[$TAIL] = $self->new(shift @values);
+          $point = $point->[$TAIL];
         }
+      }
+      default {
+        $self->[$TAIL] = $list_tail;
+        $self->[$TAIL_PROMISE] = undef;
       }
     }
   });
@@ -53,6 +83,8 @@ sub apply_map {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub apply_filter {
@@ -65,14 +97,19 @@ sub apply_filter {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub drop {
+  my($self, $engine) = @_;
 
+  return;
 }
 
 sub value_at {
   my($self, $engine, $index) = @_;
+
   if($index == 1) {
     return $self -> head($engine);
   }
@@ -80,7 +117,7 @@ sub value_at {
   my $d = deferred;
 
   if($index < 1) {
-    $d -> resolve($engine->Undefined);
+    $d -> resolve($engine->UNDEFINED);
   }
   else {
     # we want to keep resolving tails until we get somewhere
@@ -94,7 +131,8 @@ sub value_at {
       $d -> reject(@_);
     });
   }
-  $d -> promise;
+
+  return $d -> promise;
 }
 
 sub _walk_tail {
@@ -117,7 +155,8 @@ sub _walk_tail {
   else {
     $d -> resolve($self);
   }
-  $d -> promise;
+
+  return $d -> promise;
 }
 
 sub head {
@@ -125,14 +164,14 @@ sub head {
 
   my $p = deferred;
 
-  if(defined $self->[HEAD]) {
+  if(defined $self->[$HEAD]) {
     $p -> resolve($self->[0]);
   }
   else {
     $p -> resolve(bless [] => 'Dallycot::Value::Undefined');
   }
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 sub tail {
@@ -140,13 +179,13 @@ sub tail {
 
   my $p = deferred;
 
-  if(defined $self->[TAIL]) {
-    $p -> resolve($self->[TAIL]);
+  if(defined $self->[$TAIL]) {
+    $p -> resolve($self->[$TAIL]);
   }
-  elsif(defined $self->[TAIL_PROMISE]) {
+  elsif(defined $self->[$TAIL_PROMISE]) {
     $self->_resolve_tail_promise($engine)->done(sub {
-      if(defined $self->[TAIL]) {
-        $p -> resolve($self->[TAIL]);
+      if(defined $self->[$TAIL]) {
+        $p -> resolve($self->[$TAIL]);
       }
       else {
         $p -> reject('The tail operator expects a stream-like object.');
@@ -159,7 +198,7 @@ sub tail {
     $p->resolve(bless [] => 'Dallycot::Value::EmptyStream');
   }
 
-  $p -> promise;
+  return $p -> promise;
 }
 
 sub reduce {
@@ -167,13 +206,19 @@ sub reduce {
 
   my $promise = deferred;
 
-  $self->_reduce_loop($engine, $promise, $start, $lambda, $self);
+  $self->_reduce_loop($engine, $promise,
+    start => $start,
+    lambda => $lambda,
+    stream => $self
+  );
 
-  $promise->promise;
+  return $promise->promise;
 }
 
 sub _reduce_loop {
-  my($self, $engine, $promise, $start, $lambda, $stream) = @_;
+  my($self, $engine, $promise, %params) = @_;
+
+  my($start, $lambda, $stream) = @params{qw(start lambda stream)};
 
   if($stream -> is_defined) {
     $stream -> head -> done(sub {
@@ -184,7 +229,11 @@ sub _reduce_loop {
 
         $lambda -> apply($engine, {}, $start, $head) -> done(sub {
           my($next_start) = @_;
-          $self->_reduce_loop($engine, $promise, $next_start, $lambda, $tail);
+          $self->_reduce_loop($engine, $promise,
+            start => $next_start,
+            lambda => $lambda,
+            stream => $tail
+          );
         }, sub {
           $promise->reject(@_);
         });
@@ -198,6 +247,8 @@ sub _reduce_loop {
   else {
     $promise -> resolve($start);
   }
+
+  return;
 }
 
 1;

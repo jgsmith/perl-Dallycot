@@ -1,15 +1,31 @@
 package Dallycot::Value::TripleStore;
 
+use strict;
+use warnings;
+
+use utf8;
 use parent 'Dallycot::Value::Any';
 
 use experimental qw(switch);
+
+use Promises qw(deferred);
+
+sub calculate_length {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($engine->make_numeric($self->[2]->size()));
+
+  return $d -> promise;
+}
 
 sub fetch_property {
   my($self, $engine, $d, $prop) = @_;
 
   my($base, $subject, $graph) = @$self;
 
-  eval {
+  my $worked = eval {
     my $pred_node = RDF::Trine::Node::Resource->new($prop);
     my @nodes = $graph -> objects($subject, $pred_node);
 
@@ -21,9 +37,6 @@ sub fetch_property {
       }
       elsif($node -> is_literal) {
         my $datatype = "String";
-        if($node -> has_datatype) {
-          print STDERR "node datatype: ", $node -> literal_datatype, "\n";
-        }
         given($datatype) {
           when("String") {
             if($node -> has_language) {
@@ -48,10 +61,17 @@ sub fetch_property {
     }
 
     $d -> resolve(@results);
+
+    1;
   };
   if($@) {
     $d -> reject($@);
   }
+  if(!$worked) {
+    $d -> reject("Unable to fetch $prop.");
+  }
+
+  return;
 }
 
 1;

@@ -1,5 +1,9 @@
 package Dallycot::AST::PropWalk;
 
+use strict;
+use warnings;
+
+use utf8;
 use parent 'Dallycot::AST::LoopBase';
 
 use Promises qw(collect deferred);
@@ -17,7 +21,7 @@ sub execute {
     my($root) = [ @_ ];
 
     if(@steps) {
-      $self->_loop($engine, $d, $root, @steps);
+      $self -> process_loop($engine, $d, root => $root, steps => \@steps);
     }
     elsif(@$root > 1) {
       $d -> resolve(bless $root => "Dallycot::Value::Set");
@@ -28,10 +32,14 @@ sub execute {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
-sub _loop {
-  my($self, $engine, $d, $root, $step, @steps) = @_;
+sub process_loop {
+  my($self, $engine, $d, %state) = @_;
+
+  my($root, $step, @steps) = ($state{root}, @{$state{steps}||[]});
 
   collect(
     map {
@@ -40,7 +48,7 @@ sub _loop {
   )->done(sub {
     my(@results) = map { @$_ } @_;
     if(@steps) {
-      $self -> _loop($engine, $d, \@results, @steps);
+      $self -> _loop($engine, $d, root => \@results, steps => \@steps);
     }
     elsif(@results > 1) {
       $d -> resolve(bless \@results => "Dallycot::Value::Set");
@@ -49,53 +57,14 @@ sub _loop {
       $d -> resolve(@results);
     }
     else {
-      $d -> resolve($engine->Undefined);
+      $d -> resolve($engine->UNDEFINED);
     }
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
-#-----------------------------------------------------------------------------
-package Dallycot::AST::ForwardWalk;
-
-use parent 'Dallycot::AST';
-
-use Promises qw(deferred);
-
-sub step {
-  my($self, $engine, $root) = @_;
-
-  my $d = deferred;
-
-  $engine -> execute($self->[0]) -> done(sub {
-    my($propName) = @_;
-    my $prop = $propName -> value;
-    $root -> fetch_property($engine, $d, $prop);
-  }, sub {
-    $d -> reject(@_);
-  });
-
-  $d -> promise;
-}
-
-#-----------------------------------------------------------------------------
-package Dallycot::AST::PropertyLit;
-
-use parent 'Dallycot::AST';
-
-sub execute {
-  my($self, $engine, $d) = @_;
-
-  my($ns, $prop) = @$self;
-
-  if($engine -> has_namespace($ns)) {
-    my $nshref = $engine -> get_namespace($ns);
-    $d -> resolve(Dallycot::Value::URI->new($nshref . $prop));
-  }
-  else {
-    $d -> reject("Undefined namespace '$ns'");
-  }
-}
 
 1;

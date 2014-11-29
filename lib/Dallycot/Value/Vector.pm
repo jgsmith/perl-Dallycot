@@ -1,20 +1,36 @@
 package Dallycot::Value::Vector;
+use strict;
+use warnings;
 
-# RDF Sequence
-
+use utf8;
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred collect);
 
 sub new {
-  shift;
-  bless \@_ => __PACKAGE__;
+  my($class, @values) = @_;
+  $class = ref $class || $class;
+  return bless \@values => $class;
 }
 
-sub length {
-  my($self, $engine, $d) = @_;
+sub calculate_length {
+  my($self, $engine) = @_;
 
-  $d -> resolve($engine->Number(scalar @$self));
+  my $d = deferred;
+
+  $d -> resolve($engine->make_numeric(scalar @$self));
+
+  return $d->promise;
+}
+
+sub calculate_reverse {
+  my($self, $engine) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($self -> new(reverse @$self));
+
+  return $d -> promise;
 }
 
 sub apply_map {
@@ -28,6 +44,8 @@ sub apply_map {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub apply_filter {
@@ -45,6 +63,8 @@ sub apply_filter {
   }, sub {
     $d -> reject(@_);
   });
+
+  return;
 }
 
 sub value_at {
@@ -53,12 +73,13 @@ sub value_at {
   my $d = deferred;
 
   if($index > @$self || $index < 1) {
-    $d -> resolve($engine->Undefined);
+    $d -> resolve($engine->UNDEFINED);
   }
   else {
     $d -> resolve($self->[$index-1]);
   }
-  $d -> promise;
+
+  return $d -> promise;
 }
 
 sub head {
@@ -70,10 +91,10 @@ sub head {
     $d -> resolve($self->[0]);
   }
   else {
-    $d -> resolve($engine -> Undefined);
+    $d -> resolve($engine -> UNDEFINED);
   }
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub tail {
@@ -88,7 +109,7 @@ sub tail {
     $d -> resolve(bless [] => __PACKAGE__);
   }
 
-  $d -> promise;
+  return $d -> promise;
 }
 
 sub reduce {
@@ -96,18 +117,28 @@ sub reduce {
 
   my $promise = deferred;
 
-  $self->_reduce_loop($engine, $promise, $start, $lambda, 0);
+  $self->_reduce_loop($engine, $promise,
+    start => $start,
+    lambda => $lambda,
+    index => 0
+  );
 
-  $promise->promise;
+  return $promise->promise;
 }
 
 sub _reduce_loop {
-  my($self, $engine, $promise, $start, $lambda, $index) = @_;
+  my($self, $engine, $promise, %params) = @_;
+
+  my($start, $lambda, $index) = @params{qw(start lambda index)};
 
   if($index < @$self) {
     $lambda -> apply($engine, {}, $start, $self->[$index]) -> done(sub {
       my($next_start) = @_;
-      $self->_reduce_loop($engine, $promise, $next_start, $lambda, $index+1);
+      $self->_reduce_loop($engine, $promise,
+        start => $next_start,
+        lambda => $lambda,
+        index => $index+1
+      );
     }, sub {
       $promise->reject(@_);
     });
@@ -115,6 +146,7 @@ sub _reduce_loop {
   else {
     $promise -> resolve($start);
   }
+  return;
 }
 
 1;
