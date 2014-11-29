@@ -3,6 +3,7 @@ package Dallycot::AST::Sum;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 use Readonly;

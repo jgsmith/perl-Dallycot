@@ -3,6 +3,7 @@ package Dallycot::Value;
 use strict;
 use warnings;
 
+use utf8;
 use Carp qw(croak);
 
 use Module::Pluggable require => 1, sub_name => '_types', search_path => 'Dallycot::Value';

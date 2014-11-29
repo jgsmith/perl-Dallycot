@@ -3,6 +3,7 @@ package Dallycot::AST::All;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST::LoopBase';
 
 sub new {
@@ -12,7 +13,7 @@ sub new {
   return bless \@exprs => $class;
 }
 
-sub _loop {
+sub process_loop {
   my($self, $engine, $d, @expressions) = @_;
 
   if(!@expressions) {
@@ -21,7 +22,7 @@ sub _loop {
   else {
     $engine->execute(shift @expressions, ['Boolean'])->done(sub {
       if($_[0]->value) {
-        $self->_loop($engine, $d, @expressions);
+        $self -> process_loop($engine, $d, @expressions);
       }
       else {
         $d->resolve($engine-> FALSE);

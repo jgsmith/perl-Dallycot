@@ -3,9 +3,10 @@ package Dallycot::AST::Any;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST::LoopBase';
 
-sub _loop {
+sub process_loop {
   my($self, $engine, $d, @expressions) = @_;
 
   if(!@expressions) {
@@ -17,7 +18,7 @@ sub _loop {
         $d->resolve($engine-> TRUE);
       }
       else {
-        $self->_loop($engine, $d, @expressions);
+        $self -> process_loop($engine, $d, @expressions);
       }
     }, sub {
       $d -> reject(@_);

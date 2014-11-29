@@ -3,6 +3,7 @@ package Dallycot::AST::Condition;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST::LoopBase';
 
 sub child_nodes {
@@ -11,7 +12,7 @@ sub child_nodes {
   return grep { defined } map { @{$_} } @{$self};
 }
 
-sub _loop {
+sub process_loop {
   my($self, $engine, $d, $condition, @expressions) = @_;
 
   if($condition) {
@@ -26,7 +27,7 @@ sub _loop {
           });
         }
         else {
-          $self->_loop($engine, $d, @expressions);
+          $self->process_loop($engine, $d, @expressions);
         }
       }, sub {
         $d -> reject(@_);

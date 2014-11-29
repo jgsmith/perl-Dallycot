@@ -3,6 +3,7 @@ package Dallycot::Registry;
 use strict;
 use warnings;
 
+use utf8;
 use MooseX::Singleton;
 
 has type_handlers => (

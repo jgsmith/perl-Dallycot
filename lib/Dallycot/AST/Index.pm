@@ -3,6 +3,7 @@ package Dallycot::AST::Index;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 sub execute {
@@ -13,7 +14,7 @@ sub execute {
   if(@expressions) {
     $engine->execute(shift @expressions) -> done(sub {
       my($root) = @_;
-      $self -> _do_next_index($engine, $d, $root, @expressions);
+      $self -> _do_next_index($engine, $d, root => $root, indices => \@expressions);
     }, sub {
       $d->reject(@_);
     });
@@ -26,7 +27,8 @@ sub execute {
 }
 
 sub _do_next_index {
-  my($self, $engine, $d, $root, $index_expr, @indices) = @_;
+  my($self, $engine, $d, %state) = @_;
+  my($root, $index_expr, @indices) = ($state{root}, @{$state{indices}||[]});
 
   if($index_expr) {
     $engine->execute($index_expr)->done(sub {
@@ -40,7 +42,7 @@ sub _do_next_index {
         return;
       }
       $root -> value_at($engine, $index) -> done(sub {
-        $self->_do_next_index($engine, $d, $_[0], @indices);
+        $self->_do_next_index($engine, $d, root => $_[0], indices => \@indices);
       }, sub {
         $d -> reject(@_);
       });

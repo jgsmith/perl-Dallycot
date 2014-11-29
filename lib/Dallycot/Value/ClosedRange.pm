@@ -5,6 +5,7 @@ use warnings;
 
 # No RDF equivalent - finite list of items
 
+use utf8;
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
@@ -97,13 +98,19 @@ sub reduce {
 
   my $d = deferred;
 
-  $self->_reduce_loop($engine, $d, $start, $lambda, $self->[$FIRST]);
+  $self->_reduce_loop($engine, $d,
+    start => $start,
+    lambda => $lambda,
+    value => $self->[$FIRST]
+  );
 
   return $d -> promise;
 }
 
 sub _reduce_loop {
-  my($self, $engine, $promise, $start, $lambda, $value) = @_;
+  my($self, $engine, $promise, %options) = @_;
+
+  my($start, $lambda, $value) = @options{qw(start lambda value)};
 
   $value->is_less_or_equal($engine, $self->[$LAST]) -> done(sub {
     my($flag) = @_;
@@ -113,7 +120,11 @@ sub _reduce_loop {
         my($next_start) = @_;
         $value -> successor -> done(sub {
           my($next_value) = @_;
-          $self->_reduce_loop($engine, $promise, $next_start, $lambda, $next_value);
+          $self->_reduce_loop($engine, $promise,
+            start => $next_start,
+            lambda => $lambda,
+            value => $next_value
+          );
         }, sub {
           $promise->reject(@_);
         });

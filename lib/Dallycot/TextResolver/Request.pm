@@ -3,6 +3,7 @@ package Dallycot::TextResolver::Request;
 use strict;
 use warnings;
 
+use utf8;
 use Moose;
 
 use experimental qw(switch);
@@ -32,35 +33,41 @@ has canonical_url => (
   isa => 'Str'
 );
 
-our %acceptable_types = (
+my %acceptable_types = (
   'application/xml' => 1.0,
   'application/xhtml+xml' => 1.0,
   'text/html' => 0.9,
   'text/plain' => 0.8
 );
 
-our $accept_headers = join(",", map {
-  if($acceptable_types{$_} < 1) {
-    $_ . ";q=" . $acceptable_types{$_};
+my $accept_headers = join(",", map {
+  _stringify_acceptable_type($_)
+} keys %acceptable_types);
+
+sub _stringify_acceptable_type {
+  my($type) = @_;
+
+  if(exists $acceptable_types{$type} && $acceptable_types{$type} < 1) {
+    return $type . ";q=" . $acceptable_types{$type};
   }
   else {
-    $_;
+    return $type;
   }
-} keys %acceptable_types);
+}
 
 sub run {
   my($self) = @_;
 
   my $deferred = deferred;
   my $url = $self->url;
-  my $tx = $self->ua->build_tx(GET => $url);
-  $tx->req->headers->accept($accept_headers);
+  my $request = $self->ua->build_tx(GET => $url);
+  $request->req->headers->accept($accept_headers);
   my $base_uri = URI::WithBase->new($self->url)->base;
 
-  $self->ua->start($tx, sub {
-    my($ua, $tx) = @_;
-    if($tx->success) {
-      my $res = $tx->res;
+  $self->ua->start($request, sub {
+    my($ua, $response) = @_;
+    if($response->success) {
+      my $res = $response->res;
       if($res->code == 200) {
         # regular response - we can parse this and work with it
         # we'll load a handler based on the content type
@@ -143,7 +150,7 @@ sub run {
       }
     }
     else {
-      my $err = $tx->error;
+      my $err = $response->error;
       $deferred -> reject("Unable to fetch $url: $err->{message}");
     }
   }, sub {

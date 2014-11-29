@@ -2,6 +2,7 @@ package Dallycot::Resolver::Request;
 
 use Moose;
 
+use utf8;
 use Promises qw(deferred);
 use URI::WithBase;
 
@@ -32,14 +33,14 @@ sub run {
 
   my $deferred = deferred;
   my $url = $self->url;
-  my $tx = $self->ua->build_tx(GET => $url);
-  $tx->req->headers->accept(RDF::Trine::Parser->default_accept_header);
+  my $request = $self->ua->build_tx(GET => $url);
+  $request->req->headers->accept(RDF::Trine::Parser->default_accept_header);
   my $base_uri = URI::WithBase->new($self->url)->base;
 
-  $self->ua->start($tx, sub {
-    my($ua, $tx) = @_;
-    if($tx->success) {
-      my $res = $tx->res;
+  $self->ua->start($request, sub {
+    my($ua, $response) = @_;
+    if($response->success) {
+      my $res = $response->res;
       if($res->code == 200) {
         # regular response - we can parse this and work with it
         # we'll load a handler based on the content type
@@ -115,7 +116,7 @@ sub run {
       }
     }
     else {
-      my $err = $tx->error;
+      my $err = $response->error;
       $deferred -> reject("Unable to fetch $url: $err->{message}");
     }
   }, sub {

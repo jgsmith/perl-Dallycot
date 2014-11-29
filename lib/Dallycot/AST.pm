@@ -3,6 +3,7 @@ package Dallycot::AST;
 use strict;
 use warnings;
 
+use utf8;
 use experimental qw(switch);
 
 use Carp qw(croak);

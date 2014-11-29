@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 # RDF List
+use utf8;
 use Readonly;
 
 Readonly my $HEAD => 0;
@@ -205,13 +206,19 @@ sub reduce {
 
   my $promise = deferred;
 
-  $self->_reduce_loop($engine, $promise, $start, $lambda, $self);
+  $self->_reduce_loop($engine, $promise,
+    start => $start,
+    lambda => $lambda,
+    stream => $self
+  );
 
   return $promise->promise;
 }
 
 sub _reduce_loop {
-  my($self, $engine, $promise, $start, $lambda, $stream) = @_;
+  my($self, $engine, $promise, %params) = @_;
+
+  my($start, $lambda, $stream) = @params{qw(start lambda stream)};
 
   if($stream -> is_defined) {
     $stream -> head -> done(sub {
@@ -222,7 +229,11 @@ sub _reduce_loop {
 
         $lambda -> apply($engine, {}, $start, $head) -> done(sub {
           my($next_start) = @_;
-          $self->_reduce_loop($engine, $promise, $next_start, $lambda, $tail);
+          $self->_reduce_loop($engine, $promise,
+            start => $next_start,
+            lambda => $lambda,
+            stream => $tail
+          );
         }, sub {
           $promise->reject(@_);
         });

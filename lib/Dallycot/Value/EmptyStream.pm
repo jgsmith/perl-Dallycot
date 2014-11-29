@@ -3,6 +3,7 @@ package Dallycot::Value::EmptyStream;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);

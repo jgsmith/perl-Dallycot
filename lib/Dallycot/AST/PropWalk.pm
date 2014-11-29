@@ -3,6 +3,7 @@ package Dallycot::AST::PropWalk;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST::LoopBase';
 
 use Promises qw(collect deferred);
@@ -20,7 +21,7 @@ sub execute {
     my($root) = [ @_ ];
 
     if(@steps) {
-      $self->_loop($engine, $d, $root, @steps);
+      $self -> process_loop($engine, $d, root => $root, steps => \@steps);
     }
     elsif(@$root > 1) {
       $d -> resolve(bless $root => "Dallycot::Value::Set");
@@ -35,8 +36,10 @@ sub execute {
   return;
 }
 
-sub _loop {
-  my($self, $engine, $d, $root, $step, @steps) = @_;
+sub process_loop {
+  my($self, $engine, $d, %state) = @_;
+
+  my($root, $step, @steps) = ($state{root}, @{$state{steps}||[]});
 
   collect(
     map {
@@ -45,7 +48,7 @@ sub _loop {
   )->done(sub {
     my(@results) = map { @$_ } @_;
     if(@steps) {
-      $self -> _loop($engine, $d, \@results, @steps);
+      $self -> _loop($engine, $d, root => \@results, steps => \@steps);
     }
     elsif(@results > 1) {
       $d -> resolve(bless \@results => "Dallycot::Value::Set");

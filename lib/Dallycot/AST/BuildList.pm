@@ -3,6 +3,7 @@ package Dallycot::AST::BuildList;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 use experimental qw(switch);

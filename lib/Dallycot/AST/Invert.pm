@@ -3,6 +3,7 @@ package Dallycot::AST::Invert;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 sub new {
@@ -24,8 +25,12 @@ sub execute {
     elsif($res->isa('Dallycot::Value::Lambda')) {
       $d -> resolve(
         Dallycot::Value::Lambda->new(
-          Dallycot::AST::Invert->new($res->[0]),
-          @$res[1,2,3,4,5]
+          expression => Dallycot::AST::Invert->new($res->[0]),
+          bindings => $res->[1],
+          bindings_with_defaults => $res->[2],
+          options => $res->[3],
+          closure_environment => $res->[4],
+          closure_namespaces => $res->[5]
         )
       );
     }

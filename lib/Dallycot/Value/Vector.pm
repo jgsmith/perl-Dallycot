@@ -2,6 +2,7 @@ package Dallycot::Value::Vector;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred collect);
@@ -116,18 +117,28 @@ sub reduce {
 
   my $promise = deferred;
 
-  $self->_reduce_loop($engine, $promise, $start, $lambda, 0);
+  $self->_reduce_loop($engine, $promise,
+    start => $start,
+    lambda => $lambda,
+    index => 0
+  );
 
   return $promise->promise;
 }
 
 sub _reduce_loop {
-  my($self, $engine, $promise, $start, $lambda, $index) = @_;
+  my($self, $engine, $promise, %params) = @_;
+
+  my($start, $lambda, $index) = @params{qw(start lambda index)};
 
   if($index < @$self) {
     $lambda -> apply($engine, {}, $start, $self->[$index]) -> done(sub {
       my($next_start) = @_;
-      $self->_reduce_loop($engine, $promise, $next_start, $lambda, $index+1);
+      $self->_reduce_loop($engine, $promise,
+        start => $next_start,
+        lambda => $lambda,
+        index => $index+1
+      );
     }, sub {
       $promise->reject(@_);
     });

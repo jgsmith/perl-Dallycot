@@ -3,6 +3,7 @@ package Dallycot::AST::BuildRange;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 use Promises qw(deferred);

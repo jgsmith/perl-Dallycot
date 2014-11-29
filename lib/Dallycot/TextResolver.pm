@@ -3,6 +3,7 @@ package Dallycot::TextResolver;
 use strict;
 use warnings;
 
+use utf8;
 use experimental qw(switch);
 
 use MooseX::Singleton;
@@ -44,7 +45,7 @@ sub get {
       canonical_url => $url,
     );
     $request -> run -> done(sub {
-      my($data) = @_;
+      ($data) = @_;
       $self->cache->set($url, $data);
       $deferred -> resolve($data);
     }, sub {

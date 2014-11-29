@@ -3,6 +3,7 @@ package Dallycot::AST::ComparisonBase;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 use Promises qw(deferred);
@@ -13,7 +14,7 @@ sub execute {
   my @expressions = @$self;
 
   $engine -> execute(shift @expressions) -> done(sub {
-    $self -> _loop($engine, $d, $_[0], @expressions);
+    $self -> process_loop($engine, $d, $_[0], @expressions);
   }, sub {
     $d -> reject(@_);
   });
@@ -21,7 +22,7 @@ sub execute {
   return;
 }
 
-sub _loop {
+sub process_loop {
   my($self, $engine, $d, $left_value, @expressions) = @_;
 
   if(!@expressions) {
@@ -32,9 +33,9 @@ sub _loop {
       my($right_value) = @_;
       $engine->coerce($left_value, $right_value, [$left_value->type, $right_value->type])->done(sub {
         my($cleft, $cright) = @_;
-        $self->_compare($engine, $cleft, $cright) -> done(sub {
+        $self->compare($engine, $cleft, $cright) -> done(sub {
           if($_[0]) {
-            $self -> _loop($engine, $d, $right_value, @expressions);
+            $self -> process_loop($engine, $d, $right_value, @expressions);
           }
           else {
             $d -> resolve($engine-> FALSE);
@@ -53,7 +54,7 @@ sub _loop {
   return;
 }
 
-sub _compare {
+sub compare {
   my($engine, $left_value, $right_value) = @_;
 
   my $d = deferred;

@@ -3,6 +3,7 @@ package Dallycot::AST::Modulus;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 sub to_string {
@@ -17,7 +18,7 @@ sub execute {
   $engine->execute((shift @expressions), ['Numeric'])->done(sub {
     my($left_value) = @_;
 
-    $self -> _loop($engine, $d, $left_value, @expressions);
+    $self -> process_loop($engine, $d, base => $left_value, expressions => \@expressions);
   }, sub {
     $d -> reject(@_);
   });
@@ -25,8 +26,9 @@ sub execute {
   return;
 }
 
-sub _loop {
-  my($self, $engine, $d, $left_value, $right_expr, @expressions) = @_;
+sub process_loop {
+  my($self, $engine, $d, %state) = @_;
+  my($left_value, $right_expr, @expressions) = ($state{base}, @{$state{expressions}||[]});
 
   if(!@expressions) {
     $engine->execute($right_expr, ['Numeric'])->done(sub {
@@ -48,7 +50,7 @@ sub _loop {
         $d->resolve($engine->make_numeric($left_value));
       }
       else {
-        $self->_loop($engine, $d, $left_value, @expressions);
+        $self -> process_loop($engine, $d, base => $left_value, expressions => \@expressions);
       }
     }, sub {
       $d->reject(@_);

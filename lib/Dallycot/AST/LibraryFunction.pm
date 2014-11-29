@@ -3,6 +3,7 @@ package Dallycot::AST::LibraryFunction;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 sub to_string {

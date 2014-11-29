@@ -5,6 +5,7 @@ use warnings;
 
 # No RDF equivalent - continuous list generation of items
 
+use utf8;
 use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);

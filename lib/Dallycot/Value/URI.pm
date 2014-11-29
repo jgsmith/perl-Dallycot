@@ -3,6 +3,7 @@ package Dallycot::Value::URI;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::Value::Any';
 
 use Promises qw(deferred);

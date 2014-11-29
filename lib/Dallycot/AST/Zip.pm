@@ -3,6 +3,7 @@ package Dallycot::AST::Zip;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 use Promises qw(collect);
@@ -66,10 +67,10 @@ sub execute {
             undef,
 
             Dallycot::Value::Lambda->new(
-              (bless \@tails => __PACKAGE__),
-              [],
-              [],
-              {}
+              expression => (bless \@tails => __PACKAGE__),
+              bindings => [],
+              bindings_with_defaults => [],
+              options => {}
             )
           ] => 'Dallycot::Value::Stream'
         );

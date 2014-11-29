@@ -3,6 +3,7 @@ package Dallycot::AST::PropertyLit;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::AST';
 
 sub execute {

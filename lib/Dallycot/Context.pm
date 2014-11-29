@@ -3,8 +3,11 @@ package Dallycot::Context;
 use strict;
 use warnings;
 
+use utf8;
 use Moose;
 use Array::Utils qw(unique array_minus);
+
+use Carp qw(croak cluck);
 
 use experimental qw(switch);
 
@@ -27,7 +30,7 @@ sub add_namespace {
   my($self, $ns, $href) = @_;
 
   if(($self -> is_closure || $self -> has_parent) && defined($self->namespaces->{$ns})) {
-    die "Namespaces may not be defined multiple times in a sub-context or closure";
+    croak "Namespaces may not be defined multiple times in a sub-context or closure";
   }
   $self->namespaces->{$ns} = $href;
 
@@ -56,7 +59,7 @@ sub add_assignment {
   my($self, $identifier, $expr) = @_;
 
   if(($self -> is_closure || $self->has_parent) && defined($self->environment->{$identifier})) {
-    die "Identifiers may not be redefined in a sub-context or closure";
+    croak "Identifiers may not be redefined in a sub-context or closure";
   }
   $self->environment->{$identifier} = $expr;
   return;
@@ -90,9 +93,9 @@ sub make_closure {
   my @identifiers = ();
 
   while(@stack) {
-    my $node = shift @stack;
+    $node = shift @stack;
     if(!ref $node) {
-      Carp::cluck "We have a non-ref node! ($node)";
+      cluck "We have a non-ref node! ($node)";
     }
 
     push @stack, $node->child_nodes;

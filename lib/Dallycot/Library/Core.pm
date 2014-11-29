@@ -3,6 +3,7 @@ package Dallycot::Library::Core;
 use strict;
 use warnings;
 
+use utf8;
 use MooseX::Singleton;
 
 use Dallycot::Context;
@@ -27,7 +28,7 @@ sub initialize {
 
   my $parse = $parser -> parse_library(
     __PACKAGE__,
-    do { local($/); my $s = <DATA>; $s; }
+    do { local($/) = undef; my $s = <DATA>; $s; }
   );
 
   return $engine->execute(@$parse)->then(
@@ -77,11 +78,15 @@ sub run_bindings_and_then {
     map { $engine->execute($_) } @$bindings
   )->done(sub {
     # print STDERR "Bindings collected for cb: ", Data::Dumper->Dump([\@_]);
-    eval {
+    my $worked = eval {
       $cb->(map { @{$_} } @_);
+      1;
     };
     if($@) {
       $d -> reject($@);
+    }
+    elsif(!$worked) {
+      $d -> reject("Unable to run core function.");
     }
   }, sub {
     $d -> reject(@_);
@@ -275,59 +280,6 @@ sub do_binomial {
 #
 # Basic string functions
 
-
-our @LEONARDO_NUMBERS = (
-  1, 1, 3, 5, 9,
-  15, 25, 41, 67, 109,
-  177, 287, 465, 753, 1219,
-  1973, 3193, 5167, 8361, 13529,
-  21891, 35421, 57313, 92735, 150049,
-  242785, 392835, 635621, 1028457, 1664079,
-  2692537, 4356617, 7049155, 11405773, 18454929,
-  29860703, 48315633, 78176337, 126491971, 204668309,
-  331160281, 535828591, 866988873, 1402817465, 2269806339,
-  3_672_623_805
-);
-
-sub _calculate_sort {
-  my($self, $engine, $d, $vector, $sort_function, $return_as_stream) = @_;
-
-  # we use $sort_function to tell us if two items need to be swapped
-  # because we're promise based, we have to sort without using Perl's
-  # sort function :-/
-  my @work = @$vector;
-
-  return;
-}
-
-sub do_sort {
-  my($self, $engine, @bindings) = @_;
-
-  my $d = deferred;
-
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($stream, $sort_function) = @_;
-
-    given($stream->{'a'}) {
-      when('Vector') {
-        $self -> _calculate_sort($engine, $d, $stream, $sort_function);
-      }
-      when('Stream') {
-        my $vector_d = deferred;
-        $engine->stream_to_vector($vector_d, $stream);
-        $vector_d -> done(sub {
-          my($vector) = @_;
-          $self -> _calculate_sort($engine, $d, $vector, $sort_function, 1);
-        }, sub {
-          $d -> reject(@_);
-        });
-      }
-    }
-  });
-
-  return $d -> promise;
-}
-
 sub do_string_take {
   my($self, $engine, @bindings) = @_;
 
@@ -457,7 +409,7 @@ sub do_stop_words {
   return $d -> promise;
 }
 
-our %language_codes_for_classifier = qw(
+my %language_codes_for_classifier = qw(
   af afr
   am amh
   ar ara
@@ -558,7 +510,7 @@ our %language_codes_for_classifier = qw(
   zh zho
 );
 
-our %language_codes_from_classifier = reverse %language_codes_for_classifier;
+my %language_codes_from_classifier = reverse %language_codes_for_classifier;
 
 sub do_build_language_classifier {
   my($self, $engine, @bindings) = @_;
@@ -663,7 +615,7 @@ sub do_classify_text_language {
                 return;
               }
             }
-            eval {
+            my $worked = eval {
               my $identifier = Lingua::YALI::LanguageIdentifier->new();
               $identifier->add_language(@{$classifier->{'languages'}});
               # TODO: make '4096' a tunable parameter
@@ -674,9 +626,13 @@ sub do_classify_text_language {
                 value => $language_codes_from_classifier{$result->[0]->[0]},
                 language => 'en'
               });
+              1;
             };
             if($@) {
               $d -> reject($@);
+            }
+            elsif(!$worked) {
+              $d -> reject("Unable to identify language.");
             }
           }, sub {
             $d -> reject(@_);

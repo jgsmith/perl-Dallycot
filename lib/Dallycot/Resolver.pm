@@ -3,6 +3,7 @@ package Dallycot::Resolver;
 use strict;
 use warnings;
 
+use utf8;
 use MooseX::Singleton;
 
 use CHI;
@@ -42,7 +43,7 @@ sub get {
       canonical_url => $url,
     );
     $request -> run -> done(sub {
-      my($data) = @_;
+      ($data) = @_;
       $self->cache->set($url, $data);
       $deferred -> resolve($data);
     }, sub {
@@ -56,6 +57,7 @@ sub get {
 1;
 
 __END__
+=encoding utf8
 
 =head1 NAME
 

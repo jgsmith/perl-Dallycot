@@ -5,6 +5,7 @@ use warnings;
 
 # ABSTRACT: Base for adding namespaced functions to Dallycot.
 
+use utf8;
 use Moose;
 
 use Dallycot::Processor;

@@ -5,6 +5,7 @@ package Dallycot::Processor;
 use strict;
 use warnings;
 
+use utf8;
 use Moose;
 
 use Promises qw(deferred);
@@ -89,19 +90,22 @@ sub with_new_closure {
   );
 }
 
+sub _execute_expr {
+  my($self, $expr) = @_;
+
+  if('ARRAY' eq ref $expr) {
+    return $self -> execute(@$expr);
+  }
+  else {
+    return $self -> execute($expr);
+  }
+}
+
 sub collect {
   my($self, @exprs) = @_;
 
   return Promises::collect(
-    map {
-      my $expr = $_;
-      if('ARRAY' eq ref $expr) {
-        $self->execute(@$expr);
-      }
-      else {
-        $self->execute($expr);
-      }
-    } @exprs
+    map { $self->_execute_expr($_) } @exprs
   )->then(sub {
     map { @$_ } @_;
   });
@@ -126,8 +130,11 @@ sub make_lambda {
   $options ||= {};
 
   return Dallycot::Value::Lambda->new(
-    $expression, $bindings, $bindings_with_defaults, $options,
-    $self
+    expression => $expression,
+    bindings => $bindings,
+    bindings_with_defaults => $bindings_with_defaults,
+    options => $options,
+    engine => $self
   );
 }
 
@@ -194,16 +201,20 @@ sub _execute {
   my($self, $expected_types, $ast) = @_;
 
   my $d = deferred;
-  eval {
+  my $worked = eval {
     if($self -> add_cost(1)) {
       $d -> reject("Exceeded maximum evaluation cost");
     }
     else {
       $ast -> execute($self, $d);
     }
+    1;
   };
   if($@) {
     $d -> reject($@);
+  }
+  elsif(!$worked) {
+    $d -> reject("Unable to evaluate");
   }
   return $d -> promise;
 }
@@ -286,6 +297,16 @@ sub compose_lambdas {
   return $new_engine -> make_lambda($expression, [ '#' ]);
 }
 
+sub _add_filter_to_context {
+  my($engine, $idx, $filter, $expression) = @_;
+
+  $engine -> context -> add_assignment("__lambda_".$idx, $filter);
+  return Dallycot::AST::Apply->new(
+    Dallycot::AST::Fetch->new('__lambda_'.$idx),
+    [ $expression ]
+  );
+}
+
 sub compose_filters {
   my($self, @filters) = @_;
 
@@ -298,13 +319,15 @@ sub compose_filters {
   my $expression = Dallycot::AST::Fetch->new('#');
   my $idx = 0;
   my @applications = map {
-    $idx += 1;
-    $new_engine -> context -> add_assignment("__lambda_".$idx, $_);
-    Dallycot::AST::Apply->new(
-      Dallycot::AST::Fetch->new('__lambda_'.$idx),
-      [ $expression ]
-    );
+    _add_filter_to_context($new_engine, $idx++, $_, $expression)
   } @filters;
+  #   $idx += 1;
+  #   $new_engine -> context -> add_assignment("__lambda_".$idx, $_);
+  #   Dallycot::AST::Apply->new(
+  #     Dallycot::AST::Fetch->new('__lambda_'.$idx),
+  #     [ $expression ]
+  #   );
+  # } @filters;
 
   return $new_engine -> make_lambda(
     Dallycot::AST::All->new(@applications),

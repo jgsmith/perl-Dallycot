@@ -3,6 +3,7 @@ package Dallycot::Value::Lambda;
 use strict;
 use warnings;
 
+use utf8;
 use parent 'Dallycot::Value::Any';
 
 use Promises qw(deferred collect);
@@ -19,18 +20,14 @@ Readonly my $CLOSURE_ENVIRONMENT => 4;
 Readonly my $CLOSURE_NAMESPACES => 5;
 
 sub new {
-  my($class, $expression, $bindings, $bindings_with_defaults, $options, $closure_environment, $closure_namespaces) = @_;
+  my($class, %options) = @_;
+
+  my($expression, $bindings, $bindings_with_defaults, $options, $closure_environment, $closure_namespaces, $engine) =
+  @options{qw(expression bindings bindings_with_defaults options closure_environment closure_namespaces engine)};
 
   $class = ref $class || $class;
 
-  my($engine, $closure_context);
-
-  if(blessed $closure_environment && $closure_environment->isa('Dallycot::Processor')) {
-    $engine = $closure_environment;
-  }
-  elsif(blessed $closure_namespaces && $closure_namespaces->isa('Dallycot::Processor')) {
-    $engine = $closure_namespaces;
-  }
+  my($closure_context);
 
   $bindings ||= [];
   $bindings_with_defaults ||= [];
@@ -112,7 +109,7 @@ sub _options_are_good {
 
 sub _is_placeholder {
   my($self, $obj) = @_;
-  return UNIVERSAL::isa($obj, 'Dallycot::AST::Placeholder');
+  return blessed($obj) && $obj -> isa('Dallycot::AST::Placeholder');
 }
 
 sub _get_bindings {

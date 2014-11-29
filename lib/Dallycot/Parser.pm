@@ -3,6 +3,7 @@ package Dallycot::Parser;
 use strict;
 use warnings;
 
+use utf8;
 use experimental qw(switch);
 
 use Marpa::R2;
@@ -12,7 +13,7 @@ my $grammar = Marpa::R2::Scanless::G->new({
   action_object => __PACKAGE__,
   bless_package => 'Dallycot::AST',
   default_action => 'copy_arg0',
-  source => do { local($/); my $s = <DATA>; \$s; }
+  source => do { local($/) = undef; my $s = <DATA>; \$s; }
 });
 
 our $PARSING_LIBRARY;
@@ -34,11 +35,16 @@ sub _parse {
 
   my $re = Marpa::R2::Scanless::R->new({ grammar => $grammar });
 
-  eval {
+  my $worked = eval {
     $re -> read(\$input);
+    1;
   };
   if($@) {
-    print STDERR $@;
+    print STDERR $@, "\n";
+    return;
+  }
+  elsif(!$worked) {
+    print STDERR "Unable to parse.\n";
     return;
   }
   my $parse = $re->value;
@@ -136,10 +142,7 @@ sub invert {
 }
 
 sub build_sum_product {
-
   my(undef, $sum_class, $negation_class, $left_value, $right_value) = @_;
-
-  my $ret;
 
   my @expressions;
 
@@ -342,12 +345,7 @@ sub compose {
 
   return bless [
     map {
-      if(ref $_ eq 'Dallycot::AST::Compose') {
-        @{$_}
-      }
-      else {
-        $_
-      }
+      (blessed $_ eq 'Dallycot::AST::Compose') ? @{$_} : $_
     } @functions
   ] => 'Dallycot::AST::Compose';
 }
@@ -369,7 +367,7 @@ sub build_string_vector {
 
   my $lang = 'en';
 
-  if($lit =~ s/\@([a-z][a-z](_[A-Z][A-Z])?)$//) {
+  if($lit =~ s{\@([a-z][a-z](_[A-Z][A-Z])?)$}{}x) {
     $lang = $1;
   }
 
@@ -377,7 +375,7 @@ sub build_string_vector {
   $lit =~ s/>>$//;
   my @matches;
 
-  while($lit =~ m{((?:[^\\\s]|\\.)+)\s*}g) {
+  while($lit =~ m{((?:[^\\\s]|\\.)+)\s*}xg) {
     my $m = $1;
     $m =~ s[\\(.)] {
       my $char = $1;
@@ -386,7 +384,7 @@ sub build_string_vector {
         when('t') { "\t" }
         default   { $char }
       }
-    }egis;
+    }xegis;
     push @matches, $m;
   }
 
@@ -428,7 +426,7 @@ sub string_literal {
 
   my $lang = 'en';
 
-  if($lit =~ s/\@([a-z][a-z](_[A-Z][A-Z])?)$//) {
+  if($lit =~ s{\@([a-z][a-z](_[A-Z][A-Z])?)$}{}x) {
     $lang = $1;
   }
 

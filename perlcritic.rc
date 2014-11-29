@@ -1,4 +1,4 @@
-severity  = 4
+severity  = 3
 only      = 0
 force     = 1
 verbose   = 4
@@ -8,3 +8,6 @@ criticism-fatal = 1
 color     = 1
 allow-unsafe = 1
 pager     = less
+
+[RegularExpressions::RequireExtendedFormatting]
+minimum_regex_length_to_complain_about = 5
