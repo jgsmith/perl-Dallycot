@@ -9,7 +9,10 @@ use experimental qw(switch);
 use Carp qw(croak);
 use Scalar::Util qw(blessed);
 
-use Module::Pluggable require => 1, sub_name => '_node_types', search_path => 'Dallycot::AST';
+use Module::Pluggable
+  require     => 1,
+  sub_name    => '_node_types',
+  search_path => 'Dallycot::AST';
 
 use Dallycot::Value;
 
@@ -20,41 +23,41 @@ use Dallycot::Value;
 our @NODE_TYPES;
 
 sub node_types {
-  return @NODE_TYPES = @NODE_TYPES || shift -> _node_types;
+  return @NODE_TYPES = @NODE_TYPES || shift->_node_types;
 }
 
-__PACKAGE__ -> node_types;
+__PACKAGE__->node_types;
 
 sub simplify {
-  my($self) = @_;
+  my ($self) = @_;
   return $self;
 }
 
 sub to_json {
-  my($self) = @_;
+  my ($self) = @_;
 
-  croak "to_json not defined for " . (blessed($self) || $self);
+  croak "to_json not defined for " . ( blessed($self) || $self );
 }
 
 sub to_string {
-  my($self) = @_;
+  my ($self) = @_;
 
-  croak "to_string not defined for ". (blessed($self) || $self);
+  croak "to_string not defined for " . ( blessed($self) || $self );
 }
 
 sub execute {
-  my($self, $engine, $d) = @_;
+  my ( $self, $engine, $d ) = @_;
 
-  $d -> reject((blessed($self)||$self) . " is not a valid operation");
+  $d->reject( ( blessed($self) || $self ) . " is not a valid operation" );
   return;
 }
 
 sub identifiers { return () }
 
 sub child_nodes {
-  my($self) = @_;
+  my ($self) = @_;
 
-  return grep { blessed($_) && $_ -> isa(__PACKAGE__) } @{$self};
+  return grep { blessed($_) && $_->isa(__PACKAGE__) } @{$self};
 }
 
 1;

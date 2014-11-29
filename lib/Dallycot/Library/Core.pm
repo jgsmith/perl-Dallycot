@@ -12,6 +12,7 @@ use Dallycot::Processor;
 use Dallycot::TextResolver;
 
 use Lingua::StopWords;
+
 #use Lingua::YALI::LanguageIdentifier;
 
 use Promises qw(deferred collect);
@@ -20,77 +21,80 @@ use experimental qw(switch);
 
 sub initialize {
   my $context = Dallycot::Context->new;
-  my $parser = Dallycot::Parser->new;
-  my $engine = Dallycot::Processor->new(
-    context => $context,
+  my $parser  = Dallycot::Parser->new;
+  my $engine  = Dallycot::Processor->new(
+    context  => $context,
     max_cost => 100_000_000
   );
 
-  my $parse = $parser -> parse_library(
+  my $parse = $parser->parse_library(
     __PACKAGE__,
-    do { local($/) = undef; my $s = <DATA>; $s; }
+    do { local ($/) = undef; my $s = <DATA>; $s; }
   );
 
   return $engine->execute(@$parse)->then(
     sub {
-      Dallycot::Registry->instance->register_namespace(
-        '', $context
-      );
+      Dallycot::Registry->instance->register_namespace( '', $context );
     }
   );
 }
 
 sub call_function {
-  my($self, $name, $parent_engine, @bindings) = @_;
+  my ( $self, $name, $parent_engine, @bindings ) = @_;
 
   my $d = deferred;
 
   my $method = "do_" . $name;
-  if($self->can($method)) {
+  if ( $self->can($method) ) {
 
     my $engine = Dallycot::Processor->new(
       context => Dallycot::Context->new(
         parent => $parent_engine->context
       ),
-      cost => $parent_engine -> cost,
-      max_cost => $parent_engine -> max_cost
+      cost     => $parent_engine->cost,
+      max_cost => $parent_engine->max_cost
     );
 
-    $self->$method($engine, @bindings)->done(sub {
-      $parent_engine->cost($engine->cost);
-      $d->resolve(@_);
-    }, sub {
-      $parent_engine->cost($engine->cost);
-      $d->reject(@_);
-    });
+    $self->$method( $engine, @bindings )->done(
+      sub {
+        $parent_engine->cost( $engine->cost );
+        $d->resolve(@_);
+      },
+      sub {
+        $parent_engine->cost( $engine->cost );
+        $d->reject(@_);
+      }
+    );
   }
   else {
-    $d -> reject("undefined function called in library");
+    $d->reject("undefined function called in library");
   }
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub run_bindings_and_then {
-  my($self, $engine, $d, $bindings, $cb) = @_;
+  my ( $self, $engine, $d, $bindings, $cb ) = @_;
+
   # print STDERR "Bindings being executed: ", Data::Dumper->Dump([$bindings]);
-  collect(
-    map { $engine->execute($_) } @$bindings
-  )->done(sub {
-    # print STDERR "Bindings collected for cb: ", Data::Dumper->Dump([\@_]);
-    my $worked = eval {
-      $cb->(map { @{$_} } @_);
-      1;
-    };
-    if($@) {
-      $d -> reject($@);
+  collect( map { $engine->execute($_) } @$bindings )->done(
+    sub {
+      # print STDERR "Bindings collected for cb: ", Data::Dumper->Dump([\@_]);
+      my $worked = eval {
+        $cb->( map { @{$_} } @_ );
+        1;
+      };
+      if ($@) {
+        $d->reject($@);
+      }
+      elsif ( !$worked ) {
+        $d->reject("Unable to run core function.");
+      }
+    },
+    sub {
+      $d->reject(@_);
     }
-    elsif(!$worked) {
-      $d -> reject("Unable to run core function.");
-    }
-  }, sub {
-    $d -> reject(@_);
-  });
+  );
 
   return;
 }
@@ -99,181 +103,215 @@ sub run_bindings_and_then {
 # eventually, this will be for string lengths
 #
 sub do_length {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($thing) = @_;
-    my $length = 0;
-    $thing -> calculate_length($engine) -> then(sub {
-      $d -> resolve(@_);
-    }, sub {
-      $d -> reject(@_);
-    });
-  });
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($thing) = @_;
+      my $length = 0;
+      $thing->calculate_length($engine)->then(
+        sub {
+          $d->resolve(@_);
+        },
+        sub {
+          $d->reject(@_);
+        }
+      );
+    }
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_divisible_by {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x, $n) = @_;
-    if(!$x -> isa('Dallycot::Value::Numeric') || !$n -> isa('Dallycot::Value::Numeric')) {
-      $d -> reject("divisible-by? expects numeric arguments");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ( $x, $n ) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric')
+        || !$n->isa('Dallycot::Value::Numeric') )
+      {
+        $d->reject("divisible-by? expects numeric arguments");
+      }
+      else {
+        my $xcopy = $x->value->copy();
+        $xcopy->bmod( $n->value );
+        $d->resolve( $engine->make_boolean( $xcopy->is_zero ) );
+      }
     }
-    else {
-      my $xcopy = $x->value->copy();
-      $xcopy -> bmod($n->value);
-      $d -> resolve($engine->make_boolean($xcopy->is_zero));
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_even_q {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x) = @_;
-    if(!$x->isa('Dallycot::Value::Numeric')) {
-      $d -> reject("even? expects a numeric argument");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($x) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric') ) {
+        $d->reject("even? expects a numeric argument");
+      }
+      else {
+        $d->resolve( $engine->make_boolean( $x->[0]->is_even ) );
+      }
     }
-    else {
-      $d -> resolve($engine->make_boolean($x -> [0] -> is_even));
-    }
-  });
+  );
 
   return $d;
 }
 
 sub do_odd_q {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x) = @_;
-    if(!$x->isa('Dallycot::Value::Numeric')) {
-      $d -> reject("odd? expects a numeric argument");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($x) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric') ) {
+        $d->reject("odd? expects a numeric argument");
+      }
+      else {
+        $d->resolve( $engine->make_boolean( $x->[0]->is_odd ) );
+      }
     }
-    else {
-      $d -> resolve($engine->make_boolean($x -> [0] -> is_odd));
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_factorial {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x) = @_;
-    if(!$x->isa('Dallycot::Value::Numeric')) {
-      $d -> reject("factorial expects a numeric argument");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($x) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric') ) {
+        $d->reject("factorial expects a numeric argument");
+      }
+      elsif ( $x->value->is_int ) {
+        $d->resolve( $engine->make_numeric( $x->value->copy()->bfac() ) );
+      }
+      else {
+        # TODO: handle non-integer arguments to gamma function
+        $d->resolve( $engine->UNDEFINED );
+      }
     }
-    elsif($x->value -> is_int) {
-      $d -> resolve($engine->make_numeric(
-        $x->value -> copy() -> bfac()
-      ));
-    }
-    else {
-      # TODO: handle non-integer arguments to gamma function
-      $d -> resolve($engine->UNDEFINED);
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_ceil {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x) = @_;
-    if(!$x->isa('Dallycot::Value::Numeric')) {
-      $d -> reject("ceiling expects a numeric argument");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($x) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric') ) {
+        $d->reject("ceiling expects a numeric argument");
+      }
+      else {
+        $d->resolve( $engine->make_numeric( $x->value->copy->bceil ) );
+      }
     }
-    else {
-      $d -> resolve(
-        $engine->make_numeric($x->value->copy->bceil)
-      );
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_floor {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x) = @_;
-    if(!$x->isa('Dallycot::Value::Numeric')) {
-      $d -> reject("floor expects a numeric argument");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($x) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric') ) {
+        $d->reject("floor expects a numeric argument");
+      }
+      else {
+        $d->resolve( $engine->make_numeric( $x->value->copy->bfloor ) );
+      }
     }
-    else {
-      $d -> resolve(
-        $engine->make_numeric($x->value->copy->bfloor)
-      );
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_abs {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x) = @_;
-    if(!$x->isa('Dallycot::Value::Numeric')) {
-      $d -> reject("abs expects a numeric argument");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($x) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric') ) {
+        $d->reject("abs expects a numeric argument");
+      }
+      else {
+        $d->resolve( $engine->make_numeric( $x->value->copy->babs ) );
+      }
     }
-    else {
-      $d -> resolve(
-        $engine->make_numeric($x->value->copy->babs)
-      );
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_binomial {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($x, $y) = @_;
-    if(!$x->isa('Dallycot::Value::Numeric') || !$y->isa('Dallycot::Value::Numeric')) {
-      $d -> reject("binomial-coefficient expects numeric arguments");
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ( $x, $y ) = @_;
+      if ( !$x->isa('Dallycot::Value::Numeric')
+        || !$y->isa('Dallycot::Value::Numeric') )
+      {
+        $d->reject("binomial-coefficient expects numeric arguments");
+      }
+      else {
+        $d->resolve(
+          $engine->make_numeric( $x->value->copy->bnok( $y->value ) ) );
+      }
     }
-    else {
-      $d -> resolve(
-        $engine->make_numeric($x->value->copy->bnok($y->value))
-      );
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 #====================================================================
@@ -281,103 +319,124 @@ sub do_binomial {
 # Basic string functions
 
 sub do_string_take {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($string, $spec) = @_;
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ( $string, $spec ) = @_;
 
-    if(!$string) {
-      $d -> resolve($engine->UNDEFINED);
-    }
-    elsif(!$spec) {
-      $d -> resolve($engine->UNDEFINED);
-    }
-    else {
-      if($spec -> isa('Dallycot::Value::Numeric')) {
-        my $length = $spec -> value -> numify;
-        $string -> take_range($engine, 1, $length) -> done(sub {
-          $d -> resolve(@_);
-        }, sub {
-          $d -> reject(@_);
-        });
+      if ( !$string ) {
+        $d->resolve( $engine->UNDEFINED );
       }
-      elsif($spec -> isa('Dallycot::Value::Vector')) {
-        given(scalar(@$spec)) {
-          when(1) {
-            if($spec->[0]->isa('Dallycot::Value::Numeric')) {
-              my $offset = $spec->[0]->value->numify;
-              $string -> value_at($engine, $offset) -> done(sub {
-                $d -> resolve(@_);
-              }, sub {
-                $d -> reject(@_);
-              });
-            }
-            else {
-              $d -> reject("Offset must be numeric");
-            }
-          }
-          when(2) {
-            if($spec->[0]->isa('Dallycot::Value::Numeric') &&
-               $spec->[1]->isa('Dallycot::Value::Numeric')) {
-              my($offset,$length) = (
-                $spec->[0]->value->numify,
-                $spec->[1]->value->numify
-              );
-
-              $string -> take_range($engine, $offset, $length) -> done(sub {
-                $d -> resolve(@_);
-              }, sub {
-                $d -> reject(@_);
-              });
-            }
-            else {
-              $d -> reject("string-take requires numeric offsets");
-            }
-          }
-          default {
-            $d -> reject("string-take requires 1 or 2 numeric elements in an offset vector");
-          }
-        }
+      elsif ( !$spec ) {
+        $d->resolve( $engine->UNDEFINED );
       }
       else {
-        $d -> reject("Offset must be numeric or a vector of numerics");
+        if ( $spec->isa('Dallycot::Value::Numeric') ) {
+          my $length = $spec->value->numify;
+          $string->take_range( $engine, 1, $length )->done(
+            sub {
+              $d->resolve(@_);
+            },
+            sub {
+              $d->reject(@_);
+            }
+          );
+        }
+        elsif ( $spec->isa('Dallycot::Value::Vector') ) {
+          given ( scalar(@$spec) ) {
+            when (1) {
+              if ( $spec->[0]->isa('Dallycot::Value::Numeric') ) {
+                my $offset = $spec->[0]->value->numify;
+                $string->value_at( $engine, $offset )->done(
+                  sub {
+                    $d->resolve(@_);
+                  },
+                  sub {
+                    $d->reject(@_);
+                  }
+                );
+              }
+              else {
+                $d->reject("Offset must be numeric");
+              }
+            }
+            when (2) {
+              if ( $spec->[0]->isa('Dallycot::Value::Numeric')
+                && $spec->[1]->isa('Dallycot::Value::Numeric') )
+              {
+                my ( $offset, $length ) =
+                  ( $spec->[0]->value->numify, $spec->[1]->value->numify );
+
+                $string->take_range( $engine, $offset, $length )->done(
+                  sub {
+                    $d->resolve(@_);
+                  },
+                  sub {
+                    $d->reject(@_);
+                  }
+                );
+              }
+              else {
+                $d->reject("string-take requires numeric offsets");
+              }
+            }
+            default {
+              $d->reject(
+"string-take requires 1 or 2 numeric elements in an offset vector"
+              );
+            }
+          }
+        }
+        else {
+          $d->reject("Offset must be numeric or a vector of numerics");
+        }
       }
     }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_string_drop {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self -> run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($string, $spec) = @_;
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ( $string, $spec ) = @_;
 
-    if(!$string) {
-      $d -> resolve($engine->UNDEFINED);
+      if ( !$string ) {
+        $d->resolve( $engine->UNDEFINED );
+      }
+      elsif ( !$spec ) {
+        $d->resolve( $engine->UNDEFINED );
+      }
+      elsif ( $spec->isa('Dallycot::Value::Numeric') ) {
+        my $offset = $spec->value->numify;
+        $string->drop( $engine, $offset )->done(
+          sub {
+            $d->resolve(@_);
+          },
+          sub {
+            $d->reject(@_);
+          }
+        );
+      }
+      else {
+        $d->reject("string-drop requires a numeric second argument");
+      }
     }
-    elsif(!$spec) {
-      $d -> resolve($engine->UNDEFINED);
-    }
-    elsif($spec->isa('Dallycot::Value::Numeric')) {
-        my $offset = $spec -> value -> numify;
-        $string->drop($engine, $offset)->done(sub {
-          $d -> resolve(@_);
-        }, sub {
-          $d -> reject(@_);
-        });
-    }
-    else {
-      $d -> reject("string-drop requires a numeric second argument");
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 #====================================================================
@@ -385,28 +444,34 @@ sub do_string_drop {
 # Textual/Linguistic functions
 
 sub do_stop_words {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($language) = @_;
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($language) = @_;
 
-    if(!$language -> isa('Dallycot::Value::String')) {
-      $d -> reject("stop-words expects a string argument");
+      if ( !$language->isa('Dallycot::Value::String') ) {
+        $d->reject("stop-words expects a string argument");
+      }
+      else {
+        my $lang = $language->value;
+        my @words =
+          sort
+          keys %{ Lingua::StopWords::getStopWords( $lang, 'UTF-8' ) || {} };
+        $d->resolve(
+          Dallycot::Value::Vector->new(
+            map { Dallycot::Value::String->new( $_, $lang ) } @words
+          )
+        );
+      }
     }
-    else {
-      my $lang = $language->value;
-      my @words = sort keys %{Lingua::StopWords::getStopWords($lang,'UTF-8')||{}};
-      $d -> resolve(Dallycot::Value::Vector->new(
-        map {
-          Dallycot::Value::String->new($_, $lang)
-        } @words
-      ));
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 my %language_codes_for_classifier = qw(
@@ -513,37 +578,42 @@ my %language_codes_for_classifier = qw(
 my %language_codes_from_classifier = reverse %language_codes_for_classifier;
 
 sub do_build_language_classifier {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($languages) = @_;
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ($languages) = @_;
 
-    if(!$languages->isa('Dallycot::Value::Vector')) {
-      $d -> reject('language-classifier expects a vector of languages');
+      if ( !$languages->isa('Dallycot::Value::Vector') ) {
+        $d->reject('language-classifier expects a vector of languages');
+      }
+      else {
+        $d->resolve(
+          bless [
+            grep { $_ }
+            map  { $language_codes_for_classifier{ $_->value } }
+            grep { $_->isa('Dallycot::Value::String') } @$languages
+          ] => 'Dallycot::Library::Core::LanguageClassifier'
+        );
+      }
     }
-    else {
-      $d -> resolve(bless [
-        grep { $_ }
-        map { $language_codes_for_classifier{$_ -> value} }
-        grep { $_ -> isa('Dallycot::Value::String') }
-        @$languages
-      ] => 'Dallycot::Library::Core::LanguageClassifier');
-    }
-  });
+  );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub do_get_available_languages_for_classifier {
-  my($self, $engine) = @_;
+  my ( $self, $engine ) = @_;
 
   my $d = deferred;
 
-  $d -> resolve(Dallycot::Value::Vector->new);
+  $d->resolve( Dallycot::Value::Vector->new );
 
-  return $d -> promise;
+  return $d->promise;
 
   # $d -> resolve({
   #   a => 'Vector',
@@ -565,92 +635,111 @@ sub do_get_available_languages_for_classifier {
 }
 
 sub do_classify_text_language {
-  my($self, $engine, @bindings) = @_;
+  my ( $self, $engine, @bindings ) = @_;
 
   my $d = deferred;
 
-  $self->run_bindings_and_then($engine, $d, \@bindings, sub {
-    my($classifier, $text) = @_;
+  $self->run_bindings_and_then(
+    $engine, $d,
+    \@bindings,
+    sub {
+      my ( $classifier, $text ) = @_;
 
-    if('HASH' ne ref $classifier || $classifier->{'a'} ne 'LanguageClassifier') {
-      $d -> reject("language-classify requires a language classifier as a first argument");
-      return;
-    }
-    if('HASH' ne ref $text) {
-      $d -> reject("language-classify requires a String or URI as a second argument");
-      return
-    }
-    given($text -> {'a'}) {
-      when('String') {
-        my $identifier = Lingua::YALI::LanguageIdentifier->new();
-        $identifier->add_language(@{$classifier->{'languages'}});
-        my $result = $identifier -> identify_string($text->{'value'});
-        $d -> resolve({
-          a => 'String',
-          value => $language_codes_from_classifier{$result->[0]->[0]},
-          language => 'en'
-        });
+      if ( 'HASH' ne ref $classifier
+        || $classifier->{'a'} ne 'LanguageClassifier' )
+      {
+        $d->reject(
+          "language-classify requires a language classifier as a first argument"
+        );
+        return;
       }
-      when('URI') {
-        Dallycot::TextResolver->instance->get($text->{'value'})
-          ->done(sub {
-            my($body) = @_;
-            my $content = '';
-            given($body->{'a'}) {
-              when('HTML') { # content-type: text/html
-                # we want to strip out the HTML and keep only text in the
-                # <body /> outside of <script/> tags
-                my $dom = Mojo::DOM->new($body->{'value'});
-                $content = $dom->find('body')->all_text;
-              }
-              when('String') { # content-type: text/plain
-                $content = $body->{'value'};
-              }
-              when('XML') { # content-type: text/xml (TEI, etc.)
-                my $dom = Mojo::DOM->new->xml(1)->parse($body->{'value'});
-                $content = $dom->all_text;
-              }
-              default {
-                $d -> reject("Unable to extract text from " . $text->{'value'});
-                return;
-              }
-            }
-            my $worked = eval {
-              my $identifier = Lingua::YALI::LanguageIdentifier->new();
-              $identifier->add_language(@{$classifier->{'languages'}});
-              # TODO: make '4096' a tunable parameter
-              # algorithm takes a *long* time with large strings
-              my $result = $identifier -> identify_string(substr($content,0,4096));
-              $d -> resolve({
-                a => 'String',
-                value => $language_codes_from_classifier{$result->[0]->[0]},
-                language => 'en'
-              });
-              1;
-            };
-            if($@) {
-              $d -> reject($@);
-            }
-            elsif(!$worked) {
-              $d -> reject("Unable to identify language.");
-            }
-          }, sub {
-            $d -> reject(@_);
-          });
+      if ( 'HASH' ne ref $text ) {
+        $d->reject(
+          "language-classify requires a String or URI as a second argument");
+        return;
       }
-      default {
-        $d -> reject("language-classify requires a String or URI as a second argument");
-      }
-    }
-  });
+      given ( $text->{'a'} ) {
+        when ('String') {
+          my $identifier = Lingua::YALI::LanguageIdentifier->new();
+          $identifier->add_language( @{ $classifier->{'languages'} } );
+          my $result = $identifier->identify_string( $text->{'value'} );
+          $d->resolve(
+            {
+              a        => 'String',
+              value    => $language_codes_from_classifier{ $result->[0]->[0] },
+              language => 'en'
+            }
+          );
+        }
+        when ('URI') {
+          Dallycot::TextResolver->instance->get( $text->{'value'} )->done(
+            sub {
+              my ($body) = @_;
+              my $content = '';
+              given ( $body->{'a'} ) {
+                when ('HTML') {    # content-type: text/html
+                      # we want to strip out the HTML and keep only text in the
+                      # <body /> outside of <script/> tags
+                  my $dom = Mojo::DOM->new( $body->{'value'} );
+                  $content = $dom->find('body')->all_text;
+                }
+                when ('String') {    # content-type: text/plain
+                  $content = $body->{'value'};
+                }
+                when ('XML') {       # content-type: text/xml (TEI, etc.)
+                  my $dom = Mojo::DOM->new->xml(1)->parse( $body->{'value'} );
+                  $content = $dom->all_text;
+                }
+                default {
+                  $d->reject(
+                    "Unable to extract text from " . $text->{'value'} );
+                  return;
+                }
+              }
+              my $worked = eval {
+                my $identifier = Lingua::YALI::LanguageIdentifier->new();
+                $identifier->add_language( @{ $classifier->{'languages'} } );
 
-  return $d -> promise;
+                # TODO: make '4096' a tunable parameter
+                # algorithm takes a *long* time with large strings
+                my $result =
+                  $identifier->identify_string( substr( $content, 0, 4096 ) );
+                $d->resolve(
+                  {
+                    a => 'String',
+                    value =>
+                      $language_codes_from_classifier{ $result->[0]->[0] },
+                    language => 'en'
+                  }
+                );
+                1;
+              };
+              if ($@) {
+                $d->reject($@);
+              }
+              elsif ( !$worked ) {
+                $d->reject("Unable to identify language.");
+              }
+            },
+            sub {
+              $d->reject(@_);
+            }
+          );
+        }
+        default {
+          $d->reject(
+            "language-classify requires a String or URI as a second argument");
+        }
+      }
+    }
+  );
+
+  return $d->promise;
 }
 
 ##
 #
 #
-
 
 1;
 

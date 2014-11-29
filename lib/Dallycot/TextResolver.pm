@@ -16,44 +16,47 @@ use Mojo::UserAgent;
 use Dallycot::TextResolver::Request;
 
 has cache => (
-  is => 'ro',
+  is      => 'ro',
   default => sub {
     CHI->new( driver => 'Memory', cache_size => '32M', datastore => {} );
   }
 );
 
 has ua => (
-  is => 'ro',
+  is      => 'ro',
   default => sub {
-    Mojo::UserAgent->new
+    Mojo::UserAgent->new;
   }
 );
 
 sub get {
-  my($self, $url) = @_;
+  my ( $self, $url ) = @_;
 
   my $deferred = deferred;
 
   my $data = $self->cache->get($url);
-  if(defined($data)) {
-    $deferred -> resolve($data);
+  if ( defined($data) ) {
+    $deferred->resolve($data);
   }
   else {
     my $request = Dallycot::TextResolver::Request->new(
-      ua => $self -> ua,
-      url => $url,
+      ua            => $self->ua,
+      url           => $url,
       canonical_url => $url,
     );
-    $request -> run -> done(sub {
-      ($data) = @_;
-      $self->cache->set($url, $data);
-      $deferred -> resolve($data);
-    }, sub {
-      $deferred -> reject(@_);
-    });
+    $request->run->done(
+      sub {
+        ($data) = @_;
+        $self->cache->set( $url, $data );
+        $deferred->resolve($data);
+      },
+      sub {
+        $deferred->reject(@_);
+      }
+    );
   }
 
-  return $deferred -> promise;
+  return $deferred->promise;
 }
 
 1;

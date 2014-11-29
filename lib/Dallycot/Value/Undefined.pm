@@ -19,39 +19,39 @@ sub id { return '^^Undefined' }
 sub is_defined { return 0 }
 
 sub calculate_length {
-  my($self, $engine) = @_;
+  my ( $self, $engine ) = @_;
 
   my $d = deferred;
 
-  $d -> resolve($engine->ZERO);
+  $d->resolve( $engine->ZERO );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub is_equal {
-  my($self, $engine, $other) = @_;
+  my ( $self, $engine, $other ) = @_;
 
   my $d = deferred;
 
-  if($self eq $INSTANCE) {
-    $d -> resolve($engine-> TRUE);
+  if ( $self eq $INSTANCE ) {
+    $d->resolve( $engine->TRUE );
   }
   else {
-    $d -> resolve($engine-> FALSE);
+    $d->resolve( $engine->FALSE );
   }
 
-  return $d -> promise;
+  return $d->promise;
 }
 
-*is_less_or_equal = \&is_equal;
+*is_less_or_equal    = \&is_equal;
 *is_greater_or_equal = \&is_equal;
 
 sub is_less {
-  my($self, $engine, $other) = @_;
+  my ( $self, $engine, $other ) = @_;
 
   my $d = deferred;
 
-  $d -> resolve($engine-> FALSE);
+  $d->resolve( $engine->FALSE );
 
   return $d;
 }
