@@ -17,27 +17,27 @@ sub new {
 sub is_defined { return 0 }
 
 sub calculate_length {
-  my($self, $engine) = @_;
+  my ( $self, $engine ) = @_;
 
   my $d = deferred;
 
-  $d -> resolve($engine->make_numeric(0));
+  $d->resolve( $engine->make_numeric(0) );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub calculate_reverse {
-  my($self, $engine) = @_;
+  my ( $self, $engine ) = @_;
 
   my $d = deferred;
 
-  $d -> resolve($self);
+  $d->resolve($self);
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub apply_map {
-  my($self, $engine, $d, $transform) = @_;
+  my ( $self, $engine, $d, $transform ) = @_;
 
   $d->resolve($self);
 
@@ -47,37 +47,37 @@ sub apply_map {
 sub value_at {
   my $p = deferred;
 
-  $p -> resolve(Dallycot::Value::Undefined->new);
+  $p->resolve( Dallycot::Value::Undefined->new );
 
-  return $p -> promise;
+  return $p->promise;
 }
 
 sub head {
   my $p = deferred;
 
-  $p -> resolve(Dallycot::Value::Undefined->new);
+  $p->resolve( Dallycot::Value::Undefined->new );
 
-  return $p -> promise;
+  return $p->promise;
 }
 
 sub tail {
-  my($self) = @_;
+  my ($self) = @_;
 
   my $p = deferred;
 
-  $p -> resolve($self);
+  $p->resolve($self);
 
-  return $p -> promise;
+  return $p->promise;
 }
 
 sub reduce {
-  my($self, $engine, $start, $lambda) = @_;
+  my ( $self, $engine, $start, $lambda ) = @_;
 
   my $p = deferred;
 
-  $p -> resolve($start);
+  $p->resolve($start);
 
-  return $p -> promise;
+  return $p->promise;
 }
 
 1;

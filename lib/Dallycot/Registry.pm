@@ -7,31 +7,31 @@ use utf8;
 use MooseX::Singleton;
 
 has type_handlers => (
-  is => 'ro',
-  isa => 'HashRef',
+  is      => 'ro',
+  isa     => 'HashRef',
   default => sub { +{} }
 );
 
 has namespaces => (
-  is => 'ro',
-  isa => 'HashRef',
+  is      => 'ro',
+  isa     => 'HashRef',
   default => sub { +{} }
 );
 
 sub has_assignment {
-  my($self, $ns, $symbol) = @_;
+  my ( $self, $ns, $symbol ) = @_;
 
-  return $self->namespaces->{$ns} &&
-         $self->namespaces->{$ns}->has_assignment($symbol);
+  return $self->namespaces->{$ns}
+    && $self->namespaces->{$ns}->has_assignment($symbol);
 }
 
 sub get_assignment {
-  my($self, $namespace, $symbol) = @_;
+  my ( $self, $namespace, $symbol ) = @_;
 
-  if($self->namespaces->{$namespace}) {
-    my $ns = $self -> namespaces -> {$namespace};
-    if($ns -> has_assignment($symbol)) {
-      return $ns -> get_assignment($symbol);
+  if ( $self->namespaces->{$namespace} ) {
+    my $ns = $self->namespaces->{$namespace};
+    if ( $ns->has_assignment($symbol) ) {
+      return $ns->get_assignment($symbol);
     }
   }
 
@@ -39,15 +39,15 @@ sub get_assignment {
 }
 
 sub has_namespace {
-  my($self, $ns) = @_;
+  my ( $self, $ns ) = @_;
 
   return exists $self->namespaces->{$ns};
 }
 
 sub register_namespace {
-  my($self, $ns, $context) = @_;
+  my ( $self, $ns, $context ) = @_;
 
-  if(!$self->has_namespace($ns)) {
+  if ( !$self->has_namespace($ns) ) {
     $self->namespaces->{$ns} = $context;
   }
 
@@ -59,8 +59,8 @@ sub initialize {
 
   $self->SUPER::initialize(@_);
 
-  for my $type (Dallycot::Value -> types) {
-    $self->type_handlers->{$type->type} = $type;
+  for my $type ( Dallycot::Value->types ) {
+    $self->type_handlers->{ $type->type } = $type;
   }
 
   return $self;

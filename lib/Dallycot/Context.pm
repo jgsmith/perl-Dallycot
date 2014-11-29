@@ -18,19 +18,23 @@ use experimental qw(switch);
 # Closures need to copy all of the info into a new context that is marked as
 #   a closure.
 
-has namespaces => (is => 'ro', isa => 'HashRef', default => sub { +{} });
+has namespaces => ( is => 'ro', isa => 'HashRef', default => sub { +{} } );
 
-has environment => (is => 'ro', isa => 'HashRef', default => sub { +{} });
+has environment => ( is => 'ro', isa => 'HashRef', default => sub { +{} } );
 
-has parent => (is => 'ro', isa => 'Dallycot::Context', predicate => 'has_parent');
+has parent =>
+  ( is => 'ro', isa => 'Dallycot::Context', predicate => 'has_parent' );
 
-has is_closure => (is => 'ro', isa => 'Bool', default => 0 );
+has is_closure => ( is => 'ro', isa => 'Bool', default => 0 );
 
 sub add_namespace {
-  my($self, $ns, $href) = @_;
+  my ( $self, $ns, $href ) = @_;
 
-  if(($self -> is_closure || $self -> has_parent) && defined($self->namespaces->{$ns})) {
-    croak "Namespaces may not be defined multiple times in a sub-context or closure";
+  if ( ( $self->is_closure || $self->has_parent )
+    && defined( $self->namespaces->{$ns} ) )
+  {
+    croak
+"Namespaces may not be defined multiple times in a sub-context or closure";
   }
   $self->namespaces->{$ns} = $href;
 
@@ -38,27 +42,29 @@ sub add_namespace {
 }
 
 sub get_namespace {
-  my($self, $ns) = @_;
+  my ( $self, $ns ) = @_;
 
-  if(defined($self -> namespaces -> {$ns})) {
-    return $self -> namespaces -> {$ns};
+  if ( defined( $self->namespaces->{$ns} ) ) {
+    return $self->namespaces->{$ns};
   }
-  elsif($self -> has_parent) {
-    return $self -> parent -> get_namespace($ns);
+  elsif ( $self->has_parent ) {
+    return $self->parent->get_namespace($ns);
   }
 }
 
 sub has_namespace {
-  my($self, $prefix) = @_;
+  my ( $self, $prefix ) = @_;
 
-  return exists($self->namespaces->{$prefix}) ||
-         $self -> has_parent && $self -> parent -> has_namespace($prefix);
+  return exists( $self->namespaces->{$prefix} )
+    || $self->has_parent && $self->parent->has_namespace($prefix);
 }
 
 sub add_assignment {
-  my($self, $identifier, $expr) = @_;
+  my ( $self, $identifier, $expr ) = @_;
 
-  if(($self -> is_closure || $self->has_parent) && defined($self->environment->{$identifier})) {
+  if ( ( $self->is_closure || $self->has_parent )
+    && defined( $self->environment->{$identifier} ) )
+  {
     croak "Identifiers may not be redefined in a sub-context or closure";
   }
   $self->environment->{$identifier} = $expr;
@@ -66,43 +72,44 @@ sub add_assignment {
 }
 
 sub get_assignment {
-  my($self, $identifier) = @_;
+  my ( $self, $identifier ) = @_;
 
-  if(defined($self->environment->{$identifier})) {
-    return $self -> environment -> {$identifier};
+  if ( defined( $self->environment->{$identifier} ) ) {
+    return $self->environment->{$identifier};
   }
-  elsif($self -> has_parent) {
-    return $self -> parent -> get_assignment($identifier);
+  elsif ( $self->has_parent ) {
+    return $self->parent->get_assignment($identifier);
   }
 }
 
 sub has_assignment {
-  my($self, $identifier) = @_;
+  my ( $self, $identifier ) = @_;
 
-  return exists($self->environment->{$identifier}) ||
-         $self -> has_parent && $self -> parent -> has_assignment($identifier);
+  return exists( $self->environment->{$identifier} )
+    || $self->has_parent && $self->parent->has_assignment($identifier);
 }
 
 sub make_closure {
-  my($self, $node) = @_;
+  my ( $self, $node ) = @_;
 
-  my(%namespaces, %environment);
+  my ( %namespaces, %environment );
 
   # we only copy the values we can use
-  my @stack = ($node);
+  my @stack       = ($node);
   my @identifiers = ();
 
-  while(@stack) {
+  while (@stack) {
     $node = shift @stack;
-    if(!ref $node) {
+    if ( !ref $node ) {
       cluck "We have a non-ref node! ($node)";
     }
 
     push @stack, $node->child_nodes;
 
     my @ids = $node->identifiers;
-    if(@ids) {
+    if (@ids) {
       my @new_ids = array_minus( @ids, @identifiers );
+
       #push @stack, grep { ref } map { $self->get_assignment($_) } @new_ids;
       push @identifiers, @new_ids;
     }
@@ -111,20 +118,21 @@ sub make_closure {
   @identifiers = unique @identifiers;
 
   for my $identifier (@identifiers) {
-    if('ARRAY' eq ref $identifier) {
-      if(!defined($namespaces{$identifier->[0]})) {
-        $namespaces{$identifier->[0]} = $self -> get_namespace($identifier->[0]);
+    if ( 'ARRAY' eq ref $identifier ) {
+      if ( !defined( $namespaces{ $identifier->[0] } ) ) {
+        $namespaces{ $identifier->[0] } =
+          $self->get_namespace( $identifier->[0] );
       }
     }
-    elsif($identifier !~ /^#/ && !defined($environment{$identifier})) {
-      my $value = $self -> get_assignment($identifier);
+    elsif ( $identifier !~ /^#/ && !defined( $environment{$identifier} ) ) {
+      my $value = $self->get_assignment($identifier);
       $environment{$identifier} = $value if defined $value;
     }
   }
 
-  # making the closure a child/parent allows setting overrides once in the closure code
-  return $self -> new(
-    namespaces => \%namespaces,
+# making the closure a child/parent allows setting overrides once in the closure code
+  return $self->new(
+    namespaces  => \%namespaces,
     environment => \%environment,
   );
 }

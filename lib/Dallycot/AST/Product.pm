@@ -8,31 +8,32 @@ use parent 'Dallycot::AST';
 
 use Readonly;
 
-Readonly my $NUMERIC => [ 'Numeric' ];
+Readonly my $NUMERIC => ['Numeric'];
 
 sub to_string {
-  my($self) = @_;
+  my ($self) = @_;
 
-  return "(" . join("*", map { $_ -> to_string } @{$self}) . ")"
+  return "(" . join( "*", map { $_->to_string } @{$self} ) . ")";
 }
 
 sub execute {
-  my($self, $engine, $d) = @_;
+  my ( $self, $engine, $d ) = @_;
 
-  $engine->collect(
-    map { [ $_, $NUMERIC ] } @$self
-  ) -> done( sub {
-    my(@values) = map { $_->value } @_;
+  $engine->collect( map { [ $_, $NUMERIC ] } @$self )->done(
+    sub {
+      my (@values) = map { $_->value } @_;
 
-    my $acc = (pop @values)->copy;
+      my $acc = ( pop @values )->copy;
 
-    while(@values) {
-      $acc *= (pop @values)
+      while (@values) {
+        $acc *= ( pop @values );
+      }
+      $d->resolve( $engine->make_numeric($acc) );
+    },
+    sub {
+      $d->reject(@_);
     }
-    $d->resolve($engine -> make_numeric($acc));
-  }, sub {
-    $d -> reject(@_);
-  });
+  );
 
   return;
 }

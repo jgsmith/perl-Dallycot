@@ -13,26 +13,26 @@ use Scalar::Util qw(blessed);
 sub value { }
 
 sub calculate_length {
-  my($self, $engine) = @_;
+  my ( $self, $engine ) = @_;
   my $d = deferred;
 
-  $d -> resolve($engine->make_numeric(Math::BigRat->binf()));
+  $d->resolve( $engine->make_numeric( Math::BigRat->binf() ) );
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub head {
-  my($self) = @_;
+  my ($self) = @_;
   my $p = deferred;
-  $p -> reject("head is not defined for " . blessed($self) . ".");
-  return $p -> promise;
+  $p->reject( "head is not defined for " . blessed($self) . "." );
+  return $p->promise;
 }
 
 sub tail {
-  my($self) = @_;
+  my ($self) = @_;
   my $p = deferred;
-  $p -> reject("tail is not defined for " . blessed($self) . ".");
-  return $p -> promise;
+  $p->reject( "tail is not defined for " . blessed($self) . "." );
+  return $p->promise;
 }
 
 1;
