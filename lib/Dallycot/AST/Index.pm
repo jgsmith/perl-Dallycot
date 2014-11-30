@@ -1,13 +1,19 @@
 package Dallycot::AST::Index;
 
+# ABSTRACT: Select value at given index in collection-like value
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
 
+use Promises qw(deferred);
+
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   my @expressions = @$self;
 
@@ -30,7 +36,7 @@ sub execute {
     $d->reject('missing expressions');
   }
 
-  return;
+  return $d->promise;
 }
 
 sub _do_next_index {

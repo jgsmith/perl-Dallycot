@@ -1,5 +1,7 @@
 package Dallycot::AST::Equality;
 
+# ABSTRACT: Tests that all expressions evaluate to the same value
+
 use strict;
 use warnings;
 

@@ -4,6 +4,7 @@ force     = 1
 verbose   = 4
 top       = 50
 theme     = core || unicode || swift
+exclude   = RequirePODUseEncodingUTF8
 criticism-fatal = 1
 color     = 1
 allow-unsafe = 1

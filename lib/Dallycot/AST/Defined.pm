@@ -1,10 +1,14 @@
 package Dallycot::AST::Defined;
 
+# ABSTRACT: Test if expression evaluates to a defined value
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
+
+use Scalar::Util qw(blessed);
 
 sub to_string {
   my ($self) = @_;
@@ -13,24 +17,19 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $engine->execute( $self->[0] )->done(
+  return $engine->execute( $self->[0] )->then(
     sub {
       my ($result) = @_;
-      if ( ref $result ) {
-        $d->resolve( $result->is_defined ? $engine->TRUE : $engine->FALSE );
+      if ( blessed $result ) {
+        return ( $result->is_defined ? $engine->TRUE : $engine->FALSE );
       }
       else {
-        $d->resolve( $engine->FALSE );
+        return ( $engine->FALSE );
       }
-    },
-    sub {
-      $d->reject(@_);
     }
   );
-
-  return;
 }
 
 1;

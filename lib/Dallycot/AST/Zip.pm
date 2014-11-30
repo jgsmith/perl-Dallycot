@@ -1,12 +1,14 @@
 package Dallycot::AST::Zip;
 
+# ABSTRACT: Combines a set of collections into a collection of vectors
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
 
-use Promises qw(collect);
+use Promises qw(collect deferred);
 
 use List::Util qw(max);
 use List::MoreUtils qw(all any each_array);
@@ -17,19 +19,16 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
   # produce a vector with the head of each thing
   # then a tail promise for the rest
   # unless we're all vectors, in which case zip everything up now!
   if ( any { $_->isa('Dallycot::AST') } @$self ) {
-    $engine->collect(@$self)->done(
+    return $engine->collect(@$self)->then(
       sub {
         my $newself = bless \@_ => __PACKAGE__;
-        $newself->execute( $engine, $d );
-      },
-      sub {
-        $d->reject(@_);
+        $newself->execute($engine);
       }
     );
   }
@@ -41,7 +40,12 @@ sub execute {
     while ( my @vals = $it->() ) {
       push @results, bless \@vals => 'Dallycot::Value::Vector';
     }
+
+    my $d = deferred;
+
     $d->resolve( bless \@results => 'Dallycot::Value::Vector' );
+
+    return $d->promise;
   }
   elsif ( all { $_->isa('Dallycot::Value::String') } @$self ) {
 
@@ -53,9 +57,15 @@ sub execute {
       my $s = join( "", map { substr( $$_, $idx, 1 ) } @sources );
       push @results, Dallycot::Value::String->new($s);
     }
+    my $d = deferred;
+
     $d->resolve( bless \@results => 'Dallycot::Value::Vector' );
+
+    return $d->promise;
   }
   else {
+    my $d = deferred;
+
     collect( map { $_->head($engine) } @$self )->done(
       sub {
         my (@heads) = map { @$_ } @_;
@@ -87,9 +97,9 @@ sub execute {
         $d->reject(@_);
       }
     );
-  }
 
-  return;
+    return $d->promise;
+  }
 }
 
 1;

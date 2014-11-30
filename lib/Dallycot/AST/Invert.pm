@@ -1,5 +1,7 @@
 package Dallycot::AST::Invert;
 
+# ABSTRACT: Invert the truth of an expression or value
+
 use strict;
 use warnings;
 
@@ -14,37 +16,30 @@ sub new {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $engine->execute( $self->[0] )->done(
+  return $engine->execute( $self->[0] )->then(
     sub {
       my ($res) = @_;
 
       if ( $res->isa('Dallycot::Value::Boolean') ) {
-        $d->resolve( $engine->make_boolean( !$res->value ) );
+        return $engine->make_boolean( !$res->value );
       }
       elsif ( $res->isa('Dallycot::Value::Lambda') ) {
-        $d->resolve(
-          Dallycot::Value::Lambda->new(
-            expression             => Dallycot::AST::Invert->new( $res->[0] ),
-            bindings               => $res->[1],
-            bindings_with_defaults => $res->[2],
-            options                => $res->[3],
-            closure_environment    => $res->[4],
-            closure_namespaces     => $res->[5]
-          )
+        return Dallycot::Value::Lambda->new(
+          expression             => Dallycot::AST::Invert->new( $res->[0] ),
+          bindings               => $res->[1],
+          bindings_with_defaults => $res->[2],
+          options                => $res->[3],
+          closure_environment    => $res->[4],
+          closure_namespaces     => $res->[5]
         );
       }
       else {
-        $d->resolve( $engine->make_boolean( !$res->is_defined ) );
+        return $engine->make_boolean( !$res->is_defined );
       }
-    },
-    sub {
-      $d->reject(@_);
     }
   );
-
-  return;
 }
 
 1;

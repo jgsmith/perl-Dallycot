@@ -1,5 +1,7 @@
 package Dallycot::TextResolver;
 
+# ABSTRACT: Resolve URLs into text objects
+
 use strict;
 use warnings;
 

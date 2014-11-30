@@ -1,5 +1,7 @@
 package Dallycot::AST::Placeholder;
 
+# ABSTRACT: A no-op placeholder in function calls
+
 use strict;
 use warnings;
 

@@ -1,5 +1,7 @@
 package Dallycot::Registry;
 
+# ABSTRACT: Manage namespace handler mappings
+
 use strict;
 use warnings;
 

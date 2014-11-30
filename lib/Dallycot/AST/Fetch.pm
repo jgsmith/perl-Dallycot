@@ -1,10 +1,14 @@
 package Dallycot::AST::Fetch;
 
+# ABSTRACT: Find the value associated with an identifier
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
+
+use Promises qw(deferred);
 
 sub new {
   my ( $class, $identifier ) = @_;
@@ -32,7 +36,9 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   my $registry = Dallycot::Registry->instance;
   if ( @$self > 1 ) {
@@ -64,7 +70,7 @@ sub execute {
     $d->reject( $self->[0] . " is undefined." );
   }
 
-  return;
+  return $d->promise;
 }
 
 1;

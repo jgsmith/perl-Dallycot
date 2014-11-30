@@ -1,5 +1,7 @@
 package Dallycot::AST::Any;
 
+# ABSTRACT: Return true iff any expression evaluates true
+
 use strict;
 use warnings;
 

@@ -180,6 +180,18 @@ $result = run("differences(1..)...'");
 
 is_deeply $result, Numeric(-1), "Difference between successive numbers is -1";
 
+$result = run("gcd(0, 123)");
+
+is_deeply $result, Numeric(123), "gcd(0, 123) is 123";
+
+$result = run("gcd(234, 0)");
+
+is_deeply $result, Numeric(234), "gcd(234, 0) is 234";
+
+$result = run("gcd(1599, 650)");
+
+is_deeply $result, Numeric(13), "gcd(1599, 650) is 13";
+
 $result = run("prime-pairs");
 
 isa_ok $result, "Dallycot::Value::Stream";
@@ -263,7 +275,7 @@ BEGIN { $Data::Dumper::Indent = 1; }
 
 sub run {
   my($stmt) = @_;
-  #print STDERR "Running ($stmt)\n";
+  # print STDERR "Running ($stmt)\n";
   my $cv = AnyEvent -> condvar;
 
   eval {

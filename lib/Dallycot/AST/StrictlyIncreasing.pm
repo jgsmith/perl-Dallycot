@@ -1,5 +1,7 @@
 package Dallycot::AST::StrictlyIncreasing;
 
+# ABSTRACT: Test that all values are in strictly increasing order
+
 use strict;
 use warnings;
 

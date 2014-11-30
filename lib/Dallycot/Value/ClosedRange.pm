@@ -1,5 +1,7 @@
 package Dallycot::Value::ClosedRange;
 
+# ABSTRACT: A finite range of integers
+
 use strict;
 use warnings;
 

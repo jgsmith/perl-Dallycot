@@ -1,5 +1,7 @@
 package Dallycot::Value::Numeric;
 
+# ABSTRACT: An arbitrary precision numeric value
+
 use strict;
 use warnings;
 

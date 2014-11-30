@@ -1,5 +1,7 @@
 package Dallycot::AST::Sequence;
 
+# ABSTRACT: Creates a new execution context for child nodes
+
 use strict;
 use warnings;
 
@@ -12,20 +14,9 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  my $new_engine = $engine->with_child_scope();
-
-  $new_engine->execute(@$self)->done(
-    sub {
-      $d->resolve(@_);
-    },
-    sub {
-      $d->reject(@_);
-    }
-  );
-
-  return;
+  return $engine->with_child_scope()->execute(@$self);
 }
 
 1;

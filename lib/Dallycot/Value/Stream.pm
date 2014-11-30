@@ -1,5 +1,7 @@
 package Dallycot::Value::Stream;
 
+# ABSTRACT: A linked list of values with a possible generator
+
 use strict;
 use warnings;
 

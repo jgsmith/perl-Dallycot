@@ -202,7 +202,14 @@ sub _execute {
       $d->reject("Exceeded maximum evaluation cost");
     }
     else {
-      $ast->execute( $self, $d );
+      $ast->execute($self)->done(
+        sub {
+          $d->resolve(@_);
+        },
+        sub {
+          $d->reject(@_);
+        }
+      );
     }
     1;
   };

@@ -1,5 +1,7 @@
 package Dallycot::AST::ComparisonBase;
 
+# ABSTRACT: Base class for comparison operations
+
 use strict;
 use warnings;
 
@@ -9,7 +11,9 @@ use parent 'Dallycot::AST';
 use Promises qw(deferred);
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   my @expressions = @$self;
 
@@ -22,7 +26,7 @@ sub execute {
     }
   );
 
-  return;
+  return $d->promise;
 }
 
 sub process_loop {

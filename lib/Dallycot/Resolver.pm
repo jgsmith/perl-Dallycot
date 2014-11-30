@@ -1,5 +1,7 @@
 package Dallycot::Resolver;
 
+# ABSTRACT: Resolve URLs into data objects
+
 use strict;
 use warnings;
 
@@ -61,10 +63,6 @@ sub get {
 
 __END__
 =encoding utf8
-
-=head1 NAME
-
-Dallycot::Resolver
 
 =head1 SYNOPSIS
 

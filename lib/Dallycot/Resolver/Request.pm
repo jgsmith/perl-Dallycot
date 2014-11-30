@@ -1,5 +1,7 @@
 package Dallycot::Resolver::Request;
 
+# ABSTRACT: Manages request cycle for data resources
+
 use Moose;
 
 use utf8;

@@ -1,5 +1,7 @@
 package Dallycot::TextResolver::Request;
 
+# ABSTRACT: Manages request cycle for text resources
+
 use strict;
 use warnings;
 

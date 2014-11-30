@@ -1,13 +1,19 @@
 package Dallycot::AST::Compose;
 
+# ABSTRACT: Compose lambdas into a new lambda
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
 
+use Promises qw(deferred);
+
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   $engine->collect(@$self)->done(
     sub {
@@ -27,7 +33,7 @@ sub execute {
     }
   );
 
-  return;
+  return $d->promise;
 }
 
 1;

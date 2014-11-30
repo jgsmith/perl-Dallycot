@@ -1,5 +1,7 @@
 package Dallycot::AST::Reduce;
 
+# ABSTRACT: Calculates the reduction of a series of values with a lambda
+
 use strict;
 use warnings;
 
@@ -12,30 +14,18 @@ Readonly my $LAMBDA => ['Lambda'];
 Readonly my $STREAM => ['Stream'];
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $engine->collect(
+  return $engine->collect(
     $self->[0],
     [ $self->[1], $LAMBDA ],
     [ $self->[2], $STREAM ]
-    )->done(
+    )->then(
     sub {
       my ( $start, $lambda, $stream ) = @_;
-      $stream->reduce( $engine, $start, $lambda )->done(
-        sub {
-          $d->resolve(@_);
-        },
-        sub {
-          $d->reject(@_);
-        }
-      );
-    },
-    sub {
-      $d->reject(@_);
+      $stream->reduce( $engine, $start, $lambda );
     }
     );
-
-  return;
 }
 
 1;

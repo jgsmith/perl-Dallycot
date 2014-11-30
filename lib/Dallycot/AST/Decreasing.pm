@@ -1,5 +1,7 @@
 package Dallycot::AST::Decreasing;
 
+# ABSTRACT: Test that all values are in decreasing order
+
 use strict;
 use warnings;
 

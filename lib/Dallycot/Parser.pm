@@ -1,5 +1,7 @@
 package Dallycot::Parser;
 
+# ABSTRACT: Parse Dallycot source into an abstract syntax tree
+
 use strict;
 use warnings;
 
@@ -8,6 +10,8 @@ use experimental qw(switch);
 
 use Marpa::R2;
 use Math::BigRat;
+
+use Scalar::Util qw(blessed);
 
 my $grammar = Marpa::R2::Scanless::G->new(
   {

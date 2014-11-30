@@ -1,5 +1,7 @@
 package Dallycot::Value::String;
 
+# ABSTRACT: A string with an associated language
+
 use strict;
 use warnings;
 
