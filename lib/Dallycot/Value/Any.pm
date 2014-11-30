@@ -1,5 +1,7 @@
 package Dallycot::Value::Any;
 
+# ABSTRACT: Base class for most value types
+
 use strict;
 use warnings;
 

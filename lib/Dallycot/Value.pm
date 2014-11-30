@@ -1,5 +1,7 @@
 package Dallycot::Value;
 
+# ABSTRACT: Abstract type representing a value
+
 use strict;
 use warnings;
 
@@ -62,11 +64,13 @@ sub calculate_length {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   $d->resolve($self);
 
-  return;
+  return $d->promise;
 }
 
 1;

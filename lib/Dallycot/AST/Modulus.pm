@@ -1,10 +1,14 @@
 package Dallycot::AST::Modulus;
 
+# ABSTRACT: Calculate the modulus of a series of values
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
+
+use Promises qw(deferred);
 
 sub to_string {
   my $self = shift;
@@ -12,25 +16,24 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
   my @expressions = @$self;
-  $engine->execute( ( shift @expressions ), ['Numeric'] )->done(
+  return $engine->execute( ( shift @expressions ), ['Numeric'] )->then(
     sub {
       my ($left_value) = @_;
+
+      my $d = deferred;
 
       $self->process_loop(
         $engine, $d,
         base        => $left_value,
         expressions => \@expressions
       );
-    },
-    sub {
-      $d->reject(@_);
+
+      return $d;
     }
   );
-
-  return;
 }
 
 sub process_loop {

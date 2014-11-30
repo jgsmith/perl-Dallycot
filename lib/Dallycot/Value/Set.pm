@@ -1,5 +1,7 @@
 package Dallycot::Value::Set;
 
+# ABSTRACT: An in-memory set of unique values
+
 use strict;
 use warnings;
 

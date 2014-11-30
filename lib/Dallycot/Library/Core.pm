@@ -1,5 +1,7 @@
 package Dallycot::Library::Core;
 
+# ABSTRACT: Core library of useful functions
+
 use strict;
 use warnings;
 
@@ -40,7 +42,7 @@ sub initialize {
 }
 
 sub call_function {
-  my ( $self, $name, $parent_engine, @bindings ) = @_;
+  my ( $self, $name, $parent_engine, $options, @bindings ) = @_;
 
   my $d = deferred;
 
@@ -67,7 +69,7 @@ sub call_function {
     );
   }
   else {
-    $d->reject("undefined function called in library");
+    $d->reject("undefined function ($name) called in library");
   }
 
   return $d->promise;
@@ -774,6 +776,7 @@ range := (
     (m > n) : [ m, ff(ff, m - 1, n) ]
     (m = n) : [ m ]
     (m < n) : [ m, ff(ff, m + 1, n) ]
+    (     ) : [ ]
   );
   range_f(range_f, _, _)
 );
@@ -828,6 +831,16 @@ differences := (
   );
 
   { diff_f(diff_f, #', #...) }
+);
+
+gcd := (
+  gcd_f(f, a, b) :> (
+    (a = 0) : b
+    (b = 0) : a
+    (a > b) : f(f, a mod b, b)
+    (     ) : f(f, a, b mod a)
+  );
+  gcd_f(gcd_f, _, _)
 );
 
 (* basic string functions *)

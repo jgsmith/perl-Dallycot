@@ -1,5 +1,7 @@
 package Dallycot::AST::BuildList;
 
+# ABSTRACT: Create stream-like collection with possible generator
+
 use strict;
 use warnings;
 
@@ -8,8 +10,12 @@ use parent 'Dallycot::AST';
 
 use experimental qw(switch);
 
+use Promises qw(deferred);
+
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   my @expressions = @$self;
   given ( scalar(@expressions) ) {
@@ -53,7 +59,7 @@ sub execute {
     }
   }
 
-  return;
+  return $d->promise;
 }
 
 1;

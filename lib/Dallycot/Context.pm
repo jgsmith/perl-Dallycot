@@ -1,5 +1,7 @@
 package Dallycot::Context;
 
+# ABSTRACT: Execution context with value mappings and namespaces
+
 use strict;
 use warnings;
 

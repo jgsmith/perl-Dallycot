@@ -1,5 +1,7 @@
 package Dallycot::Value::Undefined;
 
+# ABSTRACT: The Undefined value
+
 use strict;
 use warnings;
 

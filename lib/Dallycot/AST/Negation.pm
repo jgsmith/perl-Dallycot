@@ -1,5 +1,7 @@
 package Dallycot::AST::Negation;
 
+# ABSTRACT: Negate a numeric value
+
 use strict;
 use warnings;
 
@@ -13,18 +15,13 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $engine->execute( $self->[0], ['Numeric'] )->done(
+  return $engine->execute( $self->[0], ['Numeric'] )->then(
     sub {
-      $d->resolve( $engine->make_numeric( -( $_[0]->value ) ) );
-    },
-    sub {
-      $d->reject(@_);
+      $engine->make_numeric( -( $_[0]->value ) );
     }
   );
-
-  return;
 }
 
 1;

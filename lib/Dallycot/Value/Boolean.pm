@@ -1,5 +1,7 @@
 package Dallycot::Value::Boolean;
 
+# ABSTRACT: True or False
+
 use strict;
 use warnings;
 

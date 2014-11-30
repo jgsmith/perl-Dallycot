@@ -1,10 +1,13 @@
 package Dallycot::AST::Tail;
 
+# ABSTRACT: Finds the rest of a collection
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
+use Carp qw(croak);
 
 sub to_string {
   my ($self) = @_;
@@ -13,32 +16,20 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $engine->execute( $self->[0] )->done(
+  return $engine->execute( $self->[0] )->then(
     sub {
       my ($stream) = @_;
 
       if ( $stream->can('tail') ) {
-        $stream->tail($engine)->done(
-          sub {
-            $d->resolve(@_);
-          },
-          sub {
-            $d->reject(@_);
-          }
-        );
+        return $stream->tail($engine);
       }
       else {
-        $d->reject("The tail operator requires a stream-like object.");
+        croak "The tail operator requires a stream-like object.";
       }
-    },
-    sub {
-      $d->reject(@_);
     }
   );
-
-  return;
 }
 
 1;

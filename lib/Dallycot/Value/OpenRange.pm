@@ -1,5 +1,7 @@
 package Dallycot::Value::OpenRange;
 
+# ABSTRACT: An open range (semi-infinite) of integers
+
 use strict;
 use warnings;
 

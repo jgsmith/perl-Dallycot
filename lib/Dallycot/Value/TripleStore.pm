@@ -1,5 +1,7 @@
 package Dallycot::Value::TripleStore;
 
+# ABSTRACT: Manages a memory-based triple store of linked data
+
 use strict;
 use warnings;
 
@@ -21,7 +23,9 @@ sub calculate_length {
 }
 
 sub fetch_property {
-  my ( $self, $engine, $d, $prop ) = @_;
+  my ( $self, $engine, $prop ) = @_;
+
+  my $d = deferred;
 
   my ( $base, $subject, $graph ) = @$self;
 
@@ -64,11 +68,11 @@ sub fetch_property {
   if ($@) {
     $d->reject($@);
   }
-  if ( !$worked ) {
+  elsif ( !$worked ) {
     $d->reject("Unable to fetch $prop.");
   }
 
-  return;
+  return $d->promise;
 }
 
 1;

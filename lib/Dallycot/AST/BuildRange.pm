@@ -1,5 +1,7 @@
 package Dallycot::AST::BuildRange;
 
+# ABSTRACT: Create open or closed range
+
 use strict;
 use warnings;
 
@@ -9,12 +11,14 @@ use parent 'Dallycot::AST';
 use Promises qw(deferred);
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   if ( @$self == 1 || !defined( $self->[1] ) ) {    # semi-open range
     $engine->execute( $self->[0] )->done(
       sub {
-        $d->resolve( bless [ @_ ] => 'Dallycot::Value::OpenRange' );
+        $d->resolve( bless [@_] => 'Dallycot::Value::OpenRange' );
       },
       sub {
         $d->reject(@_);
@@ -45,7 +49,7 @@ sub execute {
     );
   }
 
-  return;
+  return $d->promise;
 }
 
 1;

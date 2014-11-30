@@ -1,4 +1,7 @@
 package Dallycot::Value::Vector;
+
+# ABSTRACT: A finite length, in-memory ordered set of values
+
 use strict;
 use warnings;
 

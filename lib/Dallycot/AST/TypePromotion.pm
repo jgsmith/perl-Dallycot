@@ -1,5 +1,7 @@
 package Dallycot::AST::TypePromotion;
 
+# ABSTRACT: Manages the conversion of a value to a new type
+
 use strict;
 use warnings;
 

@@ -1,5 +1,7 @@
 package Dallycot::AST::Sum;
 
+# ABSTRACT: Calculates the sum of a list of values
+
 use strict;
 use warnings;
 
@@ -17,9 +19,9 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $engine->collect( map { [ $_, $NUMERIC ] } @$self )->done(
+  return $engine->collect( map { [ $_, $NUMERIC ] } @$self )->then(
     sub {
       my (@values) = map { $_->value } @_;
 
@@ -28,14 +30,10 @@ sub execute {
       while (@values) {
         $acc += ( pop @values );
       }
-      $d->resolve( $engine->make_numeric($acc) );
-    },
-    sub {
-      $d->reject(@_);
+
+      $engine->make_numeric($acc);
     }
   );
-
-  return;
 }
 
 1;

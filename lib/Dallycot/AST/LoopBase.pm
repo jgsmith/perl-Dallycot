@@ -1,17 +1,23 @@
 package Dallycot::AST::LoopBase;
 
+# ABSTRACT: Base class for operations that loop over a series of expressions
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
 
+use Promises qw(deferred);
+
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   $self->process_loop( $engine, $d, @$self );
 
-  return;
+  return $d->promise;
 }
 
 sub process_loop {

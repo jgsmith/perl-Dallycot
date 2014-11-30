@@ -1,10 +1,14 @@
 package Dallycot::AST::Lambda;
 
+# ABSTRACT: Create a lambda value with a closure environment
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
+
+use Promises qw(deferred);
 
 use Readonly;
 
@@ -17,18 +21,17 @@ sub child_nodes {
   my ($self) = @_;
   return $self->[$EXPRESSION],
     ( map { $_->[1] } @{ $self->[$BINDINGS_WITH_DEFAULTS] || [] } ),
-
-    #(map { $_->[0] } @{$self->[$BINDINGS]||[]}),
-    #@{$self->[$BINDINGS]||[]},
     ( values %{ $self->[$OPTIONS] || {} } );
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $d->resolve( $engine->make_lambda( @$self ) );
+  my $d = deferred;
 
-  return;
+  $d->resolve( $engine->make_lambda(@$self) );
+
+  return $d->promise;
 }
 
 1;

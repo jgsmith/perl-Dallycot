@@ -1,5 +1,7 @@
 package Dallycot::Value::EmptyStream;
 
+# ABSTRACT: A stream with no values
+
 use strict;
 use warnings;
 

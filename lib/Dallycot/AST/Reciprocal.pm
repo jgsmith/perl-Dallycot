@@ -1,5 +1,7 @@
 package Dallycot::AST::Reciprocal;
 
+# ABSTRACT: Calculates the reciprocal of a numeric value
+
 use strict;
 use warnings;
 
@@ -17,18 +19,13 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
-  $engine->execute( $self->[0], $NUMERIC )->done(
+  return $engine->execute( $self->[0], $NUMERIC )->then(
     sub {
-      $d->resolve( $engine->make_numeric( 1 / ( $_[0]->value ) ) );
-    },
-    sub {
-      $d->reject(@_);
+      $engine->make_numeric( 1 / ( $_[0]->value ) );
     }
   );
-
-  return;
 }
 
 1;

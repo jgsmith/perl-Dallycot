@@ -1,5 +1,7 @@
 package Dallycot::AST::LibraryFunction;
 
+# ABSTRACT: Call function in an extension library
+
 use strict;
 use warnings;
 
@@ -19,21 +21,12 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
 
   my ( $parsing_library, $fname, $bindings, $options ) = @$self;
 
-  $parsing_library->instance->call_function( $fname, $engine, @{$bindings} )
-    ->done(
-    sub {
-      $d->resolve(@_);
-    },
-    sub {
-      $d->reject(@_);
-    }
-    );
-
-  return;
+  return $parsing_library->instance->call_function( $fname, $engine, $options,
+    @{$bindings} );
 }
 
 sub child_nodes {

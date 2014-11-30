@@ -1,5 +1,7 @@
 package Dallycot::Value::URI;
 
+# ABSTRACT: A URI value that can be dereferenced
+
 use strict;
 use warnings;
 
@@ -41,7 +43,9 @@ sub value_at {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   my $url = $self->[0];
 
@@ -55,7 +59,7 @@ sub execute {
     }
   );
 
-  return;
+  return $d->promise;
 }
 
 1;

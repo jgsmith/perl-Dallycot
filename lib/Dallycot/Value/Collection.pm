@@ -1,5 +1,7 @@
 package Dallycot::Value::Collection;
 
+# ABSTRACT: Base class for streams, vectors, sets, etc.
+
 use strict;
 use warnings;
 

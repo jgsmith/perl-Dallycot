@@ -1,10 +1,14 @@
 package Dallycot::AST::Apply;
 
+# ABSTRACT: Apply bindings to lambda
+
 use strict;
 use warnings;
 
 use utf8;
 use parent 'Dallycot::AST';
+
+use Promises qw(deferred);
 
 use Readonly;
 
@@ -45,7 +49,9 @@ sub to_string {
 }
 
 sub execute {
-  my ( $self, $engine, $d ) = @_;
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
 
   $engine->execute( $self->[$EXPRESSION] )->done(
     sub {
@@ -78,7 +84,7 @@ sub execute {
     }
   );
 
-  return;
+  return $d->promise;
 }
 
 1;

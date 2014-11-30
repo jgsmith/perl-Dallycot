@@ -1,5 +1,7 @@
 package Dallycot::Value::Lambda;
 
+# ABSTRACT: An expression with an accompanying closure environment
+
 use strict;
 use warnings;
 

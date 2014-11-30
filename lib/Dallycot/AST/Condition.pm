@@ -1,5 +1,7 @@
 package Dallycot::AST::Condition;
 
+# ABSTRACT: Select an expression based on guards
+
 use strict;
 use warnings;
 
