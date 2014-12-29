@@ -11,6 +11,7 @@ use Exporter 'import';
   Noop
   sequence
   placeholder
+  fullPlaceholder
   intLit
   floatLit
   stringLit
@@ -96,6 +97,10 @@ sub sequence {
 
 sub placeholder {
   bless [] => 'Dallycot::AST::Placeholder';
+}
+
+sub fullPlaceholder {
+  bless [] => 'Dallycot::AST::FullPlaceholder';
 }
 
 sub intLit {

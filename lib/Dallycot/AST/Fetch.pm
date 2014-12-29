@@ -60,8 +60,8 @@ sub execute {
       $d->reject("The namespace prefix \"@{[$self->[0]]}\" is undefined.");
     }
   }
-  elsif ( $registry->has_assignment( '', $self->[0] ) ) {
-    $d->resolve( $registry->get_assignment( '', $self->[0] ) );
+  elsif ( $registry->has_assignment( $engine -> get_namespace_search_path, $self->[0] ) ) {
+    $d->resolve( $registry->get_assignment( $engine -> get_namespace_search_path, $self->[0] ) );
   }
   elsif ( $engine->has_assignment( $self->[0] ) ) {
     $d->resolve( $engine->get_assignment( $self->[0] ) );

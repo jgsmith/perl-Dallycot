@@ -497,22 +497,9 @@ sub assign {
 sub apply {
   my ( undef, $function, $bindings ) = @_;
 
-  if ( $PARSING_LIBRARY
-    && $function->isa('Dallycot::AST::Fetch')
-    && $function->[0] eq 'call'
-    && $bindings->{'bindings'}->[0]->isa('Dallycot::Value::String') )
-  {
-    # we expect the first binding to be a Str
-    return bless [
-      $PARSING_LIBRARY, ( shift @{ $bindings->{'bindings'} } )->value,
-      $bindings->{bindings}, $bindings->{options}
-    ] => 'Dallycot::AST::LibraryFunction';
-  }
-  else {
-    return
-      bless [ $function, $bindings->{bindings}, $bindings->{options} ] =>
+  return
+    bless [ $function, $bindings->{bindings}, $bindings->{options} ] =>
       'Dallycot::AST::Apply';
-  }
 }
 
 sub apply_sans_params {
@@ -555,6 +542,19 @@ sub stream_vectors {
   my ( undef, @vectors ) = @_;
 
   return bless [@vectors] => 'Dallycot::AST::ConsVectors';
+}
+
+sub lambda_definition_sans_args {
+  my( undef, $expression ) = @_;
+
+  return lambda_definition(
+    undef,
+    {
+      bindings               => [],
+      bindings_with_defaults => []
+    },
+    $expression
+  );
 }
 
 sub function_definition_sans_args {
@@ -602,6 +602,31 @@ sub function_definition {
   }
 }
 
+sub lambda_definition {
+  my( undef, $args, $expression ) = @_;
+
+  if ( ref $args ) {
+    return bless [
+      $expression,                     $args->{bindings},
+      $args->{bindings_with_defaults}, $args->{options}
+    ] => 'Dallycot::AST::Lambda';
+  }
+  else {
+    return bless [
+      $expression,
+      [
+        (
+            $args == 0 ? []
+          : $args == 1 ? ['#']
+          :              [ map { '#' . $_ } 1 .. $args ]
+        ),
+        []
+      ],
+      {}
+    ] => 'Dallycot::AST::Lambda';
+  }
+}
+
 sub option {
   my ( undef, $identifier, $default ) = @_;
 
@@ -636,6 +661,12 @@ sub parameters_with_defaults_only {
 
 sub placeholder {
   return bless [] => 'Dallycot::AST::Placeholder';
+}
+
+sub append_remainder_placeholder {
+  my( undef, $bindings ) = @_;
+  push @{$bindings}, bless [] => 'Dallycot::AST::FullPlaceholder';
+  return $bindings;
 }
 
 sub condition_list {
@@ -845,6 +876,12 @@ sub promote_value {
   }
 }
 
+#sub y_combinator {
+#  my( undef, $expression ) = @_;
+#
+#  return bless [ $expression ] => 'Dallycot::AST::YCombinator';
+#}
+
 1;
 
 __DATA__
@@ -855,15 +892,15 @@ Block ::= Statement+ separator => STMT_SEP action => block
 
 Statement ::= Expression
             | NSDef action => ns_def
-            | FuncDef
 
 Expression ::= ConditionList
+             | Function
              | Scalar
              | Vector
              | Stream
-             | Function
              | Node
              | Assign
+             | FuncDef
              | TypePromotion
 
 TypePromotion ::= Expression ('^^') TypeSpec action => promote_value
@@ -877,7 +914,10 @@ TypeName ::= Name
 
 ExpressionList ::= Expression+ separator => COMMA action => list
 
-Bindings ::= Binding* separator => COMMA action => list
+DiscreteBindings ::= Binding* separator => COMMA action => list
+
+Bindings ::= DiscreteBindings
+           | DiscreteBindings (COMMA) (TRIPLE_UNDERSCORE) action => append_remainder_placeholder
 
 Binding ::= Expression
           | (UNDERSCORE) action => placeholder
@@ -915,6 +955,7 @@ Scalar ::=
     | Scalar (LB_LB) Scalar (RB_RB) action => vector_index
     | (MINUS) Scalar action => negate
     | ('?') Scalar action => defined_q
+    | ('?') (LP) Expression (RP) action => defined_q
    || (LP) Block (RP) assoc => group
    || Expression ('<<') Function ('<<') Stream action => stream_reduction
    || Scalar (STAR) Scalar action => product
@@ -948,8 +989,8 @@ Stream ::=
    || Stream (Z) Vector action => zip assoc => right
     | Stream (Z) Stream action => zip
     | Vector (Z) Vector action => zip assoc => right
-   || Function (MAP) Stream action => compose_map assoc => right
-    | Function (FILTER) Stream action => compose_filter assoc => right
+   || FunctionOrFetched (MAP) Stream action => compose_map assoc => right
+    | FunctionOrFetched (FILTER) Stream action => compose_filter assoc => right
    || Scalar (COLON_COLON_GT) Stream action => cons assoc => right
 
 Vector ::=
@@ -960,8 +1001,8 @@ Vector ::=
     | (LT) ExpressionList (GT) action => build_vector
     | (LT) (GT) action => empty_vector
     | ('<>') action => empty_vector
-   || Function (MAP) Vector action => compose_map assoc => right
-   || Function (FILTER) Vector action => compose_filter assoc => right
+   || FunctionOrFetched (MAP) Vector action => compose_map assoc => right
+   || FunctionOrFetched (FILTER) Vector action => compose_filter assoc => right
    || Vector (DOT_DOT_DOT) action => tail
    || Scalar (COLON_COLON_GT) Vector action => cons assoc => right
    || Vector (LT_COLON_COLON) Scalar action => vector_push
@@ -1001,20 +1042,29 @@ PropIdentifier ::= (COLON) Identifier action => prop_literal
 
 Function ::=
       Lambda
-    | Identifier action => fetch
-    | LambdaArg action => fetch
-    | QCName action => fetch
     | Apply
     | (MINUS) Function action => negate
     | (TILDE) Function action => invert
     | (LP) Block (RP) assoc => group
-   || Function (DOT) Function action => compose
+   || FunctionOrFetched (DOT) FunctionOrFetched action => compose
+
+FunctionOrFetched ::= Function
+                    | Fetched
+
+Fetched ::=
+      Identifier action => fetch
+    | LambdaArg action => fetch
+    | QCName action => fetch
 
 Lambda ::=
       (LC) Expression (RC) action => lambda
     | (LC) Expression (RC) (SLASH) NonNegativeInteger action => lambda
+    | (LP) FunctionParameters (RP) (COLON_GT) Expression action => lambda_definition
+    | (LP) (RP) (COLON_GT) Expression action => lambda_definition_sans_args
 
-Apply ::= Function (LP) FunctionArguments (RP) action => apply
+Apply ::= (LP) Function (RP) (LP) FunctionArguments (RP) action => apply
+       | Fetched (LP) FunctionArguments (RP) action => apply 
+       | Apply (LP) FunctionArguments (RP) action => apply
 
 NSDef ::= NSName (COLON_EQUAL) String action => ns_def
 
@@ -1037,7 +1087,7 @@ FunctionParameters ::= IdentifiersWithPossibleDefaults action => combine_identif
           | OptionDefinitions action => relay_options
           | IdentifiersWithPossibleDefaults (COMMA) OptionDefinitions action => combine_identifiers_options
 
-IdentifiersWithPossibleDefaults ::= Identifiers action => parameters_only
+IdentifiersWithPossibleDefaults ::= IdentifiersWithGlob action => parameters_only
           | IdentifiersWithDefaults action => parameters_with_defaults_only
           | Identifiers (COMMA) IdentifiersWithDefaults action => combine_parameters
 
@@ -1063,7 +1113,12 @@ Inequality ~ inequality
 
 Identifier ~ identifier | identifier '?'
 
+StarIdentifier ~ '*' identifier
+
 Identifiers ::= Identifier+ separator => COMMA action => list
+
+IdentifiersWithGlob ::= Identifiers (COMMA) StarIdentifier
+                      | Identifiers
 
 NSName ~ 'xmlns:' identifier
 
@@ -1132,6 +1187,7 @@ STAR ~ '*'
 STAR_RP ~ '*)'
 TILDE ~ '~'
 UNDERSCORE ~ '_'
+TRIPLE_UNDERSCORE ~ '___'
 Z ~ 'Z'
 
 STMT_SEP ~ ';'

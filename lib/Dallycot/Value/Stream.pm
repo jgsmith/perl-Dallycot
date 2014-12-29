@@ -35,6 +35,7 @@ sub calculate_length {
   my $count = 1;
 
   while ( $ptr->[$TAIL] ) {
+    $count ++;
     $ptr = $ptr->[$TAIL];
   }
 

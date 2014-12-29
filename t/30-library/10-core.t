@@ -11,17 +11,9 @@ BEGIN { use_ok 'Dallycot::Library::Core' };
 
 my $cv = AnyEvent -> condvar;
 
-Dallycot::Library::Core->initialize->done(sub {
-  $cv -> send(@_);
-}, sub {
-  $cv -> croak(@_);
-});
-eval {
-    $cv -> recv;
-};
-if($@) {
-  warn "Loading core library: $@";
-}
+#Dallycot::Library::Core->initialize;
+
+isa_ok(Dallycot::Library::Core->instance, 'Dallycot::Library');
 
 sub Numeric {
   Dallycot::Value::Numeric -> new($_[0]);
@@ -40,12 +32,23 @@ sub Vector {
 }
 
 my $processor = Dallycot::Processor -> new(
-  context => Dallycot::Context -> new
+  context => Dallycot::Context -> new(
+    namespace_search_path => [
+      'https://www.dallycot.io/ns/misc/1.0#',
+      'https://www.dallycot.io/ns/functions/1.0#',
+      'https://www.dallycot.io/ns/math/1.0#',
+      'https://www.dallycot.io/ns/linguistics/1.0#',
+      'https://www.dallycot.io/ns/streams/1.0#',
+      'https://www.dallycot.io/ns/strings/1.0#'
+    ]
+  )
 );
 
 my $parser = Dallycot::Parser->new;
 
 my $result;
+
+$result = run('odds');
 
 $result = run('length("foo")');
 
@@ -91,13 +94,13 @@ $result = run("range(1,3).........'");
 
 isa_ok $result, 'Dallycot::Value::Undefined', "Running off the end should result in undef";
 
-$result = run("streamLength([1,2,3])");
+$result = run("length([1,2,3])");
 
 is_deeply $result, Numeric(3), "[1,2,3] has three elements";
 
-$result = run("streamLength(range(1,3))");
+$result = run("length(range(1,3))");
 
-is_deeply $result, Numeric(3), "1..3 has three elements";
+is_deeply $result, Numeric('inf'), "1..3 has 'inf' elements";
 
 $result = run("primes'");
 
@@ -132,11 +135,11 @@ $result = run("primes... ... ... ... ... ... ...'");
 
 is_deeply $result, Numeric(17), "17 is the 8th prime";
 
-$result = run("fibonacci_sequence... ... ... ... ...'");
+$result = run("fibonacci-sequence... ... ... ... ...'");
 
 is_deeply $result, Numeric(8), "6th Fibonacci is 8";
 
-$result = run("fibonacci_sequence[[8]]");
+$result = run("fibonacci-sequence[[8]]");
 
 is_deeply $result, Numeric(21), "8th Fibonacci is 21";
 
@@ -156,23 +159,27 @@ $result = run("factorials[[4]]");
 
 is_deeply $result, Numeric(24), "4! is 24";
 
-$result = run("count-and-sum(1..9)");
+$result = run("last(count-and-sum(1..9))");
 
 is_deeply $result, Vector(Numeric(9), Numeric(45)), "count-and-sum of 1..9 is <9,45>";
 
-$result = run("sum(1..9)");
+$result = run("last(sum(1..9))");
 
 is_deeply $result, Numeric(45), "Sum of 1..9 is 45";
 
 $result = run("mean(1..9)");
 
+isa_ok $result, 'Dallycot::Value::Stream';
+
+$result = run("last(mean(1..9))");
+
 is_deeply $result, Numeric(5), "Average of 1..9 is 5";
 
-$result = run("min([1,-2,3,-4,5,-6,7])");
+$result = run("last(min([1,-2,3,-4,5,-6,7]))");
 
 is_deeply $result, Numeric(-6), "Minimum of [1,-2,3,-4,5,-6,7] is -6";
 
-$result = run("max([1,-2,3,-4,5,-6,7])");
+$result = run("last(max([1,-2,3,-4,5,-6,7]))");
 
 is_deeply $result, Numeric(7), "Maximum of [1,-2,3,-4,5,-6,7] is 7";
 

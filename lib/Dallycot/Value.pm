@@ -23,6 +23,8 @@ sub types {
 
 __PACKAGE__->types;
 
+sub is_lambda { return }
+
 sub type {
   my ($self) = @_;
 

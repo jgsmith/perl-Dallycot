@@ -24,6 +24,8 @@ has namespaces => ( is => 'ro', isa => 'HashRef', default => sub { +{} } );
 
 has environment => ( is => 'ro', isa => 'HashRef', default => sub { +{} } );
 
+has namespace_search_path => ( is => 'ro', isa => 'ArrayRef', default => sub { [] } );
+
 has parent =>
   ( is => 'ro', isa => 'Dallycot::Context', predicate => 'has_parent' );
 
@@ -91,6 +93,18 @@ sub has_assignment {
     || $self->has_parent && $self->parent->has_assignment($identifier);
 }
 
+sub get_namespace_search_path {
+  my ( $self ) = @_;
+
+  return $self -> namespace_search_path;
+}
+
+sub append_namespace_search_path {
+  my ( $self, @paths ) = @_;
+
+  return push @{$self -> namespace_search_path}, @paths;
+}
+
 sub make_closure {
   my ( $self, $node ) = @_;
 
@@ -136,6 +150,7 @@ sub make_closure {
   return $self->new(
     namespaces  => \%namespaces,
     environment => \%environment,
+    namespace_search_path => $self -> namespace_search_path
   );
 }
 

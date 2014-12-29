@@ -53,17 +53,27 @@ sub execute {
 
   my $d = deferred;
 
-  $engine->execute( $self->[$EXPRESSION] )->done(
+  my $expr = $self->[$EXPRESSION];
+  if($expr->isa('Dallycot::Value')) {
+    $expr = bless [ $expr ] => 'Dallycot::AST::Identity';
+  }
+
+  $engine->execute( $expr )->done(
     sub {
       my ($lambda) = @_;
       if ( !$lambda ) {
         $d->reject("Undefined value can not be a function.");
       }
       elsif ( $lambda->can('apply') ) {
+        my @bindings = @{$self->[$BINDINGS]};
+        if(@bindings && $bindings[-1]->isa('Dallycot::AST::FullPlaceholder')) {
+          pop @bindings;
+          push @bindings, (bless [] => 'Dallycot::AST::Placeholder')x($lambda->min_arity - @bindings);
+        }
         $lambda->apply(
           $engine,
           { %{ $self->[$OPTIONS] } },
-          @{ $self->[$BINDINGS] }
+          @bindings
           )->done(
           sub {
             $d->resolve(@_);
