@@ -275,7 +275,7 @@ $result = run("fifties' > 50 and fifties...' = 100");
 
 is_deeply $result, Boolean(0), "The result of the 'all' should be 'false'";
 
-$result = run("fifties[[3]]");
+$result = run("fifties[3]");
 
 is_deeply $result, Numeric(150), "The third fifty should be 150";
 
@@ -287,7 +287,7 @@ $result = run("<1,2,3>");
 
 is_deeply $result, Vector(Numeric(1),Numeric(2),Numeric(3)), "<1,2,3> is a vector with three items";
 
-$result = run("<1,2,3>[[2]]");
+$result = run("<1,2,3>[2]");
 
 is_deeply $result, Numeric(2), "second in <1,2,3> is 2";
 

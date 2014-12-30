@@ -4,7 +4,7 @@ use Test::More;
 use ParserHelper;
 
 test_parses(
-    '{ #[[2]] - #[[1]] = 2 } % primes Z primes...' => [
+    '{ #[2] - #[1] = 2 } % primes Z primes...' => [
     filter_(
       lambda(
         ['#'], {},
@@ -40,7 +40,7 @@ test_parses(
     )
   )],
 
-  'foldl( <0,0>, ( (pad, element) :> <pad[[1]] + 1, pad[[2]] + element> ), _)' => [
+  'foldl( <0,0>, ( (pad, element) :> <pad[1] + 1, pad[2] + element> ), _)' => [
     apply( fetch('foldl'),
       vector(intLit(0), intLit(0)),
       lambda(['pad', 'element'], {},

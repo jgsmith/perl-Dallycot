@@ -218,19 +218,19 @@ EOD
 define 'weighted-count-and-sum' => <<'EOD';
   foldl( <0,0>, (
     (pad, element) :>
-      <pad[[1]] + element[[1]], pad[[2]] + element[[1]] * element[[2]]>
+      <pad[1] + element[1], pad[2] + element[1] * element[2]>
   ), _)
 EOD
 
 define 'count-and-sum' => <<'EOD';
   foldl( <0,0>, (
     (pad, element) :>
-      < pad[[1]] + 1, pad[[2]] + element >
+      < pad[1] + 1, pad[2] + element >
   ), _)
 EOD
 
 define mean => <<'EOD';
-  (s) :> { #[[2]] div #[[1]] } @ count-and-sum(s)
+  (s) :> { #[2] div #[1] } @ count-and-sum(s)
 EOD
 
 define differences => <<'EOD';
