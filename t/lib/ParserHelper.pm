@@ -1,16 +1,20 @@
 package ParserHelper;
 
+use strict;
+use warnings;
+
 use Test::More;
 
 use Dallycot::Parser;
 
 use Exporter 'import';
 
-@EXPORT = qw(
+our @EXPORT = qw(
   test_parses
   Noop
   sequence
   placeholder
+  fullPlaceholder
   intLit
   floatLit
   stringLit
@@ -96,6 +100,10 @@ sub sequence {
 
 sub placeholder {
   bless [] => 'Dallycot::AST::Placeholder';
+}
+
+sub fullPlaceholder {
+  bless [] => 'Dallycot::AST::FullPlaceholder';
 }
 
 sub intLit {

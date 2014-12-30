@@ -20,14 +20,15 @@ Readonly my $BINDINGS_WITH_DEFAULTS => 2;
 Readonly my $OPTIONS                => 3;
 Readonly my $CLOSURE_ENVIRONMENT    => 4;
 Readonly my $CLOSURE_NAMESPACES     => 5;
+Readonly my $CLOSURE_NAMESPACE_PATH => 6;
 
 sub new {
   my ( $class, %options ) = @_;
 
   my ( $expression, $bindings, $bindings_with_defaults, $options,
-    $closure_environment, $closure_namespaces, $engine )
+    $closure_environment, $closure_namespaces, $namespace_search_path, $engine )
     = @options{
-    qw(expression bindings bindings_with_defaults options closure_environment closure_namespaces engine)
+    qw(expression bindings bindings_with_defaults options closure_environment closure_namespaces namespace_search_path engine)
     };
 
   $class = ref $class || $class;
@@ -39,20 +40,25 @@ sub new {
   $options                ||= {};
   $closure_environment    ||= {};
   $closure_namespaces     ||= {};
+  $namespace_search_path  ||= [];
 
   if ($engine) {
     $closure_context = $engine->context->make_closure($expression);
     delete @{ $closure_context->environment }{ @$bindings,
       map { $_->[0] } @$bindings_with_defaults };
-    $closure_environment = $closure_context->environment;
-    $closure_namespaces  = $closure_context->namespaces;
+    $closure_environment   = $closure_context->environment;
+    $closure_namespaces    = $closure_context->namespaces;
+    $namespace_search_path = $closure_context->namespace_search_path;
   }
 
   return bless [
     $expression, $bindings,            $bindings_with_defaults,
-    $options,    $closure_environment, $closure_namespaces
+    $options,    $closure_environment, $closure_namespaces,
+    $namespace_search_path
   ] => $class;
 }
+
+sub is_lambda { return 1; }
 
 sub id {
   return '^^Lambda';
@@ -150,7 +156,7 @@ sub _get_bindings {
       }
     }
   }
-  if ( $arity < $max_arity ) {
+  if ( $max_arity > 0 && $arity < $max_arity ) {
     foreach my $idx ( $arity .. $max_arity - 1 ) {
       push @filled_bindings,
         $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ]->[1];
@@ -229,7 +235,8 @@ sub apply {
                 bless [
                   $self->[$EXPRESSION],        $new_bindings,
                   $new_bindings_with_defaults, $filled_options,
-                  \%environment,               $self->[$CLOSURE_NAMESPACES]
+                  \%environment,               $self->[$CLOSURE_NAMESPACES],
+                  $self->[$CLOSURE_NAMESPACE_PATH]
                 ] => __PACKAGE__
               );
             }
@@ -237,6 +244,7 @@ sub apply {
               my $new_engine = $engine->with_new_closure(
                 +{ %environment, %{$filled_options} },
                 $self->[$CLOSURE_NAMESPACES],
+                $self->[$CLOSURE_NAMESPACE_PATH]
               );
               $new_engine->execute( $self->[$EXPRESSION] )->done(
                 sub {

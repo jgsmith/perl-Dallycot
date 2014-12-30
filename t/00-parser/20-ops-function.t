@@ -31,6 +31,34 @@ test_parses(
     )
   ],
 
+  '(a) :> (a + 3)' => [lambda(['a'], {}, sum(fetch('a'), intLit(3)))],
+
+  '(function) :> function(function, ___)' => [lambda(['function'], {},
+    apply(fetch('function'),
+      fetch('function'),
+      fullPlaceholder
+    )
+  )],
+
+  'foldl( <0,0>, ( (pad, element) :> <pad[[1]] + 1, pad[[2]] + element> ), _)' => [
+    apply( fetch('foldl'),
+      vector(intLit(0), intLit(0)),
+      lambda(['pad', 'element'], {},
+        vector(
+          sum(
+            index_(fetch('pad'), intLit(1)),
+            intLit(1)
+          ),
+          sum(
+            index_(fetch('pad'), intLit(2)),
+            fetch('element')
+          )
+        )
+      ),
+      placeholder
+    )
+  ],
+
   '{ # + 3 }'     => [lambda(['#'], {}, sum(fetch('#'), intLit(3)))],
 
   '{ #1 + #2 }/2' => [lambda(['#1', '#2'], {}, sum(fetch('#1'), fetch('#2')))],
@@ -50,6 +78,43 @@ test_parses(
           fetch('x'),
           fetch('y'),
         )
+      )
+    )
+  ],
+
+  "Y(f) :> f(f, ___)" => [
+    assignment( Y => lambda(
+      ['f'],
+      {},
+      apply( fetch('f'),
+        fetch('f'),
+        fullPlaceholder
+      )
+    ))
+  ],
+
+  "Y((f,n) :> [ n, f(f, n+1) ])" => [
+    apply( fetch('Y'),
+      lambda(
+        ['f', 'n'],
+        {},
+        list( fetch('n'),
+          apply(fetch('f'),
+            fetch('f'),
+            sum(fetch('n'), intLit(1))
+          )
+        )
+      )
+    )
+  ],
+
+  "(f) :> f(f, ___)" => [
+    lambda(
+      ['f'],
+      {},
+      apply(fetch('f'),
+        fetch('f'),
+        fullPlaceholder
       )
     )
   ],

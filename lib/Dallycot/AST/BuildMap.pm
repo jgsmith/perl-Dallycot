@@ -19,7 +19,7 @@ sub execute {
     sub {
       my (@functions) = @_;
       my $stream = pop @functions;
-      if ( grep { !$_->isa('Dallycot::Value::Lambda') } @functions ) {
+      if ( grep { !$_->is_lambda } @functions ) {
         $d->reject("All but the last term in a mapping must be lambdas.");
       }
       elsif ( grep { 1 != $_->min_arity } @functions ) {

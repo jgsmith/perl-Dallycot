@@ -7,6 +7,7 @@ use warnings;
 
 use utf8;
 use MooseX::Singleton;
+use MooseX::Types::Moose qw(ArrayRef);
 
 has type_handlers => (
   is      => 'ro',
@@ -23,12 +24,29 @@ has namespaces => (
 sub has_assignment {
   my ( $self, $ns, $symbol ) = @_;
 
+  if(is_ArrayRef($ns)) {
+    foreach my $n (@$ns) {
+      return 1 if $self->namespaces->{$n} &&
+        $self->namespaces->{$n}->has_assignment($symbol);
+    }
+    return;
+  }
+
   return $self->namespaces->{$ns}
     && $self->namespaces->{$ns}->has_assignment($symbol);
 }
 
 sub get_assignment {
   my ( $self, $namespace, $symbol ) = @_;
+
+  if(is_ArrayRef($namespace)) {
+    foreach my $n (@$namespace) {
+      if($self -> has_assignment($n, $symbol)) {
+        return $self -> get_assignment($n, $symbol);
+      }
+    }
+    return;
+  }
 
   if ( $self->namespaces->{$namespace} ) {
     my $ns = $self->namespaces->{$namespace};

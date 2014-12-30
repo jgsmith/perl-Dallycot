@@ -32,6 +32,8 @@ has context => (
       add_assignment
       has_namespace
       get_namespace
+      get_namespace_search_path
+      append_namespace_search_path
       ]
   ],
   default => sub {
@@ -75,19 +77,21 @@ sub with_child_scope {
   return $self->new(
     parent  => $self,
     context => $self->context->new(
-      parent => $self->context
+      parent => $self->context,
+      namespace_search_path => $self->context->namespace_search_path
     )
   );
 }
 
 sub with_new_closure {
-  my ( $self, $environment, $namespaces ) = @_;
+  my ( $self, $environment, $namespaces, $search_path ) = @_;
 
   return $self->new(
     parent  => $self,
     context => $self->context->new(
       environment => $environment,
-      namespaces  => $namespaces
+      namespaces  => $namespaces,
+      namespace_search_path => ($search_path // $self->context->namespace_search_path)
     )
   );
 }
@@ -238,16 +242,16 @@ sub execute {
     }
   }
 
-  my $d = deferred;
 
   if (@ast) {
+    my $d = deferred;
     $self->_execute_loop( $d, \@expected_types, $ast, @ast );
+    return $d->promise;
   }
   else {
-    $self->_execute( \@expected_types, $ast )
-      ->done( sub { $d->resolve(@_); }, sub { $d->reject(@_); } );
+    return $self->_execute( \@expected_types, $ast );
+      #->done( sub { $d->resolve(@_); }, sub { $d->reject(@_); } );
   }
-  return $d->promise;
 }
 
 # sub _run_apply {

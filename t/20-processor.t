@@ -33,6 +33,8 @@ sub Vector {
 
 my $result;
 
+$result = run('Y := ((f) :> f(f, ___))');
+
 $result = run('1 + 2 - 3 + 4 - 5');
 
 isa_ok $result, 'Dallycot::Value::Numeric';
@@ -66,7 +68,7 @@ isa_ok $result, 'Dallycot::Value::Lambda';
 ok $processor -> has_assignment('upfrom_f'), "We've stored something in the environment (upfrom_f)";
 is $processor -> get_assignment('upfrom_f'), $result, "The returned closure is stored in the environment (upfrom_f)";
 
-$result = run('upfrom := upfrom_f(upfrom_f, _)');
+$result = run('upfrom := Y(upfrom_f)');
 
 ok $processor -> has_assignment('upfrom'), "We've stored something in the environment (upfrom)";
 is $result, $processor -> get_assignment('upfrom'), "The returned closure is stored in the environment (upfrom)";
@@ -105,7 +107,7 @@ $result = run("repeater_f(f,e) :> [ e, f(f, e) ]");
 
 isa_ok $result, 'Dallycot::Value::Lambda';
 
-$result = run("repeater := repeater_f(repeater_f, _)");
+$result = run("repeater := Y(repeater_f)");
 
 isa_ok $result, 'Dallycot::Value::Lambda';
 
@@ -117,7 +119,7 @@ $result = run("repeater(1)...");
 
 isa_ok $result, 'Dallycot::Value::Stream';
 
-$result = run("doubles_f(f,s) :> [ 2 * s', f(f, s...) ]; doubles := doubles_f(doubles_f, _)");
+$result = run("doubles := Y((f,s) :> ([ 2 * s', f(f, s...) ]))");
 
 is_deeply $result, $processor->context -> get_assignment('doubles'), "Return is the last statement";
 
@@ -139,11 +141,10 @@ is_deeply $result, Numeric(20), "Double of Double of 5 is 20";
 
 $result = run("
   even?(n) :> n mod 2 = 0;
-  evens_f(f, s) :> (
+  evens := Y((f, s) :> (
     (even?(s')) : [ s', f(f, s...) ]
     (         ) :       f(f, s...)
-  );
-  evens := evens_f(evens_f, _)
+  ))
 ");
 
 is_deeply $result, $processor->context->get_assignment('evens'), "Returns the last statement (evens)";
@@ -156,14 +157,13 @@ $result = run("evens(upfrom(1))......'");
 
 is_deeply $result, Numeric(6), "Third even is 6";
 
-$result = run("odd?(n) :> n mod 2 = 1;
-odds := (
-  odds_f(f, s) :> (
+$result = run("
+  odd?(n) :> n mod 2 = 1;
+  odds := Y((f, s) :> (
     (odd?(s')) : [ s', f(f, s...) ]
     (        ) :       f(f, s...)
-  );
-  odds_f(odds_f, _)
-)");
+  ))
+");
 
 is_deeply $result, $processor->context->get_assignment('odds'), "Returns the last statement (odds)";
 
@@ -178,13 +178,10 @@ $result = run("10 div 2");
 is_deeply $result, Numeric(5), "10 div 2 => 5";
 
 $result = run(<<EOF);
-filter := (
-  filter_f(ff, f, s) :> (
+filter := Y((ff, f, s) :> (
     (f(s')) : [ s', ff(ff, f, s...) ]
     (     ) : ff(ff, f, s...)
-  );
-  filter_f(filter_f, _, _)
-)
+  ))
 EOF
 
 is_deeply $result, $processor->context->get_assignment('filter'), "Returns the last statement (filter)";
@@ -194,10 +191,7 @@ $result = run("filter(odd?, upfrom(1))......'");
 is_deeply $result, Numeric(5), "The third odd number from 1 is 5";
 
 $result = run(<<EOF);
-map := (
-  map_f(ff, f, s) :> [ f(s'), ff(ff, f, s...) ];
-  map_f(map_f, _, _)
-)
+map := Y((ff, f, s) :> ([ f(s'), ff(ff, f, s...) ]))
 EOF
 
 # # use Data::Dumper;

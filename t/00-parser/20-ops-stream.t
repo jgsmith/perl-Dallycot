@@ -14,6 +14,21 @@ test_parses(
 
   "upfrom(1)..." => [ tail(apply(fetch("upfrom"), intLit(1))) ],
 
+  "{ #[[2]] - #[[1]] = 2 } % prime-pairs" => [
+    filter_(
+      lambda(['#'], {}, equality(
+        sum(
+          index_( fetch('#'), intLit(2) ),
+          negation(
+            index_( fetch('#'), intLit(1) )
+          )
+        ),
+        intLit(2)
+      )),
+      fetch('prime-pairs')
+    )
+  ],
+
   "0 << { #1 + #2 }/2 << [1,2,3,4,5]" => [
     reduce(
       intLit(0),
