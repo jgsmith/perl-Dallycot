@@ -25,6 +25,23 @@ sub new {
   return bless [ $head, $tail, $promise ] => $class;
 }
 
+sub as_text {
+  my ( $self ) = @_;
+
+  my $text = "[ ";
+  my $point = $self;
+  $text .= $point->[$HEAD]->as_text;
+  while($point -> [$TAIL]) {
+    $text .= ", ";
+    $point = $point->[$TAIL];
+    $text .= $point->[$HEAD]->as_text;
+  }
+  if($point->[$TAIL_PROMISE]) {
+    $text .= ", ...";
+  }
+  return $text . " ]";
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

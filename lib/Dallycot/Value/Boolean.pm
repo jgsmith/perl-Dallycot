@@ -21,6 +21,17 @@ sub new {
   return $f ? $TRUE : $FALSE;
 }
 
+sub as_text {
+  my($self) = @_;
+
+  if($self->[0]) {
+    return 'true';
+  }
+  else {
+    return 'false';
+  }
+}
+
 sub id {
   if ( shift->value ) {
     return "true^^Boolean";

@@ -1,4 +1,4 @@
-package Dallycot::Value::String;
+package Dallycot::Value::HTML;
 
 # ABSTRACT: A string with an associated language
 
@@ -11,11 +11,18 @@ use parent 'Dallycot::Value::Any';
 use Promises qw(deferred);
 
 sub new {
-  my ( $class, $value, $lang ) = @_;
+  my ( $class, $value ) = @_;
 
   $class = ref $class || $class;
 
-  return bless [ $value // '', $lang // 'en' ] => $class;
+  if(!blessed($value)) {
+    my $parser = HTML::Parser->new( api_version => 3);
+    $parser -> parse($value);
+    $parser -> eof;
+    $value = HTML::Parser -> new -> parse($value);
+  }
+
+  return bless [ $value // '' ] => $class;
 }
 
 sub lang { return shift->[1] }
@@ -24,16 +31,6 @@ sub id {
   my ($self) = @_;
 
   return $self->[0] . "@" . $self->[1] . "^^String";
-}
-
-sub as_text {
-  my($self) = @_;
-
-  my $val = $self -> value;
-  $val =~ s{\\}{\\\\}g;
-  $val =~ s{\n}{\\n}g;
-  $val =~ s{"}{\\"}g;
-  return qq{"$val"};
 }
 
 sub calculate_length {

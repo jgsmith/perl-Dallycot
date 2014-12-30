@@ -18,6 +18,10 @@ sub value { }
 
 sub id { return '^^Undefined' }
 
+sub as_text {
+  return "(undef)";
+}
+
 sub is_defined { return 0 }
 
 sub calculate_length {

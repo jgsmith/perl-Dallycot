@@ -34,6 +34,8 @@ use Carp qw(croak);
 use Dallycot::Parser;
 use Dallycot::Processor;
 
+use AnyEvent;
+
 use Moose::Exporter;
 
 use Promises qw(deferred collect);
@@ -45,11 +47,24 @@ sub ns {
 
   Dallycot::Registry->instance->register_namespace($uri, $meta->{'package'});
 
-  our $NAMESPACE = $uri;
+  no strict 'refs';
+
+  ${$meta->{'package'}.'::NAMESPACE'} = $uri;
+  ${$meta->{'package'}.'::NAMESPACE'} = $uri;
 
   my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
   $engine -> append_namespace_search_path($uri);
   return;
+}
+
+sub namespace {
+  my($class) = @_;
+
+  $class = ref($class) || $class;
+
+  no strict 'refs';
+
+  return ${$class . "::NAMESPACE"};
 }
 
 sub define {
@@ -58,9 +73,10 @@ sub define {
   my $body = pop @options;
   my %options = @options;
 
-  our %DEFINITIONS;
+  no strict 'refs';
 
-  my $definitions = \%DEFINITIONS; #\%{$meta->{'package'}.'::DEFINITIONS'};
+  my $definitions = \%{$meta->{'package'}.'::DEFINITIONS'};
+  $definitions = \%{$meta->{'package'}.'::DEFINITIONS'};
 
   if(is_CodeRef($body)) {
     # Perl subroutine
@@ -151,9 +167,8 @@ sub _uri_for_name {
 
   $class = ref($class) || $class;
 
-  our $NAMESPACE;
   # return Dallycot::Value::URI -> new(${$class.'::NAMESPACE'} . $name);
-  return Dallycot::Value::URI->new($NAMESPACE . $name);
+  return Dallycot::Value::URI->new($class->namespace . $name);
 }
 
 sub get_definition {
@@ -163,10 +178,12 @@ sub get_definition {
 
   $class = ref($class) || $class;
 
-  our %DEFINITIONS;
+  no strict 'refs';
 
-  if(exists $DEFINITIONS{$name} && defined $DEFINITIONS{$name}) {
-    return $DEFINITIONS{$name};
+  my $definitions = \%{$class."::DEFINITIONS"};
+
+  if(exists $definitions->{$name} && defined $definitions->{$name}) {
+    return $definitions->{$name};
   }
   else {
     return;

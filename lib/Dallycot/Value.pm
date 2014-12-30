@@ -25,6 +25,11 @@ __PACKAGE__->types;
 
 sub is_lambda { return }
 
+sub as_text {
+  my($self) = @_;
+  return $self -> to_string;
+}
+
 sub type {
   my ($self) = @_;
 

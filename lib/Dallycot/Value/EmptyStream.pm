@@ -16,6 +16,8 @@ sub new {
   return $INSTANCE ||= bless [] => __PACKAGE__;
 }
 
+sub as_text { return "[ ]" }
+
 sub is_defined { return 0 }
 
 sub calculate_length {

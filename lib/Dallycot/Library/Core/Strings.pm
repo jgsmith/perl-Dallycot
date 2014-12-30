@@ -9,6 +9,9 @@ use utf8;
 
 use Dallycot::Library;
 
+use Digest::MD5;
+use Math::BaseCalc;
+
 use experimental qw(switch);
 
 use Promises qw(deferred);
@@ -112,6 +115,60 @@ define 'string-drop' => (
     $d->reject("string-drop requires a numeric second argument");
     return $d -> promise;
   }
+};
+
+define 'hash' => (
+  hold => 0,
+  arity => 1,
+  options => {
+    type => 'MD5'
+  }
+), sub {
+  my( $engine, $options, $string ) = @_;
+
+  my $digest = Digest::MD5::md5_hex($string->value);
+  my $num = Math::BigRat->from_hex("0x$digest");
+  my $d = deferred;
+  $d -> resolve($engine -> make_numeric($num) );
+  return $d -> promise;
+};
+
+define 'number-string' => (
+  hold => 0,
+  arity => [1,2]
+), sub {
+  my($engine, $options, $number, $base) = @_;
+
+  $base = $base -> value -> numify;
+  my $d = deferred;
+
+  if($base < 2 || $base > 64) {
+    $d -> reject('number-string requires a base between 2 and 64 inclusive');
+    return $d -> promise;
+  }
+
+  my @regular_digits = (0..9, 'a'..'z', 'A'..'Z', '_' );
+
+  my $converter = Math::BaseCalc->new(digits => [0,1]);
+  if($base < 64) {
+    $converter -> digits([@regular_digits[0..$base-1]]);
+  }
+  else {
+    $converter -> digits(['A'..'Z','a'..'z',0..9,'+','/']);
+  }
+
+  my $string;
+
+  my($num, $den) = $number->value->parts;
+
+  if($number->value->is_int || $den -> is_one) {
+    $string = $converter -> to_base($num);
+  }
+  else {
+    $string = $converter -> to_base($num) . " / " . to_base($den);
+  }
+  $d -> resolve(Dallycot::Value::String -> new($string));
+  return $d -> promise;
 };
 
 1;

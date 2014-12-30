@@ -32,6 +32,7 @@ has context => (
       add_assignment
       has_namespace
       get_namespace
+      add_namespace
       get_namespace_search_path
       append_namespace_search_path
       ]
@@ -63,7 +64,10 @@ sub add_cost {
   my ( $self, $delta ) = @_;
 
   if ( $self->has_parent ) {
-    return $self->parent->add_cost($delta);
+    AnyEvent->timer(after => 0, interval => 0, cb => sub {
+      $self->parent->add_cost($delta);
+    });
+    return 0;
   }
   else {
     $self->cost( $self->cost + $delta );

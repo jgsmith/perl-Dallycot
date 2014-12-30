@@ -7,6 +7,7 @@ use Moose;
 use utf8;
 use Promises qw(deferred);
 use URI::WithBase;
+use Encode qw(decode encode);
 
 has ua => (
   is       => 'ro',
@@ -37,7 +38,7 @@ sub run {
   my $url      = $self->url;
   my $request  = $self->ua->build_tx( GET => $url );
   $request->req->headers->accept( RDF::Trine::Parser->default_accept_header );
-  my $base_uri = URI::WithBase->new( $self->url )->base;
+  my $base_uri = URI::WithBase->new( $self->url )->base || $self->url;
 
   $self->ua->start(
     $request,
@@ -52,23 +53,58 @@ sub run {
           my $content_type_header = $res->headers->content_type;
           my @bits                = split( /;/, $content_type_header );
           my $content_type        = shift @bits;
+          my %content_params = map { split(/=/, $_, 2) } @bits;
+          $content_params{'charset'} //= 'ISO-8859-1';
+          my $body   = $res->content->build_body;
+          $body = encode('UTF-8', decode(lc($content_params{'charset'}), $body));
+
+          my $model;
           my $parser_class =
-            RDF::Trine::Parser->parser_by_media_type($content_type);
-          if ($parser_class) {
+            eval { RDF::Trine::Parser->parser_by_media_type($content_type) };
+
+          if($@ || !defined($parser_class) || $content_type eq 'text/html') {
+            if($content_type eq 'text/html') {
+              use RDF::RDFa::Parser;
+              # my $options = RDF::RDFa::Parser::Config->new('xhtml', '1.1');
+              my $rdfa    = RDF::RDFa::Parser->new($body, $url, RDF::RDFa::Parser::Config->tagsoup);
+              $model   = $rdfa->graph;
+              $deferred->resolve(
+                bless [
+                  $base_uri,
+                  RDF::Trine::Node::Resource->new(
+                    $self->canonical_url || $self->url
+                  ),
+                  $model
+                ] => 'Dallycot::Value::TripleStore'
+              );
+            }
+            else {
+              $deferred->reject($@ || 'Unable to process content type "' + $content_type + '"');
+            }
+          }
+          elsif ($parser_class) {
             my $parser = $parser_class->new();
             my $store  = RDF::Trine::Store::Memory->new();
-            my $model  = RDF::Trine::Model->new($store);
-            my $body   = $res->content->build_body;
-            $parser->parse_into_model( $base_uri, $body, $model );
-            $deferred->resolve(
-              bless [
-                $base_uri,
-                RDF::Trine::Node::Resource->new(
-                  $self->canonical_url || $self->url
-                ),
-                $model
-              ] => 'Dallycot::Value::TripleStore'
-            );
+            $model  = RDF::Trine::Model->new($store);
+            eval {
+              $parser->parse_into_model( $base_uri, $body, $model );
+            };
+            if(!$@) {
+              $deferred->resolve(
+                bless [
+                  $base_uri,
+                  RDF::Trine::Node::Resource->new(
+                    $self->canonical_url || $self->url
+                  ),
+                  $model
+                ] => 'Dallycot::Value::TripleStore'
+              );
+            }
+            else {
+              $deferred->reject(
+                'Unable to process content type "' . $content_type . '": ' . $@
+              );
+            }
           }
           else {
             $deferred->reject(
@@ -76,7 +112,7 @@ sub run {
                 . $res->headers->content_type );
           }
         }
-        elsif ( $res->code == 303 ) {    # See Other
+        elsif ( $res->code == 303 || $res -> code == 302 || $res -> code == 301) {    # See Other
                                          # look for an 'Alternatives' header
           my $new_uri;
           if ( 0 >= $self->redirects ) {
@@ -119,11 +155,12 @@ sub run {
           else {
             # we give up... nothing to see here
             $deferred->reject(
-              "Unable to fetch $url: redirect with no suitable location");
+              "Unable to fetch $url: redirect with no suitable location"
+            );
           }
         }
         else {
-          $deferred->reject( "Unable to fetch $url: " . $res->status_line );
+          $deferred->reject( "Unable to fetch $url: " . $res->message );
         }
       }
       else {

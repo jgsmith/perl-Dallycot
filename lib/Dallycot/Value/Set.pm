@@ -12,6 +12,12 @@ use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
 
+sub as_text {
+  my($self) = @_;
+
+  "[" . join(", ", map { $_ -> as_text } @$self) . "]";
+}
+
 sub head {
 
 }

@@ -23,6 +23,12 @@ sub id {
   return $self->[0]->bstr . "^^Numeric";
 }
 
+sub as_text {
+  my($self) = @_;
+
+  return $self->[0]->bstr;
+}
+
 sub value {
   my ($self) = @_;
   return $self->[0];

@@ -1,0 +1,10 @@
+#! /usr/bin/env perl
+
+use lib './lib';
+
+use Dallycot::CLI;
+
+Dallycot::CLI
+  -> new_with_options
+  -> run
+  ;

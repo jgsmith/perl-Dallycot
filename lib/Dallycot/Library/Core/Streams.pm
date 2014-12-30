@@ -31,6 +31,12 @@ Y(
 )
 EOD
 
+define 'set-first' => '(s, sh) :> [sh, s... ]';
+
+define 'set-rest' => "(s, st) :> [ s', st ]";
+
+define 'insert-after' => "(s, m) :> [ s', m, s... ]";
+
 define upfrom => q{ Y( (self, n) :> [ n, self(self, n + 1) ] ) };
 
 define downfrom => <<'EOD';

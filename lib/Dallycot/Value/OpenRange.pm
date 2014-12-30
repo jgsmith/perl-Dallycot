@@ -14,6 +14,12 @@ use Promises qw(deferred);
 
 sub type { return 'Range' }
 
+sub as_text {
+  my($self) = @_;
+
+  $self -> [0] -> as_text . "..";
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

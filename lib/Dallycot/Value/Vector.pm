@@ -16,6 +16,17 @@ sub new {
   return bless \@values => $class;
 }
 
+sub as_text {
+  my( $self ) = @_;
+
+  return "< " . join(", ", map { 
+    defined($_) ? (
+      ($_ eq $self) ? '(self)' : $_ -> as_text
+    ) : '(undef)' 
+  } @$self) . " >";
+}
+  
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

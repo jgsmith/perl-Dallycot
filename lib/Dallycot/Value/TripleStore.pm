@@ -12,6 +12,16 @@ use experimental qw(switch);
 
 use Promises qw(deferred);
 
+sub as_text {
+  my($self) = @_;
+
+  my $base_url = $self->[0];
+  my $subject = $self->[1];
+  my $size = $self -> [2] -> size();
+
+  return "Graph($subject in $base_url with $size triples)";
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

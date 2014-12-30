@@ -81,16 +81,16 @@ sub run {
           my $object_type;
           given ($content_type) {
             when ('application/xml') {
-              $object_type = 'XML';
+              $object_type = 'Dallycot::Value::XML';
             }
             when ('application/xhtml+xml') {
-              $object_type = 'HTML';
+              $object_type = 'Dallycot::Value::HTML';
             }
             when ('text/html') {
-              $object_type = 'HTML';
+              $object_type = 'Dallycot::Value::HTML';
             }
             when ('text/plain') {
-              $object_type = 'String';
+              $object_type = 'Dallycot::Value::String';
             }
             default {
               $deferred->reject("Unrecognized content type ($content_type)");
@@ -98,10 +98,7 @@ sub run {
             }
           }
           $deferred->resolve(
-            {
-              a     => $object_type,
-              value => $res->content->build_body
-            }
+            Dallycot::Value::String->new($res -> content -> build_body)
           );
         }
         elsif ( $res->code == 303 ) {    # See Other

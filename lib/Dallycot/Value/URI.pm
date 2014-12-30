@@ -45,6 +45,18 @@ sub value_at {
   return $d->promise;
 }
 
+sub id {
+  my($self) = @_;
+
+  return "<" . $self->[0] . ">";
+}
+
+sub as_text {
+  my($self) = @_;
+
+  $self -> id;
+}
+
 sub is_lambda {
   my( $self ) = @_;
 
@@ -71,7 +83,7 @@ sub min_arity {
 
 sub _get_library_and_method {
   my($self) = @_;
-  
+
   my($namespace, $method) = split(/#/, $self->[0], 2);
   if(!defined $method) {
     if($self -> [0] =~ m{^(.*/)(.+?)$}x) {

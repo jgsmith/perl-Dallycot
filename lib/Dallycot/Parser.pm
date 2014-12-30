@@ -13,44 +13,59 @@ use Math::BigRat;
 
 use Scalar::Util qw(blessed);
 
-my $grammar = Marpa::R2::Scanless::G->new(
-  {
-    action_object  => __PACKAGE__,
-    bless_package  => 'Dallycot::AST',
-    default_action => 'copy_arg0',
-    source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
-  }
-);
-
-our $PARSING_LIBRARY;
+my $grammar =
+    Marpa::R2::Scanless::G->new( {
+      action_object  => __PACKAGE__,
+      bless_package  => 'Dallycot::AST',
+      default_action => 'copy_arg0',
+      source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
+    });
 
 sub new {
-  return bless {} => __PACKAGE__;
+  my($class) = @_;
+
+  $class = ref($class) || $class;
+  return bless {} => $class;
+}
+
+sub grammar { return $grammar; }
+
+sub wants_more {
+  my($self, $val) = @_;
+
+  if(@_ == 2) {
+    $self->{wants_more} = $val;
+  }
+  return $self->{wants_more};
+}
+
+sub error {
+  my($self, $val) = @_;
+
+  if(@_ == 2) {
+    $self->{error} = $val;
+  }
+  return $self->{error};
 }
 
 sub parse {
   my ( $self, $input ) = @_;
 
-  local ($PARSING_LIBRARY) = 0;
+  my $re = Marpa::R2::Scanless::R->new( { grammar => $self->grammar } );
 
-  return $self->_parse($input);
-}
-
-sub _parse {
-  my ( $self, $input ) = @_;
-
-  my $re = Marpa::R2::Scanless::R->new( { grammar => $grammar } );
+  $self->error(undef);
 
   my $worked = eval {
     $re->read( \$input );
     1;
   };
   if ($@) {
-    print STDERR $@, "\n";
+    $@ =~ s{Marpa::R2\s+exception\s+at.*$}{}xs;
+    $self->error($@);
     return;
   }
   elsif ( !$worked ) {
-    print STDERR "Unable to parse.\n";
+    $self->error("Unable to parse.");
     return;
   }
   my $parse = $re->value;
@@ -65,15 +80,9 @@ sub _parse {
     $result = [ bless [] => 'Dallycot::AST::Expr' ];
   }
 
+  $self->wants_more( $re->exhausted );
+
   return $result;
-}
-
-sub parse_library {
-  my ( $self, $class, $input ) = @_;
-
-  local ($PARSING_LIBRARY) = $class;
-
-  return $self->_parse($input);
 }
 
 #--------------------------------------------------------------------
@@ -98,6 +107,12 @@ sub ns_def {
   my ( undef, $ns, $href ) = @_;
 
   return bless [ $ns, $href ] => 'Dallycot::AST::XmlnsDef';
+}
+
+sub add_uses {
+  my ( undef, $ns ) = @_;
+
+  return bless [ $ns ] => 'Dallycot::AST::Uses';
 }
 
 sub lambda {
@@ -435,9 +450,9 @@ sub string_literal {
 }
 
 sub bool_literal {
-  my ($val) = @_;
+  my (undef, $val) = @_;
 
-  return bless [ $val eq 'true' ] => 'Dallycot::Value::Boolean';
+  return Dallycot::Value::Boolean -> new($val eq 'true');
 }
 
 sub uri_literal {
@@ -890,8 +905,10 @@ __DATA__
 
 Block ::= Statement+ separator => STMT_SEP action => block
 
-Statement ::= Expression
-            | NSDef action => ns_def
+Statement ::=
+              NSDef action => ns_def
+            | Uses action => add_uses
+            | Expression
 
 Expression ::= ConditionList
              | Function
@@ -1062,11 +1079,17 @@ Lambda ::=
     | (LP) FunctionParameters (RP) (COLON_GT) Expression action => lambda_definition
     | (LP) (RP) (COLON_GT) Expression action => lambda_definition_sans_args
 
-Apply ::= (LP) Function (RP) (LP) FunctionArguments (RP) action => apply
-       | Fetched (LP) FunctionArguments (RP) action => apply 
+Apply ::= (LP) Expression (RP) (LP) FunctionArguments (RP) action => apply
+       | Fetched (LP) FunctionArguments (RP) action => apply
        | Apply (LP) FunctionArguments (RP) action => apply
 
-NSDef ::= NSName (COLON_EQUAL) String action => ns_def
+NSDef ::= NSName (COLON_EQUAL) StringLit
+        | NSName (COLON_EQUAL) Uri
+
+Uses  ::= ('uses') StringLit
+        | ('uses') Uri
+
+StringLit ::= String action => string_literal
 
 ConditionList ::= (LP) Conditions (RP) action => condition_list
                 | (LP) Conditions Otherwise (RP) action => condition_list
@@ -1120,7 +1143,7 @@ Identifiers ::= Identifier+ separator => COMMA action => list
 IdentifiersWithGlob ::= Identifiers (COMMA) StarIdentifier
                       | Identifiers
 
-NSName ~ 'xmlns:' identifier
+NSName ~ 'xmlns:' identifier | 'ns:' identifier
 
 Name ~ identifier
 
@@ -1252,14 +1275,14 @@ stringVectorChar ~ [^>] | '>' [^>] | '\' <any char>
 #'
 
 uri ~ '<' uriScheme '://' uriAuthority '/' uriPath '>'
+    | '<' uriScheme '://' uriAuthority '/' '>'
+    | '<' uriScheme '://' uriAuthority '>'
 
 uriScheme ~ [a-z] | uriScheme [-a-z0-9+.]
 
 uriAuthority ~ uriHostname | uriHostname ':' positiveInteger
 
-uriPath ~ <uriPath segment> | uriPath '/' <uriPath segment>
-
-<uriPath segment> ~ [^/\s]+
+uriPath ~ [^\s]+
 
 uriHostname ~ <uriHostname bit> '.' <uriHostname bit> | uriHostname '.' <uriHostname bit>
 
