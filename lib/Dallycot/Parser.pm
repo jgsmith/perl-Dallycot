@@ -951,8 +951,8 @@ Scalar ::=
     | Stream QUOTE action => head
     | Node PropRequest action => prop_request
     | Apply
-    | Vector (LB_LB) Scalar (RB_RB) action => vector_index
-    | Scalar (LB_LB) Scalar (RB_RB) action => vector_index
+    | Vector (LB) Scalar (RB) action => vector_index
+    | Scalar (LB) Scalar (RB) action => vector_index
     | (MINUS) Scalar action => negate
     | ('?') Scalar action => defined_q
     | ('?') (LP) Expression (RP) action => defined_q
@@ -1161,7 +1161,6 @@ HASH ~ '#'
 GT ~ '>'
 GT_GT ~ '>>'
 LB ~ '['
-LB_LB ~ '[['
 LC ~ '{'
 LEFT_ARROW ~ '<-'
 LP ~ '('
@@ -1178,7 +1177,6 @@ PLUS ~ '+'
 QUOTE ~ [']
 # '
 RB ~ ']'
-RB_RB ~ ']]'
 RC ~ '}'
 RIGHT_ARROW ~ '->'
 RP ~ ')'

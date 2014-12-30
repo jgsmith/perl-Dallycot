@@ -69,7 +69,7 @@ EOD
 
 define 'prime-pairs' => 'primes Z primes...';
 
-define 'twin-primes' => '{ #[[2]] - #[[1]] = 2 } % prime-pairs';
+define 'twin-primes' => '{ #[2] - #[1] = 2 } % prime-pairs';
 
 define factorials => 'factorial @ 1..';
 
@@ -81,10 +81,8 @@ define 'leonardo-sequence' => <<'EOD';
   [ 1, 1, Y((self, a, b) :> [ a + b + 1, self(self, b, a + b + 1) ]) ]
 EOD
 
-define prime => '(n) :> primes[[n]]';
-define fibonacci => '(n) :> fibonacci-sequence[[n]]';
-define leonardo => '(n) :> leonardo-sequence[[n]]';
-
-
+define prime => '(n) :> primes[n]';
+define fibonacci => '(n) :> fibonacci-sequence[n]';
+define leonardo => '(n) :> leonardo-sequence[n]';
 
 1;
