@@ -9,7 +9,7 @@ use LibraryHelper;
 
 BEGIN { require_ok 'Dallycot::Library::Core::Strings' };
 
-uses 'https://www.dallycot.io/ns/strings/1.0#';
+uses 'https://www.dallycot.net/ns/strings/1.0#';
 
 isa_ok(Dallycot::Library::Core::Strings->instance, 'Dallycot::Library');
 

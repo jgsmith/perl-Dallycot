@@ -22,7 +22,7 @@ use Promises qw(deferred collect);
 
 use experimental qw(switch);
 
-ns 'https://www.dallycot.io/ns/linguistics/1.0#';
+ns 'https://www.dallycot.net/ns/linguistics/1.0#';
 
 #====================================================================
 #

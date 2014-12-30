@@ -17,10 +17,10 @@ use Promises qw(deferred collect);
 
 use experimental qw(switch);
 
-ns 'https://www.dallycot.io/ns/streams/1.0#';
+ns 'https://www.dallycot.net/ns/streams/1.0#';
 
-uses 'https://www.dallycot.io/ns/functions/1.0#',
-     'https://www.dallycot.io/ns/math/1.0#';
+uses 'https://www.dallycot.net/ns/functions/1.0#',
+     'https://www.dallycot.net/ns/math/1.0#';
 
 define 'last' => <<'EOD';
 Y(

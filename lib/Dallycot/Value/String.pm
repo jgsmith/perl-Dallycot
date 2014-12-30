@@ -33,7 +33,12 @@ sub as_text {
   $val =~ s{\\}{\\\\}g;
   $val =~ s{\n}{\\n}g;
   $val =~ s{"}{\\"}g;
-  return qq{"$val"};
+  if($self->[1] eq 'en') {
+    return qq{"$val"};
+  }
+  else {
+    return qq{"$val"\@}.$self->[1];
+  }
 }
 
 sub calculate_length {

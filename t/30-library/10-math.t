@@ -9,8 +9,8 @@ use LibraryHelper;
 
 require Dallycot::Library::Core::Streams;
 
-uses 'https://www.dallycot.io/ns/math/1.0#',
-     'https://www.dallycot.io/ns/streams/1.0#';
+uses 'https://www.dallycot.net/ns/math/1.0#',
+     'https://www.dallycot.net/ns/streams/1.0#';
 
 BEGIN { require_ok 'Dallycot::Library::Core::Math' };
 

@@ -31,12 +31,14 @@ sub as_text {
   my $text = "[ ";
   my $point = $self;
   $text .= $point->[$HEAD]->as_text;
-  while($point -> [$TAIL]) {
-    $text .= ", ";
+  while(defined $point -> [$TAIL]) {
     $point = $point->[$TAIL];
-    $text .= $point->[$HEAD]->as_text;
+    if(defined $point->[$HEAD]) {
+      $text .= ", ";
+      $text .= $point->[$HEAD]->as_text;
+    }
   }
-  if($point->[$TAIL_PROMISE]) {
+  if(defined $point->[$TAIL_PROMISE]) {
     $text .= ", ...";
   }
   return $text . " ]";

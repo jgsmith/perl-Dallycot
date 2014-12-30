@@ -9,7 +9,7 @@ use LibraryHelper;
 
 BEGIN { require_ok 'Dallycot::Library::Core::Streams' };
 
-uses 'https://www.dallycot.io/ns/streams/1.0#';
+uses 'https://www.dallycot.net/ns/streams/1.0#';
 
 isa_ok(Dallycot::Library::Core::Streams->instance, 'Dallycot::Library');
 

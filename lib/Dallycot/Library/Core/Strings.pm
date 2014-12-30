@@ -16,7 +16,7 @@ use experimental qw(switch);
 
 use Promises qw(deferred);
 
-ns 'https://www.dallycot.io/ns/strings/1.0#';
+ns 'https://www.dallycot.net/ns/strings/1.0#';
 
 #====================================================================
 #
@@ -165,7 +165,7 @@ define 'number-string' => (
     $string = $converter -> to_base($num);
   }
   else {
-    $string = $converter -> to_base($num) . " / " . to_base($den);
+    $string = $converter -> to_base($num) . " / " . $converter -> to_base($den);
   }
   $d -> resolve(Dallycot::Value::String -> new($string));
   return $d -> promise;

@@ -19,13 +19,13 @@ sub new {
 sub as_text {
   my( $self ) = @_;
 
-  return "< " . join(", ", map { 
+  return "< " . join(", ", map {
     defined($_) ? (
       ($_ eq $self) ? '(self)' : $_ -> as_text
-    ) : '(undef)' 
+    ) : '(undef)'
   } @$self) . " >";
 }
-  
+
 
 sub calculate_length {
   my ( $self, $engine ) = @_;
@@ -122,7 +122,7 @@ sub tail {
     $d->resolve( bless [ @$self[ 1 .. $#$self ] ] => __PACKAGE__ );
   }
   else {
-    $d->resolve( bless [] => __PACKAGE__ );
+    $d->resolve( Dallycot::Value::EmptyStream->new );
   }
 
   return $d->promise;

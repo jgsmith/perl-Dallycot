@@ -56,7 +56,7 @@ sub run {
           my %content_params = map { split(/=/, $_, 2) } @bits;
           $content_params{'charset'} //= 'ISO-8859-1';
           my $body   = $res->content->build_body;
-          $body = encode('UTF-8', decode(lc($content_params{'charset'}), $body));
+          #$body = encode('UTF-8', decode(lc($content_params{'charset'}), $body));
 
           my $model;
           my $parser_class =
