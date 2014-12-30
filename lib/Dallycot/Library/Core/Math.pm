@@ -6,18 +6,9 @@ use strict;
 use warnings;
 
 use utf8;
-use Dallycot::Library::Core::Functions;
+require Dallycot::Library::Core::Functions;
 
 use Dallycot::Library;
-
-use Dallycot::Context;
-use Dallycot::Parser;
-use Dallycot::Processor;
-use Dallycot::TextResolver;
-
-use Lingua::StopWords;
-
-#use Lingua::YALI::LanguageIdentifier;
 
 use Promises qw(deferred collect);
 

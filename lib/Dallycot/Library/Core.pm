@@ -6,11 +6,13 @@ use strict;
 use warnings;
 
 use utf8;
-use Dallycot::Library::Core::Functions;
-use Dallycot::Library::Core::Math;
-use Dallycot::Library::Core::Linguistics;
-use Dallycot::Library::Core::Streams;
-use Dallycot::Library::Core::Strings;
+BEGIN {
+  require Dallycot::Library::Core::Functions;
+  require Dallycot::Library::Core::Math;
+  require Dallycot::Library::Core::Linguistics;
+  require Dallycot::Library::Core::Streams;
+  require Dallycot::Library::Core::Strings;
+}
 
 use Dallycot::Library;
 

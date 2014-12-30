@@ -1,12 +1,15 @@
 package ParserHelper;
 
+use strict;
+use warnings;
+
 use Test::More;
 
 use Dallycot::Parser;
 
 use Exporter 'import';
 
-@EXPORT = qw(
+our @EXPORT = qw(
   test_parses
   Noop
   sequence

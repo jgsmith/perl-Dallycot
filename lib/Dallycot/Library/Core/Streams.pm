@@ -1,6 +1,6 @@
 package Dallycot::Library::Core::Streams;
 
-# ABSTRACT: Core library of useful functions for functions
+# ABSTRACT: Core library of useful streams and stream functions
 
 use strict;
 use warnings;
@@ -8,9 +8,10 @@ use warnings;
 use utf8;
 use Dallycot::Library;
 
-use Dallycot::Context;
-use Dallycot::Parser;
-use Dallycot::Processor;
+BEGIN {
+  require Dallycot::Library::Core::Functions;
+  require Dallycot::Library::Core::Math;
+}
 
 use Promises qw(deferred collect);
 
@@ -18,7 +19,8 @@ use experimental qw(switch);
 
 ns 'https://www.dallycot.io/ns/streams/1.0#';
 
-uses 'https://www.dallycot.io/ns/functions/1.0#';
+uses 'https://www.dallycot.io/ns/functions/1.0#',
+     'https://www.dallycot.io/ns/math/1.0#';
 
 define 'last' => <<'EOD';
 Y(
@@ -56,13 +58,13 @@ define 'make-evens' => '() :> ({ # * 2 } @ 1..)';
 
 define 'make-odds' => '() :> ({ # * 2 + 1 } @ 0..)';
 
-define evens => '{ # * 2 } @ 1..';
+define evens => 'make-evens()';
 
-define odds => '{ # * 2 + 1 } @ 0..';
+define odds => 'make-odds()';
 
 define primes => <<'EOD';
   sieve := Y( (self, s) :> [ s', self(self, ~divisible-by?(_, s') % s...) ] );
-  [ 1, 2, sieve(odds...) ]
+  [ 1, 2, sieve(make-odds()...) ]
 EOD
 
 define 'prime-pairs' => 'primes Z primes...';
