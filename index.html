@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Dallycot : A linked open code engine">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Dallycot</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/jgsmith/perl-Dallycot">View on GitHub</a>
+
+          <h1 id="project_title">Dallycot</h1>
+          <h2 id="project_tagline">A linked open code engine</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/jgsmith/perl-Dallycot/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/jgsmith/perl-Dallycot/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h3>
+<a id="welcome-to-dallycot" class="anchor" href="#welcome-to-dallycot" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to Dallycot.</h3>
+
+<p>Dallycot is designed to work with the asynchronous nature of the web. When running a program in Dallycot, the web is your memory, providing data and code storage.</p>
+
+<p><em>N.B.</em>: Almost everything about Dallycot is subject to change. For now, Dallycot provides read-only access to information.</p>
+
+<h4>
+<a id="writing-dallycot" class="anchor" href="#writing-dallycot" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing Dallycot</h4>
+
+<p>Dallycot provides a custom functional language designed to think the way linked data thinks. See <a href="http://www.w3.org/TR/ldp/">the W3C Linked Data Platform specification</a> for an example of the kind of data services Dallycot will target.</p>
+
+<p>Dallycot is not a query language. Projects like <a href="http://marmotta.apache.org/">Marmotta</a> provide linked data query languages.</p>
+
+<h5>
+<a id="example-euclids-algorithm-for-gcd" class="anchor" href="#example-euclids-algorithm-for-gcd" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example: Euclid's algorithm for GCD</h5>
+
+<p>This uses simple recursion and the Y-combinator to calculate the greatest common divisor.</p>
+
+<pre><code>gcd := Y(
+  (self, a, b) :&gt; (
+    (a = 0) : b
+    (b = 0) : a
+    (a &gt; b) : self(self, a mod b, b)
+    (     ) : self(self, a, b mod a)
+  )
+)
+</code></pre>
+
+<h4>
+<a id="when-not-to-use-dallycot" class="anchor" href="#when-not-to-use-dallycot" aria-hidden="true"><span class="octicon octicon-link"></span></a>When Not to Use Dallycot</h4>
+
+<p>Because anything might result in retrieving information from the web, Dallycot makes extensive use of promises. Promises are great for managing asynchronous execution, but introduce overhead that makes programs slower if all of the information is local to the processor.</p>
+
+<p>Dallycot is not designed to be good at:</p>
+
+<ul>
+<li>
+<p>Immediate gratification</p>
+
+<p>Some programs take a while. When coupled with ad hoc information
+retrieval over the web, programs can seem to slow to a crawl. This is
+the nature of linked data in general, not Dallycot. If you already know
+exactly which data you will need, and how the data fits together, then
+consider processing it locally with a SPARQL service or a general purpose
+programming language designed to work exclusively with local data.</p>
+</li>
+<li>
+<p>Scientific computing</p>
+
+<p>Use programs such as Matlab, Mathematica, or R. Consider the scientific
+computing libraries available to Perl, Python, or Ruby.</p>
+</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Dallycot maintained by <a href="https://github.com/jgsmith">jgsmith</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
