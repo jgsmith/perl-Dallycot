@@ -1,5 +1,7 @@
 package Dallycot::Library::CLI;
 
+# ABSTRACT: functions for use with the command line interface
+
 use strict;
 use warnings;
 

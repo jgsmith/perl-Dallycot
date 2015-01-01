@@ -1,5 +1,7 @@
 package Dallycot::Channel::Terminal;
 
+# ABSTRACT: Term::ReadLine-based i/o channel
+
 use Moose;
 extends 'Dallycot::Channel';
 

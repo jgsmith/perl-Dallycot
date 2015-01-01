@@ -1,6 +1,6 @@
 #! /usr/bin/env perl
-
-use lib './lib';
+# PODNAME: dallycot
+# ABSTRACT: command line interface to Dallycot engine
 
 use Dallycot::CLI;
 

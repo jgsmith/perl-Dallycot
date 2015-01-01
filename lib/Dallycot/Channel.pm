@@ -1,5 +1,7 @@
 package Dallycot::Channel;
 
+# ABSTRACT: i/o channel base class
+
 use Moose;
 use Carp qw(croak);
 

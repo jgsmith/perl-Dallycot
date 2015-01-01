@@ -1,5 +1,7 @@
 package Dallycot::CLI;
 
+# ABSTRACT: command line interface application
+
 use Moose;
 with 'MooseX::Getopt';
 
@@ -142,7 +144,7 @@ sub _run_files {
 
 sub primary_prompt {
   my($app) = @_;
-  
+
   $app -> channel
        -> receive(
             prompt => Dallycot::Value::String->new(
