@@ -16,7 +16,7 @@ use Promises qw(deferred collect);
 
 use experimental qw(switch);
 
-ns 'https://www.dallycot.net/ns/functions/1.0#';
+ns 'http://www.dallycot.net/ns/functions/1.0#';
 
 define Y => '(function) :> function(function, ___)';
 

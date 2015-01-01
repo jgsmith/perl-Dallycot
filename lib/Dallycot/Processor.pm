@@ -42,6 +42,12 @@ has context => (
   }
 );
 
+has channels => (
+  is => 'ro',
+  isa => 'HashRef',
+  default => sub { +{} }
+);
+
 has max_cost => (
   is      => 'rw',
   isa     => 'Int',
@@ -59,6 +65,27 @@ has parent => (
   predicate => 'has_parent',
   isa       => __PACKAGE__
 );
+
+sub channel_send {
+  my ( $self, $channel, @items ) = @_;
+
+  if(exists($self -> channels->{$channel})) {
+    if($self -> channels->{$channel}) {
+      $self -> channels->{$channel}->send(@items);
+    }
+  }
+  elsif($self -> has_parent) {
+    $self -> parent -> channel_send($channel, @items);
+  }
+  return;
+}
+
+sub create_channel {
+  my ( $self, $channel, $object ) = @_;
+
+  $self -> channels->{$channel} = $object;
+  return;
+}
 
 sub add_cost {
   my ( $self, $delta ) = @_;

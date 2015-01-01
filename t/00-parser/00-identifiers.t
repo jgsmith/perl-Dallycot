@@ -11,10 +11,7 @@ BEGIN {
 use ParserHelper;
 
 test_parses(
-  "" => [Noop()],
-  'ns:cli := "http://www.dallycot.net/ns/cli/1.0#"' => [
-    nsdef('cli', stringLit('http://www.dallycot.net/ns/cli/1.0#'))
-  ],
+  'cli:print' => [ fetch('cli', 'print') ],
 );
 
 done_testing();

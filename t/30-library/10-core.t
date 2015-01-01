@@ -7,12 +7,12 @@ use Test::More;
 
 use LibraryHelper;
 
-uses 'https://www.dallycot.net/ns/misc/1.0#',
-     'https://www.dallycot.net/ns/functions/1.0#',
-     'https://www.dallycot.net/ns/math/1.0#',
-     'https://www.dallycot.net/ns/linguistics/1.0#',
-     'https://www.dallycot.net/ns/streams/1.0#',
-     'https://www.dallycot.net/ns/strings/1.0#'
+uses 'http://www.dallycot.net/ns/misc/1.0#',
+     'http://www.dallycot.net/ns/functions/1.0#',
+     'http://www.dallycot.net/ns/math/1.0#',
+     'http://www.dallycot.net/ns/linguistics/1.0#',
+     'http://www.dallycot.net/ns/streams/1.0#',
+     'http://www.dallycot.net/ns/strings/1.0#'
      ;
 
 BEGIN { require_ok 'Dallycot::Library::Core' };

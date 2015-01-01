@@ -16,7 +16,7 @@ use experimental qw(switch);
 
 use Promises qw(deferred);
 
-ns 'https://www.dallycot.net/ns/strings/1.0#';
+ns 'http://www.dallycot.net/ns/strings/1.0#';
 
 #====================================================================
 #

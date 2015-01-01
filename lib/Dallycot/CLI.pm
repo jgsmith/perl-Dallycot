@@ -1,20 +1,34 @@
 package Dallycot::CLI;
 
 use Moose;
-with 'MooseX::Getopt::Usage';
+with 'MooseX::Getopt';
 
 
-use Term::ReadLine;
 use Mojo;
 use AnyEvent;
-use Promises backend => ['AnyEvent'];
+use Promises qw(deferred), backend => ['AnyEvent'];
 
+use Dallycot;
 use Dallycot::Parser;
 use Dallycot::Processor;
+use Dallycot::Channel::Terminal;
 
 BEGIN {
   require Dallycot::Library::Core;
+  require Dallycot::Library::CLI;
 }
+
+has 'c' => (
+  is => 'ro',
+  isa => 'Bool',
+  documentation => 'check syntax only (parses but does not execute)',
+);
+
+has 'v' => (
+  is => 'ro',
+  isa => 'Bool',
+  documentation => 'print version number and exit',
+);
 
 has '_parser' => (
   accessor => 'parser',
@@ -26,8 +40,8 @@ has '_engine' => (
   default => sub { Dallycot::Processor -> new }
 );
 
-has '_term' => (
-  accessor => 'term'
+has '_channel' => (
+  accessor => 'channel',
 );
 
 has '_prompt' => (
@@ -40,105 +54,263 @@ has '_deep_prompt' => (
   default => '>>> ',
 );
 
-has '_screen' => (
-  accessor => 'screen'
+has '_statement_counter' => (
+  accessor => 'statement_counter',
+  default => 1,
+  isa => 'Int'
 );
+
+has '_done' => (
+  accessor => 'done',
+);
+
+sub check {
+  my($self) = @_;
+  return $self -> c;
+}
 
 sub run {
   my($app) = @_;
 
-  $app->term(Term::ReadLine->new('Dallycot Prompt'));
-  $app->screen($app->term->OUT || \*STDOUT);
+  if($app -> v) {
+    print STDERR "Dallycot version $Dallycot::VERSION\n";
+    my $d = deferred;
+    $d -> resolve(undef);
+    return $d -> promise;
+  }
 
-  my $OUT = $app->screen;
+  my @args = @{$app -> extra_argv};
 
-  # load .dallycot
-  $app -> run_file($ENV{'HOME'} . "/.dallycot");
+  if(@args) {
+    return $app -> run_files(@args);
+  }
 
-  my $parse;
-  my $stmt_counter = 1;
-  my($in, $out);
-  $app->engine->add_assignment('in', $in = Dallycot::Value::Vector->new);
-  $app->engine->add_assignment('out', $out = Dallycot::Value::Vector->new);
+  my $d = deferred;
 
-  while( defined ($_ = $app->term->readline(sprintf($app->prompt, $stmt_counter) ) ) ) {
-    my $line = $_;
-    $parse = $app->parser->parse($line);
-    while((!defined($parse) || @$parse == 1 && $parse->[0]->isa('Dallycot::AST::Expr')) && !$app->parser->error) {
-      $_ = $app -> term -> readline($app->deep_prompt);
-      if(!defined($_)) {
-        $parse = undef;
-        last;
-      }
-      $line .= "\n" . $_;
-      $parse = $app->parser->parse($line);
+  $app -> done($d);
+
+  $app->channel(Dallycot::Channel::Terminal->new);
+
+  # load .dallycot - but no error if it doesn't exist
+  $app -> run_file($ENV{'HOME'} . "/.dallycot", 1) -> done(sub {
+    my($in, $out);
+
+    $app -> engine
+         -> append_namespace_search_path($Dallycot::Library::CLI::NAMESPACE);
+
+    $app -> engine
+         -> add_assignment('in', $in = Dallycot::Value::Vector->new);
+
+    $app -> engine
+         -> add_assignment('out', $out = Dallycot::Value::Vector->new);
+
+    $app -> engine
+         -> create_channel('$OUTPUT', $app->channel);
+
+    $app->primary_prompt;
+  }, sub {
+    print STDERR "*** ", @_, "\n";
+  });
+
+  return $d -> promise;
+}
+
+sub run_files {
+  my( $app, @files ) = @_;
+
+  my $d = deferred;
+
+  $app -> _run_files($d, @files);
+
+  return $d -> promise;
+}
+
+sub _run_files {
+  my( $app, $d, $file, @files) = @_;
+
+  $app -> run_file($file)->done(sub {
+    if(@files) {
+      $app -> _run_files($d, @files);
     }
-    ${$in}[$stmt_counter-1] = Dallycot::Value::String->new($line);
-    $app->term->addhistory($line);
-    if($app->parser->error) {
-      print $OUT $app->parser->error;
+    else {
+      $d -> resolve();
     }
-    elsif(defined $parse) {
-      my $ret = $app -> execute($parse);
+  }, sub {
+    $d -> reject(@_);
+  });
+}
+
+sub primary_prompt {
+  my($app) = @_;
+  
+  $app -> channel
+       -> receive(
+            prompt => Dallycot::Value::String->new(
+              sprintf($app->prompt, $app->statement_counter)
+            )
+          )
+       -> done(sub {
+         my($line) = @_;
+         if($line -> is_defined) {
+           $app -> check_parse($line);
+         }
+         else {
+           $app -> channel -> send("\n");
+           $app -> done -> resolve(undef);
+         }
+       }, sub {
+         my($err) = @_;
+         $app -> channel -> send("*** $err\n");
+         $app -> done -> resolve(undef);
+       });
+}
+
+sub check_parse {
+  my( $app, $line ) = @_;
+
+  my $parse = $app->parser->parse($line->value);
+  if(!defined($parse)
+     || @$parse == 1
+        && $parse->[0]->isa('Dallycot::AST::Expr')
+        && !$app->parser->error
+  ) {
+    $app->secondary_prompt($line);
+  }
+  else {
+    $app -> process_line($line, $parse);
+  }
+}
+
+sub secondary_prompt {
+  my($app, $line) = @_;
+
+  $app -> channel
+       -> receive(
+            prompt => Dallycot::Value::String->new($app -> deep_prompt)
+          )
+       -> done(sub {
+         my($next_line) = @_;
+         if($next_line -> is_defined) {
+           $line = Dallycot::Value::String->new($line->value . "\n" . $next_line -> value);
+           $app -> check_parse($line);
+         }
+         else {
+           $app -> process_line($line, undef);
+         }
+       });
+}
+
+sub process_line {
+  my( $app, $line, $parse ) = @_;
+
+  my $in = $app -> engine -> get_assignment('in');
+  my $stmt_counter = $app -> statement_counter;
+  $app -> statement_counter($app -> statement_counter + 1);
+
+  ${$in}[$stmt_counter-1] = $line;
+  $app -> channel -> add_history($line);
+  if($app -> parser -> error) {
+    $app -> channel -> send($app->parser->error);
+  }
+  elsif(defined $parse) {
+    $app -> execute($parse) -> then(sub {
+      my($ret) = @_;
       if(defined $ret) {
-        print $OUT "out[$stmt_counter] := " . $ret->as_text . "\n";
+        $app -> channel
+             -> send("out[$stmt_counter] := ", $ret -> as_text, "\n");
+        my $out = $app->engine->get_assignment('out');
         ${$out}[$stmt_counter-1] = $ret;
       }
-    }
-    print $OUT "\n";
-    $stmt_counter ++;
+    }, sub {
+      my($error) = @_;
+      $app -> channel -> send("*** $error\n");
+    }) -> finally(sub {
+      $app -> channel -> send("\n");
+      $app -> primary_prompt;
+    })->done(sub{});
   }
-  print $OUT "\n";
+  else {
+    $app -> channel -> send("\n");
+    $app -> primary_prompt;
+  }
 }
 
 sub run_file {
-  my($app, $filename) = @_;
+  my($app, $filename, $ignore_existance) = @_;
+
 
   if(-f $filename) {
-    open my $file, "<", $filename or die "Unable to read $filename\n";
+    open my $file, "<", $filename or do {
+      my $d = deferred;
+      $d -> reject("Unable to read $filename");
+      return $d -> promise;
+    };
     local($/) = undef;
     my $source = <$file>;
     close $file;
     my $parse = $app->parser->parse($source);
-    if($parse) {
-      $app->execute($parse);
+    if(!$parse) {
+      my $err = $app->parser->error;
+      my $d = deferred;
+      if($err) {
+        $d -> reject("In $filename:\n$err");
+      }
+      else {
+        $d -> reject("Unable to parse $filename");
+      }
+      return $d -> promise;
     }
+    elsif(!$app->check) {
+      return $app->execute($parse);
+    }
+  }
+  elsif(!$ignore_existance) {
+    my $d = deferred;
+    $d -> reject("Unable to read $filename");
+    return $d -> promise;
+  }
+  else {
+    my $d = deferred;
+    $d -> resolve(undef);
+    return $d -> promise;
   }
 }
 
 sub execute {
   my($app, $parse) = @_;
-  my $cv = AnyEvent -> condvar;
 
-  eval {
+  my $d = eval {
     if('HASH' eq $parse) {
       $parse = [ $parse ];
     }
     $app -> engine -> max_cost(1_000_000);
     $app -> engine -> cost(0);
-    $app -> engine -> execute(@{$parse}) -> done(
-      sub { $cv -> send( @_ ) },
-      sub { $cv -> croak( @_ ) }
-    );
-  };
+    return $app -> engine -> execute(@{$parse}) -> catch(sub {
+      my($err) = @_;
+      while($err =~ s{\s+at\s.+?\sline\s+\d+.*?$}{}x) {
+        # noop
+      }
 
-  if($@) {
-    $cv -> croak($@);
+      $app->channel->send('*** ' . $err . "\n");
+    });
+  };
+  if($d) {
+    return $d;
   }
-
-  my $ret = eval {
-    $cv -> recv;
-  };
-  if($@) {
+  elsif($@) {
     my $err = $@;
     while($err =~ s{\s+at\s.+?\sline\s+\d+.*?$}{}x) {
       # noop
     }
 
-    my $OUT = $app -> screen;
-    print $OUT '*** ' . $err . "\n";
+    $app->channel->send('*** ' . $err . "\n");
   }
-  $ret;
+  else {
+    $app -> channel -> send('*** Unable to execute\n');
+  }
+  $d = deferred;
+  $d -> resolve();
+  return $d -> promise;
 }
 
 1;

@@ -106,6 +106,8 @@ sub block {
 sub ns_def {
   my ( undef, $ns, $href ) = @_;
 
+  $ns =~ s{^(xml)?ns:}{}x;
+
   return bless [ $ns, $href ] => 'Dallycot::AST::XmlnsDef';
 }
 
@@ -500,7 +502,9 @@ sub relay_options {
 sub fetch {
   my ( undef, $ident ) = @_;
 
-  return bless [$ident] => 'Dallycot::AST::Fetch';
+  my @bits = split(/:/, $ident);
+
+  return bless \@bits => 'Dallycot::AST::Fetch';
 }
 
 sub assign {
@@ -906,7 +910,7 @@ __DATA__
 Block ::= Statement+ separator => STMT_SEP action => block
 
 Statement ::=
-              NSDef action => ns_def
+              NSDef
             | Uses action => add_uses
             | Expression
 
@@ -964,6 +968,7 @@ Scalar ::=
     | String action => string_literal
     | Boolean action => bool_literal
     | Identifier action => fetch
+    | QCName action => fetch
     | LambdaArg action => fetch
     | Stream QUOTE action => head
     | Node PropRequest action => prop_request
@@ -1083,8 +1088,8 @@ Apply ::= (LP) Expression (RP) (LP) FunctionArguments (RP) action => apply
        | Fetched (LP) FunctionArguments (RP) action => apply
        | Apply (LP) FunctionArguments (RP) action => apply
 
-NSDef ::= NSName (COLON_EQUAL) StringLit
-        | NSName (COLON_EQUAL) Uri
+NSDef ::= NSName (COLON_EQUAL) StringLit action => ns_def
+        | NSName (COLON_EQUAL) Uri action => ns_def
 
 Uses  ::= ('uses') StringLit
         | ('uses') Uri

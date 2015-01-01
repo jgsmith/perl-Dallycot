@@ -238,7 +238,7 @@ sub apply {
     my $engine = $parent_engine -> with_child_scope;
     if(defined $def -> {arity}) {
       if(is_ArrayRef($def->{arity})) {
-        if($def->{arity}->[0] > @bindings || @bindings > $def->{arity}->[1]) {
+        if($def->{arity}->[0] > @bindings || (@{$def->{arity}} > 1 && @bindings > $def->{arity}->[1])) {
           my $d = deferred;
           $d -> reject("Expected " . $def->{arity}->[0] . " to " . $def->{arity}->[1] . " arguments but found " . scalar(@bindings));
           return $d -> promise;

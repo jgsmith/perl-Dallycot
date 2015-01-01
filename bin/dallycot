@@ -4,7 +4,21 @@ use lib './lib';
 
 use Dallycot::CLI;
 
+my $cv = AnyEvent -> condvar;
+
 Dallycot::CLI
   -> new_with_options
   -> run
+  -> done(sub {
+    $cv -> send(@_);
+  }, sub {
+    $cv -> croak(@_);
+  });
   ;
+
+eval {
+  $cv -> recv;
+};
+if($@) {
+  print STDERR "*** $@\n";
+}
