@@ -1,0 +1,15 @@
+---
+highlighter: pygments
+kramdown:
+  input: GFM
+collections:
+  namespaces:
+    output: true
+    permalink: /ns/:path/
+defaults:
+  -
+    scope:
+      path: ""
+    values:
+      layout: default
+      description: "Dallycot: A linked open code engine"

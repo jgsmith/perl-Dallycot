@@ -307,6 +307,11 @@ Full-Width Styles
   text-shadow: #111 0px 0px 10px;
 }
 
+#project_title a {
+  color: #fff;
+  text-decoration: none;
+}
+
 #project_tagline {
   color: #fff;
   font-size: 24px;
@@ -323,6 +328,44 @@ Full-Width Styles
   right: 0;
   height: 70px;
   background: url('../images/icon_download.png') no-repeat 0% 90%;
+}
+
+#navigation {
+  position: absolute;
+  width: 400px;
+  z-index: 10;
+  bottom: -60px;
+  left: 0;
+  height: 70px;
+  display: block;
+}
+
+#navigation ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#navigation ul li {
+  float: left;
+  margin-right: 1px;
+}
+
+#navigation a {
+  height: 70px;
+  background: #444;
+  color: white;
+  font-weight: bold;
+  /* border: 1px solid #212121; */
+  padding: 10px;
+  text-decoration: none;
+  display: inline;
+}
+
+#navigation a:hover {
+  background: #0070dd;
+  border: #0070dd;
+  text-decoration: none;
 }
 
 .zip_download_link {
