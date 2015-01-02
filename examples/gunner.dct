@@ -1,3 +1,12 @@
+(*
+ * Gunner
+ *
+ * Translated from the original BASIC version on page 77 of:
+ * Creative Computing. _Basic Computer Games_, Microcomputer
+ * Edition, Edited by David H. Ahl. Workman Publishing, NY, 1978.
+ *
+ *)
+
 ns:cli := "http://www.dallycot.net/ns/cli/1.0#";
 ns:math := "http://www.dallycot.net/ns/math/1.0#";
 ns:strings := "http://www.dallycot.net/ns/strings/1.0#";
@@ -80,7 +89,7 @@ attack-target := Y(
       )
       (         ) : (
         b2 := 2 * elevation div 57.3;
-        i := gun-range(gun) * math:sin(b2);
+        i := gun-range(gun) * math:sin(b2, units -> "radians");
         x := target-distance(target) - i;
         e := math:ceil(x);
         (
