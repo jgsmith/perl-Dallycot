@@ -16,9 +16,9 @@ Dallycot is not a query language. Projects like [Marmotta](http://marmotta.apach
 
 ##### Example: Euclid's algorithm for GCD
 
-This uses simple recursion and the Y-combinator to calculate the greatest common divisor.
+This uses simple recursion and the [Y-combinator](/ns/functions/1.0/#Y) to calculate the greatest common divisor.
 
-{% highlight octave linenos %}
+```
 gcd := Y(
   (self, a, b) > (
     (a = 0) : b
@@ -27,7 +27,7 @@ gcd := Y(
     (     ) : self(self, a, b mod a)
   )
 )
-{% endhighlight %}
+```
 
 #### When Not to Use Dallycot
 
@@ -37,14 +37,8 @@ Dallycot is not designed to be good at:
 
 - Immediate gratification
 
-  Some programs take a while. When coupled with ad hoc information
-  retrieval over the web, programs can seem to slow to a crawl. This is
-  the nature of linked data in general, not Dallycot. If you already know
-  exactly which data you will need, and how the data fits together, then
-  consider processing it locally with a SPARQL service or a general purpose
-  programming language designed to work exclusively with local data.
+  Some programs take a while. When coupled with ad hoc information retrieval over the web, programs can seem to slow to a crawl. This is the nature of linked data in general, not Dallycot. If you already know exactly which data you will need, and how the data fits together, then consider processing it locally with a SPARQL service or a general purpose programming language designed to work exclusively with local data.
 
 - Scientific computing
 
-  Use programs such as Matlab, Mathematica, or R. Consider the scientific
-  computing libraries available to Perl, Python, or Ruby.
+  Use programs such as Matlab, Mathematica, or R. Consider the scientific computing libraries available to Perl, Python, or Ruby.
