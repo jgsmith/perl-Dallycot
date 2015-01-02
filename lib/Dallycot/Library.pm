@@ -298,8 +298,9 @@ sub apply {
       $engine -> collect( @bindings ) -> done(sub {
         my(@collected_bindings) = @_;
         collect( map { $engine -> execute($_) } values %$options ) -> done(sub {
-          my(@new_values) = @_;
+          my(@new_values) = map { @$_ } @_;
           my %new_options;
+          @new_options{keys %{$def->{options}||{}}} = values %{$def->{options}||{}};
           @new_options{keys %$options} = @new_values;
           my $lib_promise = eval {
             $def->{coderef}->($engine, \%new_options, @collected_bindings);

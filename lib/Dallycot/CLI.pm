@@ -81,6 +81,14 @@ sub run {
     return $d -> promise;
   }
 
+  $app->channel(Dallycot::Channel::Terminal->new);
+
+  $app -> engine
+       -> create_channel('$OUTPUT', $app->channel);
+
+  $app -> engine
+       -> create_channel('$INPUT', $app->channel);
+
   my @args = @{$app -> extra_argv};
 
   if(@args) {
@@ -91,7 +99,6 @@ sub run {
 
   $app -> done($d);
 
-  $app->channel(Dallycot::Channel::Terminal->new);
 
   # load .dallycot - but no error if it doesn't exist
   $app -> run_file($ENV{'HOME'} . "/.dallycot", 1) -> done(sub {
@@ -105,9 +112,6 @@ sub run {
 
     $app -> engine
          -> add_assignment('out', $out = Dallycot::Value::Vector->new);
-
-    $app -> engine
-         -> create_channel('$OUTPUT', $app->channel);
 
     $app->primary_prompt;
   }, sub {

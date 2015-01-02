@@ -25,6 +25,17 @@ sub new {
   return bless [ $head, $tail, $promise ] => $class;
 }
 
+sub prepend {
+  my($self, @things) = @_;
+
+  my $stream = $self;
+
+  foreach my $thing (@things) {
+    $stream = __PACKAGE__ -> new($thing, $stream);
+  }
+  return $stream;
+}
+
 sub as_text {
   my ( $self ) = @_;
 

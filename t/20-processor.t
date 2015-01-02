@@ -31,6 +31,20 @@ sub Vector {
   bless \@_ => 'Dallycot::Value::Vector'
 }
 
+sub String {
+  Dallycot::Value::String->new(@_);
+}
+
+sub Stream {
+  my(@things) = @_;
+
+  my $stream = Dallycot::Value::Stream -> new(pop @things);
+  foreach my $thing (reverse @things) {
+    $stream = Dallycot::Value::Stream -> new($thing, $stream);
+  }
+  return $stream;
+}
+
 my $result;
 
 $result = run('Y := ((f) :> f(f, ___))');
@@ -314,6 +328,15 @@ is_deeply $result, Numeric(8);
 $result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
 
 is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
+
+$result = run("1 ::> 2 ::> []");
+
+is_deeply $result, Stream(Numeric(1), Numeric(2));
+
+$result = run(q{"abc" ::> "123" ::> ""});
+
+is_deeply $result, String("abc123");
+
 
 $processor -> context -> add_namespace(rdfs => 'http://www.w3.org/2000/01/rdf-schema#');
 

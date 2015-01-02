@@ -139,7 +139,7 @@ define 'number-string' => (
 ), sub {
   my($engine, $options, $number, $base) = @_;
 
-  $base = $base -> value -> numify;
+  $base = defined($base) ? $base -> value -> numify : 10;
   my $d = deferred;
 
   if($base < 2 || $base > 64) {

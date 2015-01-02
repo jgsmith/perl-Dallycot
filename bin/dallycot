@@ -2,6 +2,8 @@
 # PODNAME: dallycot
 # ABSTRACT: command line interface to Dallycot engine
 
+use lib './lib';
+
 use Dallycot::CLI;
 
 my $cv = AnyEvent -> condvar;

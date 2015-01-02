@@ -41,6 +41,16 @@ sub as_text {
   }
 }
 
+sub prepend {
+  my($self, @things) = @_;
+
+  return __PACKAGE__ -> new(
+    join("", (map {
+      $_ -> value
+    } reverse @things), $self -> value)
+  );
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

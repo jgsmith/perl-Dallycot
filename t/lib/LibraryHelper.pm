@@ -19,6 +19,7 @@ our @EXPORT = qw(
   Boolean
   String
   Vector
+  Stream
 );
 
 my $processor = Dallycot::Processor -> new(
@@ -79,6 +80,16 @@ sub String {
 
 sub Vector {
   Dallycot::Value::Vector->new(@_);
+}
+
+sub Stream {
+  my(@things) = @_;
+
+  my $stream = Dallycot::Value::Stream -> new(pop @things);
+  foreach my $thing (reverse @things) {
+    $stream = Dallycot::Value::Stream -> new($thing, $stream);
+  }
+  return $stream;
 }
 
 1;

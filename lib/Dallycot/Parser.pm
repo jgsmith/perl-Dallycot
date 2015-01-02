@@ -469,6 +469,10 @@ sub uri_expression {
   return bless [$expression] => 'Dallycot::AST::BuildURI';
 }
 
+sub undef_literal {
+  return bless [] => 'Dallycot::Value::Undefined';
+}
+
 sub combine_identifiers_options {
   my ( undef, $bindings, $options ) = @_;
 
@@ -551,6 +555,10 @@ sub cons {
   if ( ref $stream eq 'Dallycot::AST::Cons' ) {
     push @{$stream}, $scalar;
     return $stream;
+  }
+  elsif ( ref $scalar eq 'Dallycot::AST::Cons') {
+    unshift @{$scalar}, $stream;
+    return $scalar;
   }
   else {
     return bless [ $stream, $scalar ] => 'Dallycot::AST::Cons';
@@ -971,6 +979,7 @@ Scalar ::=
     | QCName action => fetch
     | LambdaArg action => fetch
     | Stream QUOTE action => head
+    | (LP) (RP) action => undef_literal
     | Node PropRequest action => prop_request
     | Apply
     | Vector (LB) Scalar (RB) action => vector_index
@@ -985,6 +994,7 @@ Scalar ::=
    || Scalar (MOD) Scalar action => modulus
    || Scalar (PLUS) Scalar action => sum
     | Scalar (MINUS) Scalar action => subtract
+   || Scalar (COLON_COLON_GT) Scalar action => cons assoc => right
    || Scalar Inequality Scalar action => inequality
    || Scalar (AND) Scalar action => all
    || Scalar (OR) Scalar action => any
@@ -1079,8 +1089,8 @@ Fetched ::=
     | QCName action => fetch
 
 Lambda ::=
-      (LC) Expression (RC) action => lambda
-    | (LC) Expression (RC) (SLASH) NonNegativeInteger action => lambda
+      (LC) Block (RC) action => lambda
+    | (LC) Block (RC) (SLASH) NonNegativeInteger action => lambda
     | (LP) FunctionParameters (RP) (COLON_GT) Expression action => lambda_definition
     | (LP) (RP) (COLON_GT) Expression action => lambda_definition_sans_args
 

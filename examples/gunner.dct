@@ -1,0 +1,171 @@
+ns:cli := "http://www.dallycot.net/ns/cli/1.0#";
+ns:math := "http://www.dallycot.net/ns/math/1.0#";
+ns:strings := "http://www.dallycot.net/ns/strings/1.0#";
+
+uses "http://www.dallycot.net/ns/functions/1.0#";
+
+print-lines := Y(
+  (self, stream) :> (
+    (?stream) : (
+      cli:print(stream');
+      self(self, stream...);
+    )
+    (       ) : ( )
+  )
+);
+
+make-gun() :> math:random(<20000,60000>);
+
+(* for now, the gun is its range *)
+gun-range(gun) :> gun;
+
+make-target(gun) :> math:random(<gun div 10, 9 * gun div 10>);
+
+(* for now, the target is its distance *)
+target-distance(target) :> target;
+
+get-elevation := Y(
+  (self, reader) :> (
+    elevation := reader();
+    (
+      (elevation > 89) : (
+        print-lines(["Maximum elevation is 89 degrees",""]);
+        self(self, reader)
+      )
+      (elevation < 1) : (
+        print-lines(["Minimum elevation is one degree",""]);
+        self(self, reader)
+      )
+      ( ) : elevation
+    )
+  )
+);
+
+try-again? := Y(
+  (self, reader) :> (
+    input := reader();
+    cli:print("Got [" ::> input ::> "]");
+    (
+      (input = "Y" or input = "y") : true
+      (input = "N" or input = "n") : false
+      ( ) : (
+        cli:print("I didn't catch that.");
+        self(self, reader)
+      )
+    )
+  )
+);
+
+attack-target := Y(
+  (self, gun, target, tries) :> (
+    elevation := get-elevation({
+      cli:print("");
+      cli:input("Elevation: ")
+    }/0);
+
+    (
+      (tries > 5) : (
+        print-lines([
+          "",
+          "",
+          "BOOM !!!!   You have just been destroyed",
+          "by the enemy.",
+          "",
+          "",
+          "",
+          "Better go back to Fort Sill for refresher training!",
+          ""
+        ]);
+        try-again?({ cli:input-string("Try again (y or n)? ")}/0);
+      )
+      (         ) : (
+        b2 := 2 * elevation div 57.3;
+        i := gun-range(gun) * math:sin(b2);
+        x := target-distance(target) - i;
+        e := math:ceil(x);
+        (
+          (math:abs(e) < 100) : (
+            print-lines([
+              "*** TARGET DESTROYED ***  " ::>
+              strings:number-string(tries) ::>
+              " rounds of ammunition expended"
+            ]);
+            tries
+          )
+          (e < 100) : (
+            print-lines([
+              "Short of target by " ::>
+              strings:number-string(-e) ::>
+              " yards."
+            ]);
+            self(self, gun, target, tries + 1)
+          )
+          (       ) : (
+            print-lines([
+              "Over target by " ::>
+              strings:number-string(e) ::>
+              " yards."
+            ]);
+            self(self, gun, target, tries + 1)
+          )
+        )
+      )
+    )
+  )
+);
+
+game-round(round, total-shells) :> (
+  gun    := make-gun();
+  target := make-target(gun);
+
+  print-lines([
+    "Maximum range of your gun is " ::> strings:number-string(gun-range(gun)) ::> " yards.",
+    ""
+  ]);
+
+  print-lines([
+    "   Distance to the target is " ::>
+    strings:number-string(target-distance(target)) ::>
+    " yards.",
+    "",
+    ""
+  ]);
+
+  stats = attack-target(gun, target, 0);
+  <stats[0] + total-shells, stats[1]>
+);
+
+run-game-rounds := Y(
+  (self, stats) :> (
+    (stats[0] < 18 and stats[1]) : self(self, game-round(0, stats[0]))
+    (stats[0] >= 18) : (
+      print-lines([
+        "Total rounds expended were: " ::> strings:number-string(stats[0]),
+        "Better go back to Fort Sill for refresher training!",
+        ""
+      ])
+    )
+    (     ) : (
+      print-lines([
+        "Total rounds expended were: " ::> strings:number-string(stats[0]),
+        "",
+        "Return to baes camp."
+      ]);
+    )
+  )
+);
+
+print-lines([
+  "                              Gunner",
+  "              (Creative Computing  Morristown, New Jersey)",
+  "",
+  "",
+  "",
+  "You are the office-in-charge, giving orders to a gun",
+  "crew, telling them the degrees of elevation you estimate",
+  "will place a projectile on target.  A hit within 100 yards",
+  "of the target will destroy it.",
+  ""
+]);
+
+run-game-rounds(game-round(0, 0));

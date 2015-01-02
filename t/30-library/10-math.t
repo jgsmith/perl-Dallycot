@@ -78,4 +78,8 @@ $result = run("factorial(4)");
 
 is_deeply $result, Numeric(24), "factorial(4) should be 24";
 
+$result = run("random(123)");
+
+isa_ok $result, 'Dallycot::Value::Numeric';
+
 done_testing();

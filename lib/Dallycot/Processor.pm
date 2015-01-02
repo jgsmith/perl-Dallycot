@@ -80,6 +80,22 @@ sub channel_send {
   return;
 }
 
+sub channel_read {
+  my ( $self, $channel, %options ) = @_;
+
+  if(exists($self -> channels -> {$channel})) {
+    if($self -> channels -> {$channel}) {
+      return $self -> channels -> {$channel} -> receive(%options);
+    }
+  }
+  elsif($self -> has_parent) {
+    return $self -> parent -> channel_read($channel, %options);
+  }
+  my $d = deferred;
+  $d -> resolve(Dallycot::Value::String->new(''));
+  return $d -> promise;
+}
+
 sub create_channel {
   my ( $self, $channel, $object ) = @_;
 

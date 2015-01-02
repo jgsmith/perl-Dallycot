@@ -16,6 +16,16 @@ sub new {
   return $INSTANCE ||= bless [] => __PACKAGE__;
 }
 
+sub prepend {
+  my($self, @things) = @_;
+
+  my $stream = Dallycot::Value::Stream->new(shift @things);
+  foreach my $thing (@things) {
+    $stream = Dallycot::Value::Stream->new($thing, $stream);
+  }
+  return $stream;
+}
+
 sub as_text { return "[ ]" }
 
 sub is_defined { return 0 }

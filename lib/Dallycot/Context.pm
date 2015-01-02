@@ -9,6 +9,8 @@ use utf8;
 use Moose;
 use Array::Utils qw(unique array_minus);
 
+use MooseX::Types::Moose qw/ArrayRef/;
+
 use Carp qw(croak cluck);
 
 use experimental qw(switch);
@@ -131,10 +133,10 @@ sub make_closure {
     }
   }
 
-  @identifiers = unique @identifiers;
+  @identifiers = values %{ +{ map { $_ => $_ } @identifiers } };
 
   for my $identifier (@identifiers) {
-    if ( 'ARRAY' eq ref $identifier ) {
+    if ( is_ArrayRef($identifier) ) {
       if ( !defined( $namespaces{ $identifier->[0] } ) ) {
         $namespaces{ $identifier->[0] } =
           $self->get_namespace( $identifier->[0] );

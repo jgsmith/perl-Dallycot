@@ -32,4 +32,8 @@ $result = run('string-drop("The bright red spot.", 10)');
 
 is_deeply $result, String(" red spot.");
 
+$result = run('number-string(12345)');
+
+is_deeply $result, String("12345");
+
 done_testing();
