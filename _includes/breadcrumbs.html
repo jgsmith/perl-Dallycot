@@ -1,0 +1,9 @@
+{% if page.breadcrumbs %}
+<ol id="breadcrumbs">
+  <li id="breadcrumb-home"><a href="/">Home</a></li>
+  {% for p in page.breadcrumbs %}
+    <li><a href="{{ p.url }}">{{ p.title }}</a></li>
+  {% endfor %}
+  <!-- li>{{ page.title }}</li -->
+</ol>
+{% endif %}

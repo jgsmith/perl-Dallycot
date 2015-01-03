@@ -1,43 +1,44 @@
 ---
 title: Language Overview
+breadcrumbs:
+  - url: /guides/
+    title: Guides
 ---
-
-## Language Overview
 
 Dallycot is a linked data language designed to be useful for exploring a broad
 range of linked data types, from traditional RDF to XML-based documents using
 linked data approaches.
 
-### Reference
+## Reference
 
-#### List and Expression Manipulation
+### List and Expression Manipulation
 
-`[...]` ([Stream](./collections#stream))
-`<...>` ([Vector](./collections#vector))
+`[...]` ([Stream](./types#stream))
+`<...>` ([Vector](./types#vector))
 [...](./collections)
 
-#### Associations and Graphs
+### Associations and Graphs
 
-`{...}` ([Graph](./graphs#graph))
+`{...}` ([Graph](./types#graph))
 [...](./graphs)
 
-#### Functional Operations
+### Functional Operations
 
 `@` ([map](./functional#map))
 `%` ([filter](./functional#filter))
 [`foldl`](/ns/streams/1.0#foldl)
 [...](./functional)
 
-#### Pattern Matching
+### Pattern Matching
 
-#### Rules and Transformations
+### Rules and Transformations
 
-#### Definitions and Assignments
+### Definitions and Assignments
 
 `:=` ([assign](./definition#assign))
 [...](./definition)
 
-#### Logic and Tests
+### Logic and Tests
 
 `=` ([equal](./logic-and-tests#equal))
 `<>` ([not equal](./logic-and-tests#not-equal))
@@ -46,18 +47,18 @@ linked data approaches.
 [`member?`](./streams/1.0#member?)
 [...](./logic-and-tests)
 
-#### Scoping and Modularity
+### Scoping and Modularity
 
 `(...)` ([scope](./scoping#parens))
 [...](./scoping)
 
-#### Procedural Programming
+### Procedural Programming
 
 [`;`](./controls#semi)
 `(...)` ([case](./controls#cases))
 [...](./controls)
 
-#### String Manipulation
+### String Manipulation
 
-`"..."` ([String](./string))
-[...](./types/string)
+`"..."` ([String](./types#string))
+[...](./string-manipulation)

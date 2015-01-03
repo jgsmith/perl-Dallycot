@@ -3,8 +3,6 @@ title: Namespaces
 permalink: /ns/
 ---
 
-## Namespaces
-
 Dallycot ships with a number of namespaces as core libraries. To use any of them, simply add the following to your `~/.dallycot` file.
 
 ```

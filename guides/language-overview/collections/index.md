@@ -2,11 +2,9 @@
 title: Collections
 ---
 
-## Collections
+## Reference
 
-### Reference
-
-#### Constructing Collections
+### Constructing Collections
 
 `table`
 `array`
@@ -14,7 +12,7 @@ title: Collections
 `tuples`
 `range`
 
-#### Elements of Collections
+### Elements of Collections
 
 `[...]`
 `'`
@@ -23,14 +21,14 @@ title: Collections
 `drop`
 `extract`
 
-#### Rearranging and Restructuring Lists
+### Rearranging and Restructuring Lists
 
 `flatten`
 `join`
 `partition`
 
 
-#### Applying Functions to Collections
+### Applying Functions to Collections
 
 `@`
 `@@`
@@ -39,17 +37,17 @@ title: Collections
 `map-indexed`
 `association-map`
 
-#### Predicates on Collections
+### Predicates on Collections
 
 `all-true?`
 `any-true?`
 `none-true?`
 
-#### Math and Counting Operations
+### Math and Counting Operations
 
 `differences`
 
-#### Creating Associations from Lists
+### Creating Associations from Lists
 
 `counts`
 `counts-by`

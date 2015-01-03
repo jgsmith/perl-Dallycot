@@ -2,19 +2,18 @@
 title: Welcome to Dallycot
 layout: default
 ---
-### Welcome to Dallycot
 
 Dallycot is designed to work with the asynchronous nature of the web. When running a program in Dallycot, the web is your memory, providing data and code storage.
 
 *N.B.*: Almost everything about Dallycot is subject to change. For now, Dallycot provides read-only access to information.
 
-#### Writing Dallycot
+## Writing Dallycot
 
 Dallycot provides a custom functional language designed to think the way linked data thinks. See [the W3C Linked Data Platform specification](http://www.w3.org/TR/ldp/) for an example of the kind of data services Dallycot will target.
 
 Dallycot is not a query language. Projects like [Marmotta](http://marmotta.apache.org/) provide linked data query languages.
 
-##### Example: Euclid's algorithm for GCD
+### Example: Euclid's algorithm for GCD
 
 This uses simple recursion and the [Y-combinator](/ns/functions/1.0/#Y) to calculate the greatest common divisor.
 
@@ -29,7 +28,7 @@ gcd := Y(
 )
 ```
 
-#### When Not to Use Dallycot
+## When Not to Use Dallycot
 
 Because anything might result in retrieving information from the web, Dallycot makes extensive use of promises. Promises are great for managing asynchronous execution, but introduce overhead that makes programs slower if all of the information is local to the processor.
 

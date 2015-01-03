@@ -13,3 +13,8 @@ defaults:
     values:
       layout: default
       description: "Dallycot: A linked open code engine"
+  -
+    scope:
+      path: "ns"
+    values:
+      toc: true
