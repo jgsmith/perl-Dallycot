@@ -139,6 +139,12 @@ define 'number-string' => (
 ), sub {
   my($engine, $options, $number, $base) = @_;
 
+  if(!defined($number) || !$number->isa('Dallycot::Value::Numeric')) {
+    my $d = deferred;
+    $d -> reject("number-string requires a numeric argument");
+    return $d -> promise;
+  }
+
   $base = defined($base) ? $base -> value -> numify : 10;
   my $d = deferred;
 

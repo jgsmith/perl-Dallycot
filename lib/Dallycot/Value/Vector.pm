@@ -16,6 +16,12 @@ sub new {
   return bless \@values => $class;
 }
 
+sub is_defined {
+  my($self) = @_;
+
+  return @$self != 0;
+}
+
 sub as_text {
   my( $self ) = @_;
 

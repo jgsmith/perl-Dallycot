@@ -18,6 +18,12 @@ sub as_text {
   "[" . join(", ", map { $_ -> as_text } @$self) . "]";
 }
 
+sub is_defined {
+  my($self) = @_;
+
+  return @$self != 0;
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

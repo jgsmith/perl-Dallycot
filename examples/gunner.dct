@@ -33,6 +33,12 @@ make-target(gun) :> math:random(<gun div 10, 9 * gun div 10>);
 (* for now, the target is its distance *)
 target-distance(target) :> target;
 
+(* Prompts for an elevation until we have a number in the range
+   1..89. This uses the provided reader lambda, but the easiest
+   way to do this is to use the `cli:input` function which
+   evaluates its input in an empty context (no spill over to
+   this code).
+ *)
 get-elevation := Y(
   (self, reader) :> (
     elevation := reader();
@@ -50,10 +56,12 @@ get-elevation := Y(
   )
 );
 
+(*
+ * Prompts for a (y)es or (n)o response until one is given.
+ *)
 try-again? := Y(
   (self, reader) :> (
     input := reader();
-    cli:print("Got [" ::> input ::> "]");
     (
       (input = "Y" or input = "y") : true
       (input = "N" or input = "n") : false
@@ -65,6 +73,55 @@ try-again? := Y(
   )
 );
 
+go-boom(tries) :> (
+  print-lines(<
+    "",
+    "",
+    "BOOM !!!!   You have just been destroyed",
+    "by the enemy.",
+    "",
+    "",
+    "",
+    "Better go back to Fort Sill for refresher training!",
+    ""
+  >);
+  < tries, try-again?({ cli:input-string("Try again (y or n)? ")}/0) >
+);
+
+destroy-target(tries) :> (
+  print-lines(<
+    "*** TARGET DESTROYED ***  " ::>
+    strings:number-string(tries) ::>
+    " rounds of ammunition expended"
+  >);
+  < tries, try-again?({ cli:input-string("Try again (y or n)? ")}/0) >
+);
+
+under-shoot(gun, target, distance, tries, attack-target) :> (
+  print-lines(<
+    "Short of target by " ::> strings:number-string(distance) ::> " yards."
+  >);
+
+  attack-target(gun, target, tries + 1)
+);
+
+over-shoot(gun, target, distance, tries, attack-target) :> (
+  print-lines(<
+    "Over target by " ::> strings:number-string(distance) ::> " yards."
+  >);
+  attack-target(gun, target, tries + 1)
+);
+
+fire-gun(gun, target, elevation, tries, attack-target) :> (
+  hit-at := gun-range(gun) * math:sin(elevation);
+  distance := math:ceil(target-distance(target) - hit-at);
+  (
+    (math:abs(distance) < 100) : destroy-target(tries)
+    (         distance  < 100) : under-shoot(gun, target, -distance, tries, attack-target)
+    (                        ) : over-shoot(gun, target, distance, tries, attack-target)
+  )
+);
+
 attack-target := Y(
   (self, gun, target, tries) :> (
     elevation := get-elevation({
@@ -73,52 +130,8 @@ attack-target := Y(
     }/0);
 
     (
-      (tries > 5) : (
-        print-lines([
-          "",
-          "",
-          "BOOM !!!!   You have just been destroyed",
-          "by the enemy.",
-          "",
-          "",
-          "",
-          "Better go back to Fort Sill for refresher training!",
-          ""
-        ]);
-        try-again?({ cli:input-string("Try again (y or n)? ")}/0);
-      )
-      (         ) : (
-        b2 := 2 * elevation div 57.3;
-        i := gun-range(gun) * math:sin(b2, units -> "radians");
-        x := target-distance(target) - i;
-        e := math:ceil(x);
-        (
-          (math:abs(e) < 100) : (
-            print-lines([
-              "*** TARGET DESTROYED ***  " ::>
-              strings:number-string(tries) ::>
-              " rounds of ammunition expended"
-            ]);
-            tries
-          )
-          (e < 100) : (
-            print-lines([
-              "Short of target by " ::>
-              strings:number-string(-e) ::>
-              " yards."
-            ]);
-            self(self, gun, target, tries + 1)
-          )
-          (       ) : (
-            print-lines([
-              "Over target by " ::>
-              strings:number-string(e) ::>
-              " yards."
-            ]);
-            self(self, gun, target, tries + 1)
-          )
-        )
-      )
+      (tries > 5) : go-boom(tries)
+      (         ) : fire-gun(gun, target, elevation, tries, Y(self))
     )
   )
 );
@@ -127,44 +140,44 @@ game-round(round, total-shells) :> (
   gun    := make-gun();
   target := make-target(gun);
 
-  print-lines([
+  print-lines(<
     "Maximum range of your gun is " ::> strings:number-string(gun-range(gun)) ::> " yards.",
     ""
-  ]);
+  >);
 
-  print-lines([
+  print-lines(<
     "   Distance to the target is " ::>
     strings:number-string(target-distance(target)) ::>
     " yards.",
     "",
     ""
-  ]);
+  >);
 
-  stats = attack-target(gun, target, 0);
-  <stats[0] + total-shells, stats[1]>
+  stats := attack-target(gun, target, 0);
+  < (stats[1] + total-shells), stats[2] >
 );
 
 run-game-rounds := Y(
   (self, stats) :> (
-    (stats[0] < 18 and stats[1]) : self(self, game-round(0, stats[0]))
-    (stats[0] >= 18) : (
+    (stats[1] < 18 and stats[2]) : self(self, game-round(0, stats[1]))
+    (stats[1] >= 18) : (
       print-lines([
-        "Total rounds expended were: " ::> strings:number-string(stats[0]),
+        "Total rounds expended were: " ::> strings:number-string(stats[1]),
         "Better go back to Fort Sill for refresher training!",
         ""
       ])
     )
     (     ) : (
       print-lines([
-        "Total rounds expended were: " ::> strings:number-string(stats[0]),
+        "Total rounds expended were: " ::> strings:number-string(stats[1]),
         "",
-        "Return to baes camp."
+        "Return to base camp."
       ]);
     )
   )
 );
 
-print-lines([
+print-lines(<
   "                              Gunner",
   "              (Creative Computing  Morristown, New Jersey)",
   "",
@@ -175,6 +188,6 @@ print-lines([
   "will place a projectile on target.  A hit within 100 yards",
   "of the target will destroy it.",
   ""
-]);
+>);
 
 run-game-rounds(game-round(0, 0));

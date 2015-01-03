@@ -41,6 +41,12 @@ sub as_text {
   }
 }
 
+sub is_defined {
+  my($self) = @_;
+
+  return length($self->value) != 0;
+}
+
 sub prepend {
   my($self, @things) = @_;
 
