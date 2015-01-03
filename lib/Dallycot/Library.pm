@@ -40,6 +40,18 @@ use Moose::Exporter;
 
 use Promises qw(deferred collect);
 
+use Module::Pluggable
+  require     => 1,
+  sub_name    => '_libraries',
+  search_path => 'Dallycot::Library';
+
+our @LIBRARIES;
+
+sub libraries {
+  return @LIBRARIES if @LIBRARIES;
+  return @LIBRARIES = shift -> _libraries;
+}
+
 my %engines;
 
 sub ns {

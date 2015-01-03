@@ -82,4 +82,24 @@ $result = run("random(123)");
 
 isa_ok $result, 'Dallycot::Value::Numeric';
 
+$result = run("sin(30)");
+
+is_deeply $result, Numeric("1/2"), "sin(30) = 1/2";
+
+$result = run("cos(60)");
+
+is_deeply $result, Numeric("1/2"), "cos(60) = 1/2";
+
+$result = run("arc-tan(1)");
+
+is_deeply $result, Numeric(45), "atan(1) = 45";
+
+$result = run("arc-tan(1,1)");
+
+is_deeply $result, Numeric(45), "atan(1,1) = 45";
+
+$result = run("arc-tan(-1,-1)");
+
+is_deeply $result, Numeric(45-180), "atan(-1,-1) = -135";
+
 done_testing();

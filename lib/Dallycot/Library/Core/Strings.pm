@@ -133,9 +133,38 @@ define 'hash' => (
   return $d -> promise;
 };
 
+define 'N' => (
+  hold => 0,
+  arity => 1,
+  options => {
+    accuracy => Dallycot::Value::Numeric->new(Math::BigRat->new(40))
+  }
+), sub {
+  my($engine, $options, $number) = @_;
+
+  if(!defined($number) || !$number->isa('Dallycot::Value::Numeric')) {
+    my $d = deferred;
+    $d -> reject("N requires a numeric argument");
+    return $d -> promise;
+  }
+
+  if(!defined($options->{accuracy}) || !$options->{accuracy} -> isa('Dallycot::Value::Numeric')) {
+    my $d = deferred;
+    $d -> reject("N requires a numeric accuracy");
+    return $d -> promise;
+  }
+
+  my $accuracy = $options->{accuracy}->value->as_int;
+  $number = $number->value->as_float->bround($accuracy);
+  my $d = deferred;
+  $d -> resolve(Dallycot::Value::String->new($number -> bstr));
+  return $d -> promise;
+};
+
 define 'number-string' => (
   hold => 0,
-  arity => [1,2]
+  arity => [1,2],
+  options => {}
 ), sub {
   my($engine, $options, $number, $base) = @_;
 

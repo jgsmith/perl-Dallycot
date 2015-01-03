@@ -48,12 +48,27 @@ sub error {
   return $self->{error};
 }
 
+sub warnings {
+  my($self, $warnings) = @_;
+
+  if(@_ == 2) {
+    $self->{warnings} = $warnings;
+  }
+  if(wantarray) {
+    return @{$self->{warnings}};
+  }
+  else {
+    return @{$self->{warnings}} != 0;
+  }
+}
+
 sub parse {
   my ( $self, $input ) = @_;
 
   my $re = Marpa::R2::Scanless::R->new( { grammar => $self->grammar } );
 
   $self->error(undef);
+  $self->warnings([]);
 
   my $worked = eval {
     $re->read( \$input );
@@ -79,6 +94,14 @@ sub parse {
   else {
     $result = [ bless [] => 'Dallycot::AST::Expr' ];
   }
+
+  # my @warnings = map {
+  #   $_ -> check_for_common_mistakes
+  # } @$result;
+  #
+  # if(@warnings) {
+  #   $self -> warnings(\@warnings);
+  # }
 
   $self->wants_more( $re->exhausted );
 

@@ -16,8 +16,8 @@ use Dallycot::Processor;
 use Dallycot::Channel::Terminal;
 
 BEGIN {
-  require Dallycot::Library::Core;
-  require Dallycot::Library::CLI;
+  require Dallycot::Library;
+  Dallycot::Library -> libraries;
 }
 
 has 'c' => (
@@ -29,7 +29,13 @@ has 'c' => (
 has 'v' => (
   is => 'ro',
   isa => 'Bool',
-  documentation => 'print version number and exit',
+  documentation => 'print version and licensing banner and exit',
+);
+
+has 'V' => (
+  is => 'ro',
+  isa => 'Bool',
+  documentation => 'print installed namespaces and exit',
 );
 
 has '_parser' => (
@@ -74,14 +80,21 @@ sub check {
 sub run {
   my($app) = @_;
 
+  $app->channel(Dallycot::Channel::Terminal->new);
+
   if($app -> v) {
-    print STDERR "Dallycot version $Dallycot::VERSION\n";
+    $app -> print_banner;
     my $d = deferred;
     $d -> resolve(undef);
     return $d -> promise;
   }
 
-  $app->channel(Dallycot::Channel::Terminal->new);
+  if($app -> V) {
+    $app -> print_library_namespaces;
+    my $d = deferred;
+    $d -> resolve(undef);
+    return $d -> promise;
+  }
 
   $app -> engine
        -> create_channel('$OUTPUT', $app->channel);
@@ -99,6 +112,7 @@ sub run {
 
   $app -> done($d);
 
+  $app -> print_banner;
 
   # load .dallycot - but no error if it doesn't exist
   $app -> run_file($ENV{'HOME'} . "/.dallycot", 1) -> done(sub {
@@ -119,6 +133,47 @@ sub run {
   });
 
   return $d -> promise;
+}
+
+sub print_banner {
+  my($app) = @_;
+
+  my $out = $app -> channel;
+
+  $Dallycot::VERSION //= 'm.xxyyyz';
+  $out -> send(
+    "Dallycot, version $Dallycot::VERSION.\n",
+    "Copyright (C) 2014 James Smith.\n",
+    "This is free software licensed under the same terms as Perl 5.\n",
+    "There is ABSOLUTELY NO WARRANTY; not even for MERCHANTABILITY or\n",
+    "FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "Additional information about Dallycot is available at http://www.dallycot.net/.\n\n",
+    "Please contribute if you find this software useful.\n",
+    "For more information, visit http://www.dallycot.net/get-involved/.\n"
+  );
+}
+
+sub print_library_namespaces {
+  my($app) = @_;
+
+  my %namespaces;
+
+  foreach my $lib (Dallycot::Library -> libraries) {
+    $namespaces{$lib -> instance -> namespace} = $lib;
+  }
+
+  my $out = $app -> channel;
+
+  if(keys %namespaces) {
+    $out -> send("The following namespaces are installed:\n");
+  }
+  else {
+    $out -> send("No namespaces are installed\n");
+  }
+
+  foreach my $ns (sort keys %namespaces) {
+    $out -> send("  $ns\n");
+  }
 }
 
 sub run_files {
@@ -152,15 +207,21 @@ sub primary_prompt {
   $app -> channel
        -> receive(
             prompt => Dallycot::Value::String->new(
-              sprintf($app->prompt, $app->statement_counter)
+              sprintf("\n".$app->prompt, $app->statement_counter)
             )
           )
        -> done(sub {
          my($line) = @_;
-         if($line -> is_defined) {
-           $app -> check_parse($line);
+         if($line -> isa('Dallycot::Value::String')) {
+           if($line -> value =~ m{^\s*$}) {
+             $app -> add_history($line);
+             $app -> primary_prompt;
+           }
+           else {
+             $app -> check_parse($line);
+           }
          }
-         else {
+         else { #if($line -> isa('Dallycot::Value::Undefined')) {
            $app -> channel -> send("\n");
            $app -> done -> resolve(undef);
          }
@@ -206,15 +267,23 @@ sub secondary_prompt {
        });
 }
 
-sub process_line {
-  my( $app, $line, $parse ) = @_;
+sub add_history {
+  my( $app, $line ) = @_;
 
   my $in = $app -> engine -> get_assignment('in');
   my $stmt_counter = $app -> statement_counter;
   $app -> statement_counter($app -> statement_counter + 1);
+  $app -> channel -> add_history($line);
 
   ${$in}[$stmt_counter-1] = $line;
-  $app -> channel -> add_history($line);
+  return $stmt_counter;
+}
+
+sub process_line {
+  my( $app, $line, $parse ) = @_;
+
+  my $stmt_counter = $app -> add_history($line);
+
   if($app -> parser -> error) {
     $app -> channel -> send($app->parser->error);
   }
@@ -223,7 +292,7 @@ sub process_line {
       my($ret) = @_;
       if(defined $ret) {
         $app -> channel
-             -> send("out[$stmt_counter] := ", $ret -> as_text, "\n");
+             -> send("\nout[$stmt_counter] := ", $ret -> as_text);
         my $out = $app->engine->get_assignment('out');
         ${$out}[$stmt_counter-1] = $ret;
       }
@@ -255,6 +324,9 @@ sub run_file {
     my $source = <$file>;
     close $file;
     my $parse = $app->parser->parse($source);
+    if($app->parser->warnings) {
+      $app->channel->send("Warnings:\n  " . join("\n  ", $app->parser->warnings)."\n");
+    }
     if(!$parse) {
       my $err = $app->parser->error;
       my $d = deferred;

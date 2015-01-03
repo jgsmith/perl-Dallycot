@@ -224,15 +224,37 @@ define pi => (
   return $d -> promise;
 };
 
-define sin => (
+define 'golden-ratio' => (
   hold => 0,
-  arity => 1,
-  options => {
-    units => Dallycot::Value::String->new('degrees'),
-    accuracy => Dallycot::Value::Numeric->new(Math::BigRat->new(40)),
-  }
+  arity => [0,1],
+  options => {}
 ), sub {
-  my( $engine, $options, $arg ) = @_;
+  my( $engine, $options, $accuracy ) = @_;
+
+  my $d = deferred;
+
+  if(defined($accuracy) && !$accuracy -> isa('Dallycot::Value::Numeric')) {
+    $d -> reject("pi requires a numeric argument");
+  }
+  else {
+    $accuracy = defined($accuracy) ? $accuracy -> value -> as_int : 40;
+  }
+
+  $d -> resolve(
+    $engine -> make_numeric(
+      Math::BigRat->new(
+        (
+          (1 + Math::BigFloat->new(5) -> bsqrt($accuracy + 1)) / 2
+        ) -> bround($accuracy)
+      )
+    )
+  );
+
+  return $d -> promise;
+};
+
+sub _simple_trig {
+  my( $name, $method, $engine, $options, $arg ) = @_;
 
   my $units;
   my $d = deferred;
@@ -245,7 +267,7 @@ define sin => (
     return $d -> promise;
   }
   if(!$arg -> isa('Dallycot::Value::Numeric')) {
-    $d -> reject("sin requires a numeric argument");
+    $d -> reject("$name requires a numeric argument");
     return $d -> promise;
   }
   my $accuracy = $options->{'accuracy'}->value->as_int;
@@ -263,9 +285,117 @@ define sin => (
       return $d;
     }
   }
-  my $sin = $angle -> bsin($accuracy);
+  my $answer = $angle -> $method($accuracy);
   $d -> resolve(
-    $engine -> make_numeric(Math::BigRat->new($sin))
+    $engine -> make_numeric(Math::BigRat->new($answer))
+  );
+  return $d;
+}
+
+define sin => (
+  hold => 0,
+  arity => 1,
+  options => {
+    units => Dallycot::Value::String->new('degrees'),
+    accuracy => Dallycot::Value::Numeric->new(Math::BigRat->new(40)),
+  }
+), sub {
+  my( $engine, $options, $arg ) = @_;
+
+  return _simple_trig('sin', 'bsin', $engine, $options, $arg);
+};
+
+define cos => (
+  hold => 0,
+  arity => 1,
+  options => {
+    units => Dallycot::Value::String->new('degrees'),
+    accuracy => Dallycot::Value::Numeric->new(Math::BigRat->new(40)),
+  }
+), sub {
+  my( $engine, $options, $arg ) = @_;
+
+  return _simple_trig('cos', 'bcos', $engine, $options, $arg);
+};
+
+define 'arc-tan' => (
+  hold => 0,
+  arity => [1,2],
+  options => {
+    units => Dallycot::Value::String->new('degrees'),
+    accuracy => Dallycot::Value::Numeric->new(Math::BigRat->new(40)),
+  }
+), sub {
+  my( $engine, $options, $y, $x ) = @_;
+
+  my $units;
+  my $d = deferred;
+
+  if($options->{'units'} -> isa('Dallycot::Value::String')) {
+    $units = $options->{'units'}->value;
+  }
+  if(!$options->{'accuracy'} -> isa('Dallycot::Value::Numeric')) {
+    $d -> reject("accuracy must be a numeric value");
+    return $d -> promise;
+  }
+  if(!$y -> isa('Dallycot::Value::Numeric') || defined($x) && !$x -> isa('Dallycot::Value::Numeric')) {
+    $d -> reject("arc-tan requires numeric arguments");
+    return $d -> promise;
+  }
+  my $accuracy = $options->{'accuracy'}->value->as_int;
+
+  $y = $y -> value -> as_float($accuracy+10);
+  if(defined $x) {
+    $x = $x -> value -> as_float($accuracy+10);
+  }
+
+  my $angle;
+  if(defined($x)) {
+    if($x -> is_pos && !$x -> is_zero) {
+      $angle = $y -> batan2($x, $accuracy);
+    }
+    elsif($x -> is_neg && $y -> is_pos) {
+      $angle = $y -> batan2($x, $accuracy+1) + Math::BigFloat->bpi($accuracy+1);
+      $angle -> bround($accuracy);
+    }
+    elsif($x -> is_neg && $y -> is_neg) {
+      $angle = $y -> batan2($x, $accuracy+1) - Math::BigFloat->bpi($accuracy+1);
+      $angle -> bround($accuracy);
+    }
+    elsif($x -> is_zero && $y -> is_pos && !$y -> is_zero) {
+      $angle = Math::BigFloat->bpi($accuracy+1) / 2;
+      $angle -> bround($accuracy);
+    }
+    elsif($x -> is_zero && $y -> is_neg) {
+      $angle = -Math::BigFloat->bpi($accuracy+1) / 2;
+      $angle -> bround($accuracy);
+    }
+    else {
+      $d -> resolve($engine -> make_numeric(
+        Math::BigRat -> nan
+      ));
+      return $d -> promise;
+    }
+  }
+  else {
+    $angle = $y -> batan($accuracy);
+  }
+
+  given($units) {
+    when('degrees') {
+      $angle = $angle * 180 / Math::BigFloat->bpi($accuracy);
+    }
+    when('radians') { }
+    when('gradians') {
+      $angle = $angle * 200 / Math::BigFloat->bpi($accuracy);
+    }
+    default {
+      $d -> reject("units must be 'degrees', 'radians', or 'gradians'");
+      return $d;
+    }
+  }
+  $d -> resolve(
+    $engine -> make_numeric(Math::BigRat->new($angle))
   );
   return $d;
 };

@@ -85,16 +85,16 @@ go-boom(tries) :> (
     "Better go back to Fort Sill for refresher training!",
     ""
   >);
-  < tries, try-again?({ cli:input-string("Try again (y or n)? ")}/0) >
+  < tries', try-again?({ cli:input-string("Try again (y or n)? ")}/0) >
 );
 
 destroy-target(tries) :> (
   print-lines(<
     "*** TARGET DESTROYED ***  " ::>
-    strings:number-string(tries) ::>
+    strings:number-string(tries') ::>
     " rounds of ammunition expended"
   >);
-  < tries, try-again?({ cli:input-string("Try again (y or n)? ")}/0) >
+  < tries', try-again?({ cli:input-string("Try again (y or n)? ")}/0) >
 );
 
 under-shoot(gun, target, distance, tries, attack-target) :> (
@@ -102,14 +102,14 @@ under-shoot(gun, target, distance, tries, attack-target) :> (
     "Short of target by " ::> strings:number-string(distance) ::> " yards."
   >);
 
-  attack-target(gun, target, tries + 1)
+  attack-target(gun, target, tries...)
 );
 
 over-shoot(gun, target, distance, tries, attack-target) :> (
   print-lines(<
     "Over target by " ::> strings:number-string(distance) ::> " yards."
   >);
-  attack-target(gun, target, tries + 1)
+  attack-target(gun, target, tries...)
 );
 
 fire-gun(gun, target, elevation, tries, attack-target) :> (
@@ -118,7 +118,7 @@ fire-gun(gun, target, elevation, tries, attack-target) :> (
   (
     (math:abs(distance) < 100) : destroy-target(tries)
     (         distance  < 100) : under-shoot(gun, target, -distance, tries, attack-target)
-    (                        ) : over-shoot(gun, target, distance, tries, attack-target)
+    (                        ) :  over-shoot(gun, target,  distance, tries, attack-target)
   )
 );
 
@@ -130,8 +130,8 @@ attack-target := Y(
     }/0);
 
     (
-      (tries > 5) : go-boom(tries)
-      (         ) : fire-gun(gun, target, elevation, tries, Y(self))
+      (?(tries...))  : fire-gun(gun, target, elevation, tries, Y(self))
+      (           )  : go-boom(tries)
     )
   )
 );
@@ -153,7 +153,7 @@ game-round(round, total-shells) :> (
     ""
   >);
 
-  stats := attack-target(gun, target, 0);
+  stats := attack-target(gun, target, 1..6);
   < (stats[1] + total-shells), stats[2] >
 );
 

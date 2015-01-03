@@ -25,6 +25,16 @@ sub new {
   return bless [ $expression, $bindings, $options ] => $class;
 }
 
+sub simplify {
+  my($self) = @_;
+
+  return bless [
+    $self->[$EXPRESSION]->simplify,
+    [ map { $_ -> simplify } @{$self->[$BINDINGS] } ],
+    $self->[$OPTIONS]
+  ] => __PACKAGE__;
+}
+
 sub child_nodes {
   my ($self) = @_;
 
