@@ -23,11 +23,11 @@ use experimental qw(switch);
 # Closures need to copy all of the info into a new context that is marked as
 #   a closure.
 
-has namespaces => ( is => 'ro', isa => 'HashRef', default => sub { +{} } );
+has namespaces => ( is => 'ro', isa => 'HashRef', default => sub { +{} }, lazy => 1 );
 
-has environment => ( is => 'ro', isa => 'HashRef', default => sub { +{} } );
+has environment => ( is => 'ro', isa => 'HashRef', default => sub { +{} }, lazy => 1 );
 
-has namespace_search_path => ( is => 'ro', isa => 'ArrayRef', default => sub { [] } );
+has namespace_search_path => ( is => 'ro', isa => 'ArrayRef', default => sub { [] }, lazy => 1 );
 
 has parent =>
   ( is => 'ro', isa => 'Dallycot::Context', predicate => 'has_parent' );
@@ -143,7 +143,7 @@ sub make_closure {
           $self->get_namespace( $identifier->[0] );
       }
     }
-    elsif ( $identifier !~ /^#/ && !defined( $environment{$identifier} ) ) {
+    elsif ( substr($identifier, 0, 1) ne '#' && !defined( $environment{$identifier} ) ) {
       my $value = $self->get_assignment($identifier);
       $environment{$identifier} = $value if blessed $value;
     }

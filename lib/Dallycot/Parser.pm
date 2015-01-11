@@ -162,7 +162,7 @@ sub lambda {
 sub negate {
   my ( undef, $expression ) = @_;
 
-  given ($expression) {
+  given (blessed $expression) {
     when ('Dallycot::AST::Negation') {
       return $expression->[0];
     }
@@ -175,7 +175,7 @@ sub negate {
 sub invert {
   my ( undef, $expression ) = @_;
 
-  given ($expression) {
+  given (blessed $expression) {
     when ('Dallycot::AST::Invert') {
       return $expression->[0];
     }
@@ -191,10 +191,10 @@ sub build_sum_product {
   my @expressions;
 
   # combine left/right as appropriate into a single sum
-  given ( ref $left_value ) {
+  given ( blessed $left_value ) {
     when ($sum_class) {
       @expressions = @{$left_value};
-      given ( ref $right_value ) {
+      given ( blessed $right_value ) {
         when ($sum_class) {
           push @expressions, @{$right_value};
         }
@@ -204,7 +204,7 @@ sub build_sum_product {
       }
     }
     default {
-      given ( ref $right_value ) {
+      given ( blessed $right_value ) {
         when ($sum_class) {
           @expressions = ( $left_value, @{$right_value} );
         }
@@ -219,12 +219,12 @@ sub build_sum_product {
   my ( @differences, @sums );
 
   foreach my $expr (@expressions) {
-    given ( ref $expr ) {
+    given ( blessed $expr ) {
       when ($sum_class) {
         foreach my $sub_expr ( @{$expr} ) {
-          given ( ref $sub_expr ) {
+          given ( blessed $sub_expr ) {
             when ($negation_class) {    # adding -(...)
-              given ( ref $sub_expr->[0] ) {
+              given ( blessed $sub_expr->[0] ) {
                 when ($sum_class) {     # adding -(a+b+...)
                   push @differences, @{ $sub_expr->[0] };
                 }
@@ -240,10 +240,10 @@ sub build_sum_product {
         }
       }
       when ($negation_class) {
-        given ( ref $expr->[0] ) {
+        given ( blessed $expr->[0] ) {
           when ($sum_class) {
             foreach my $sub_expr ( @{ $expr->[0] } ) {
-              given ( ref $sub_expr ) {
+              given ( blessed $sub_expr ) {
                 when ($negation_class) {
                   push @sums, $sub_expr->[0];
                 }
@@ -298,7 +298,7 @@ sub divide {
 sub modulus {
   my ( undef, $expr, $mod ) = @_;
 
-  given ($expr) {
+  given (blessed $expr) {
     when ('Dallycot::AST::Modulus') {
       push @{$expr}, $mod;
       return $expr;
@@ -417,20 +417,9 @@ sub build_string_vector {
 
   $lit =~ s/^<<//;
   $lit =~ s/>>$//;
-  my @matches;
-
-  while ( $lit =~ m{((?:[^\\\s]|\\.)+)\s*}xg ) {
-    my $m = $1;
-    $m =~ s[\\(.)] {
-      my $char = $1;
-      given($char) {
-        when('n') { "\n" }
-        when('t') { "\t" }
-        default   { $char }
-      }
-    }xegis;
-    push @matches, $m;
-  }
+  my @matches = map { unbackslash($_) } 
+                map { s/\\ / /g; $_ }
+                split(/(?<!\\)\s+/, $lit);
 
   return
     bless [ map { bless [ $_, $lang ] => 'Dallycot::Value::String'; }

@@ -23,7 +23,7 @@ sub execute {
       my ($res) = @_;
 
       if ( $res->isa('Dallycot::Value::Boolean') ) {
-        return $engine->make_boolean( !$res->value );
+        return Dallycot::Value::Boolean->new( !$res->value );
       }
       elsif ( $res->isa('Dallycot::Value::Lambda') ) {
         return Dallycot::Value::Lambda->new(
@@ -36,7 +36,7 @@ sub execute {
         );
       }
       else {
-        return $engine->make_boolean( !$res->is_defined );
+        return Dallycot::Value::Boolean->new( !$res->is_defined );
       }
     }
   );

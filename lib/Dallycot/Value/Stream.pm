@@ -74,10 +74,10 @@ sub calculate_length {
   }
 
   if ( $ptr->[$TAIL_PROMISE] ) {
-    $d->resolve( $engine->make_numeric( Math::BigRat->binf() ) );
+    $d->resolve( Dallycot::Value::Numeric -> new( Math::BigRat->binf() ) );
   }
   else {
-    $d->resolve( $engine->make_numeric($count) );
+    $d->resolve( Dallycot::Value::Numeric -> new($count) );
   }
 
   return $d->promise;

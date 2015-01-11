@@ -8,6 +8,7 @@ use warnings;
 use utf8;
 use parent 'Dallycot::Value::Any';
 
+use Dallycot::Registry;
 use Promises qw(deferred);
 use Scalar::Util qw(blessed);
 
@@ -18,7 +19,7 @@ sub new {
 
   $class = ref $class || $class;
 
-  $uri = URI->new($uri);
+  $uri = URI->new($uri) -> canonical;;
 
   return bless [$uri] => $class;
 }
@@ -28,7 +29,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( $engine->make_numeric( length $self->[0]->canonical->as_string ) );
+  $d->resolve( Dallycot::Value::Numeric -> new( length $self->[0]->as_string ) );
 
   return $d->promise;
 }
@@ -39,7 +40,7 @@ sub value_at {
   my $d = deferred;
 
   $d->resolve(
-    bless [ substr( $self->[0]->canonical->as_string, $index - 1, 1 ), 'en' ] =>
+    bless [ substr( $self->[0]->as_string, $index - 1, 1 ), 'en' ] =>
       'Dallycot::Value::String'
   );
 
@@ -51,7 +52,7 @@ sub value_at {
 sub id {
   my($self) = @_;
 
-  return "<" . $self->[0]->canonical->as_string . ">";
+  return "<" . $self->[0]->as_string . ">";
 }
 
 sub as_text {
@@ -88,10 +89,12 @@ sub min_arity {
   }
 }
 
+my $registry = Dallycot::Registry->instance;
+
 sub _get_library_and_method {
   my($self) = @_;
 
-  my $uri = $self->[0]->canonical->as_string;
+  my $uri = $self->[0]->as_string;
   
   my($namespace, $method) = split(/#/, $uri, 2);
   if(!defined $method) {
@@ -107,8 +110,6 @@ sub _get_library_and_method {
   else {
     $namespace .= '#';
   }
-
-  my $registry = Dallycot::Registry->instance;
 
   if($registry->has_namespace($namespace)) {
     return ($registry->namespaces->{$namespace}, $method);

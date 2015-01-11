@@ -30,7 +30,8 @@ sub execute {
       while (@values) {
         $acc *= ( pop @values );
       }
-      $engine->make_numeric($acc);
+
+      return Dallycot::Value::Numeric -> new($acc);
     }
   );
 }

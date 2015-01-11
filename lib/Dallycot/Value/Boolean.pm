@@ -46,7 +46,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( $engine->make_numeric(1) );
+  $d->resolve( $engine -> ONE );
 
   return $d->promise;
 }

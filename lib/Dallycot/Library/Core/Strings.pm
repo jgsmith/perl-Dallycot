@@ -169,7 +169,7 @@ define 'hash' => (
   my $digest = Digest::MD5::md5_hex($string->value);
   my $num = Math::BigRat->from_hex("0x$digest");
   my $d = deferred;
-  $d -> resolve($engine -> make_numeric($num) );
+  $d -> resolve(Dallycot::Value::Numeric -> new($num) );
   return $d -> promise;
 };
 

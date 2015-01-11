@@ -40,7 +40,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( $engine->make_numeric( scalar @$self ) );
+  $d->resolve( Dallycot::Value::Numeric -> new( scalar @$self ) );
 
   return $d->promise;
 }

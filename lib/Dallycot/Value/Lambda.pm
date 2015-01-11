@@ -229,48 +229,43 @@ sub apply {
     && $self->_options_are_good( $options, $promise ) )
   {
 
-    $self->_get_bindings( $engine, @bindings )->done(
+    collect(
+      $self -> _get_bindings( $engine, @bindings ),
+      $self -> _get_options( $engine, $options )
+    ) -> done(
       sub {
-        my ( $filled_bindings, $new_bindings, $new_bindings_with_defaults ) =
-          @_;
+        my( $binding_values, $filled_options ) = @_;
+        my ( $filled_bindings, $new_bindings, $new_bindings_with_defaults ) = @$binding_values;
+        ($filled_options) = @$filled_options;
+        
+        my %environment =
+          ( %{ $self->[$CLOSURE_ENVIRONMENT] || {} }, %$filled_bindings );
 
-        $self->_get_options( $engine, $options )->done(
-          sub {
-            my ($filled_options) = @_;
-
-            my %environment =
-              ( %{ $self->[$CLOSURE_ENVIRONMENT] || {} }, %$filled_bindings );
-
-            if ( @$new_bindings || @$new_bindings_with_defaults ) {
-              $promise->resolve(
-                bless [
-                  $self->[$EXPRESSION],        $new_bindings,
-                  $new_bindings_with_defaults, $filled_options,
-                  \%environment,               $self->[$CLOSURE_NAMESPACES],
-                  $self->[$CLOSURE_NAMESPACE_PATH]
-                ] => __PACKAGE__
-              );
+        if ( @$new_bindings || @$new_bindings_with_defaults ) {
+          $promise->resolve(
+            bless [
+              $self->[$EXPRESSION],        $new_bindings,
+              $new_bindings_with_defaults, $filled_options,
+              \%environment,               $self->[$CLOSURE_NAMESPACES],
+              $self->[$CLOSURE_NAMESPACE_PATH]
+            ] => __PACKAGE__
+          );
+        }
+        else {
+          my $new_engine = $engine->with_new_closure(
+            +{ %environment, %{$filled_options} },
+            $self->[$CLOSURE_NAMESPACES],
+            $self->[$CLOSURE_NAMESPACE_PATH]
+          );
+          $new_engine->execute( $self->[$EXPRESSION] )->done(
+            sub {
+              $promise->resolve(@_);
+            },
+            sub {
+              $promise->reject(@_);
             }
-            else {
-              my $new_engine = $engine->with_new_closure(
-                +{ %environment, %{$filled_options} },
-                $self->[$CLOSURE_NAMESPACES],
-                $self->[$CLOSURE_NAMESPACE_PATH]
-              );
-              $new_engine->execute( $self->[$EXPRESSION] )->done(
-                sub {
-                  $promise->resolve(@_);
-                },
-                sub {
-                  $promise->reject(@_);
-                }
-              );
-            }
-          },
-          sub {
-            $promise->reject(@_);
-          }
-        );
+          );
+        }
       },
       sub {
         $promise->reject(@_);

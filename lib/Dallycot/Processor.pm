@@ -45,7 +45,9 @@ has context => (
 has channels => (
   is => 'ro',
   isa => 'HashRef',
-  default => sub { +{} }
+  default => sub { +{} },
+  predicate => 'has_channels',
+  lazy => 1
 );
 
 has max_cost => (
@@ -69,7 +71,7 @@ has parent => (
 sub channel_send {
   my ( $self, $channel, @items ) = @_;
 
-  if(exists($self -> channels->{$channel})) {
+  if($self -> has_channels && exists($self -> channels->{$channel})) {
     if($self -> channels->{$channel}) {
       $self -> channels->{$channel}->send(@items);
     }
@@ -83,7 +85,7 @@ sub channel_send {
 sub channel_read {
   my ( $self, $channel, %options ) = @_;
 
-  if(exists($self -> channels -> {$channel})) {
+  if($self -> has_channels && exists($self -> channels -> {$channel})) {
     if($self -> channels -> {$channel}) {
       return $self -> channels -> {$channel} -> receive(%options);
     }
@@ -106,26 +108,21 @@ sub create_channel {
 sub add_cost {
   my ( $self, $delta ) = @_;
 
-  if ( $self->has_parent ) {
-    AnyEvent->timer(after => 0, interval => 0, cb => sub {
-      $self->parent->add_cost($delta);
-    });
-    return 0;
-  }
-  else {
-    $self->cost( $self->cost + $delta );
-    return $self->cost > $self->max_cost;
-  }
+  $self->cost( $self->cost + $delta );
+  return $self->cost > $self->max_cost;
 }
 
 sub with_child_scope {
   my ($self) = @_;
 
-  return $self->new(
+  my $ctx = $self -> context;
+
+  return __PACKAGE__->new(
     parent  => $self,
-    context => $self->context->new(
-      parent => $self->context,
-      namespace_search_path => $self->context->namespace_search_path
+    max_cost => $self -> max_cost - $self -> cost,
+    context => Dallycot::Context->new(
+      parent => $ctx,
+      namespace_search_path => $ctx->namespace_search_path
     )
   );
 }
@@ -135,12 +132,19 @@ sub with_new_closure {
 
   return $self->new(
     parent  => $self,
-    context => $self->context->new(
+    max_cost => $self -> max_cost - $self -> cost,
+    context => Dallycot::Context->new(
       environment => $environment,
       namespaces  => $namespaces,
       namespace_search_path => ($search_path // $self->context->namespace_search_path)
     )
   );
+}
+
+sub DEMOLISH {
+  my($self) = @_;
+
+  $self -> parent -> add_cost($self -> cost) if $self -> has_parent;
 }
 
 sub _execute_expr {
@@ -191,31 +195,11 @@ sub make_lambda {
   );
 }
 
-sub make_boolean {
-  my ( $self, $f ) = @_;
-  return Dallycot::Value::Boolean->new($f);
-}
-
-sub make_numeric {
-  my ( $self, $n ) = @_;
-  return Dallycot::Value::Numeric->new($n);
-}
-
-sub make_string {
-  my ( $self, $value, $lang ) = @_;
-  return Dallycot::Value::String->new( $value, $lang );
-}
-
-sub make_vector {
-  my ( $self, @things ) = @_;
-  return Dallycot::Value::Vector->new(@things);
-}
-
-Readonly my $TRUE  => make_boolean( undef, 1 );
-Readonly my $FALSE => make_boolean( undef, '' );
+Readonly my $TRUE  => Dallycot::Value::Boolean->new(1);
+Readonly my $FALSE => Dallycot::Value::Boolean->new();
 Readonly my $UNDEFINED => Dallycot::Value::Undefined->new;
-Readonly my $ZERO      => make_numeric( undef, Math::BigRat->bzero() );
-Readonly my $ONE       => make_numeric( undef, Math::BigRat->bone() );
+Readonly my $ZERO      => Dallycot::Value::Numeric->new( Math::BigRat->bzero() );
+Readonly my $ONE       => Dallycot::Value::Numeric->new( Math::BigRat->bone() );
 
 sub TRUE ()      { return $TRUE }
 sub FALSE ()     { return $FALSE }
@@ -247,27 +231,24 @@ sub _execute_loop {
 sub _execute {
   my ( $self, $expected_types, $ast ) = @_;
 
-  my $d      = deferred;
-  my $worked = eval {
+  my $promise = eval {
     if ( $self->add_cost(1) ) {
+      my $d = deferred;
       $d->reject("Exceeded maximum evaluation cost");
+      $d -> promise;
     }
     else {
-      $ast->execute($self)->done(
-        sub {
-          $d->resolve(@_);
-        },
-        sub {
-          $d->reject(@_);
-        }
-      );
+      $ast->execute($self);
     }
-    1;
   };
+
+  return $promise if $promise;
+
+  my $d = deferred;
   if ($@) {
     $d->reject($@);
   }
-  elsif ( !$worked ) {
+  else {
     $d->reject("Unable to evaluate");
   }
   return $d->promise;
@@ -297,38 +278,8 @@ sub execute {
   }
   else {
     return $self->_execute( \@expected_types, $ast );
-      #->done( sub { $d->resolve(@_); }, sub { $d->reject(@_); } );
   }
 }
-
-# sub _run_apply {
-#   my($self, $d, $function, $bindings, $options) = @_;
-#   $options //= {};
-#   my $cardinality = scalar(@$bindings);
-#
-#   if('HASH' eq ref $function) {
-#     if($function->{'a'} eq 'Graph') {
-#       if($cardinality != 1) {
-#         $d -> reject("Expected one and only one argument when applying a graph. Found $cardinality.");
-#       }
-#       else {
-#         $self -> execute($bindings->[0])->done(sub {
-#           my($key) = @_;
-#           if(ref $key) {
-#             $d -> reject("Expected a scalar argument when applying a graph.");
-#           }
-#           else {
-#             $d -> resolve($function->{'@graph'}->{$key});
-#           }
-#         }, sub {
-#           $d->reject(@_);
-#         });
-#       }
-#     }
-#   }
-#
-#   return;
-# }
 
 sub compose_lambdas {
   my ( $self, @lambdas ) = @_;
@@ -372,14 +323,6 @@ sub compose_filters {
   my @applications =
     map { _add_filter_to_context( $new_engine, $idx++, $_, $expression ) }
     @filters;
-
-  #   $idx += 1;
-  #   $new_engine -> context -> add_assignment("__lambda_".$idx, $_);
-  #   Dallycot::AST::Apply->new(
-  #     Dallycot::AST::Fetch->new('__lambda_'.$idx),
-  #     [ $expression ]
-  #   );
-  # } @filters;
 
   return $new_engine->make_lambda( Dallycot::AST::All->new(@applications),
     ['#'] );

@@ -10,6 +10,8 @@ test_parses(
 
   '<<this\ is two\ words>>' => [vectorLit(stringLit('this is'), stringLit('two words'))],
 
+  '<<this\nis two\nwords\too>>' => [vectorLit(stringLit("this\nis"), stringLit("two\nwords\too"))],
+
 );
 
 done_testing();
