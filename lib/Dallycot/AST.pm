@@ -160,6 +160,20 @@ sub simplify {
   return $self;
 }
 
+=method check_for_common_mistakes
+
+Checks for any odd expressions given their context.
+
+Returns a list of warnings.
+
+=cut
+
+sub check_for_common_mistakes {
+  my($self) = @_;
+
+  map { $_ -> check_for_common_mistakes } $self -> child_nodes;
+}
+
 =method to_json
 
 Returns a Perl Hash containing the JSON-LD representation of the node and

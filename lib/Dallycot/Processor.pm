@@ -32,6 +32,7 @@ has context => (
       add_assignment
       has_namespace
       get_namespace
+      add_namespace
       get_namespace_search_path
       append_namespace_search_path
       ]
@@ -39,6 +40,12 @@ has context => (
   default => sub {
     Dallycot::Context->new;
   }
+);
+
+has channels => (
+  is => 'ro',
+  isa => 'HashRef',
+  default => sub { +{} }
 );
 
 has max_cost => (
@@ -59,11 +66,51 @@ has parent => (
   isa       => __PACKAGE__
 );
 
+sub channel_send {
+  my ( $self, $channel, @items ) = @_;
+
+  if(exists($self -> channels->{$channel})) {
+    if($self -> channels->{$channel}) {
+      $self -> channels->{$channel}->send(@items);
+    }
+  }
+  elsif($self -> has_parent) {
+    $self -> parent -> channel_send($channel, @items);
+  }
+  return;
+}
+
+sub channel_read {
+  my ( $self, $channel, %options ) = @_;
+
+  if(exists($self -> channels -> {$channel})) {
+    if($self -> channels -> {$channel}) {
+      return $self -> channels -> {$channel} -> receive(%options);
+    }
+  }
+  elsif($self -> has_parent) {
+    return $self -> parent -> channel_read($channel, %options);
+  }
+  my $d = deferred;
+  $d -> resolve(Dallycot::Value::String->new(''));
+  return $d -> promise;
+}
+
+sub create_channel {
+  my ( $self, $channel, $object ) = @_;
+
+  $self -> channels->{$channel} = $object;
+  return;
+}
+
 sub add_cost {
   my ( $self, $delta ) = @_;
 
   if ( $self->has_parent ) {
-    return $self->parent->add_cost($delta);
+    AnyEvent->timer(after => 0, interval => 0, cb => sub {
+      $self->parent->add_cost($delta);
+    });
+    return 0;
   }
   else {
     $self->cost( $self->cost + $delta );

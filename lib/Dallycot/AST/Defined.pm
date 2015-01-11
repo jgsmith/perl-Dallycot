@@ -23,7 +23,7 @@ sub execute {
     sub {
       my ($result) = @_;
       if ( blessed $result ) {
-        return ( $result->is_defined ? $engine->TRUE : $engine->FALSE );
+        return ( $result->is_defined && !$result->is_empty ? $engine->TRUE : $engine->FALSE );
       }
       else {
         return ( $engine->FALSE );

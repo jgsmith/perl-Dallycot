@@ -3,7 +3,7 @@ use Mojo::Base -strict;
 use Test::More;
 use Test::Mojo;
 
-BEGIN { 
+BEGIN {
   use_ok 'Dallycot::Context';
   use_ok 'Dallycot::AST';
   use_ok 'Dallycot::Parser';
@@ -43,27 +43,32 @@ is 'http://example.com/ns2', $child_context -> get_namespace('ex'), "Second assi
 ##
 # Environment management
 ##
+my $fooString = Dallycot::Value::String->new('foo');
 
-$context -> add_assignment(f => 'foo');
+$context -> add_assignment(f => $fooString);
 
 ok $context -> has_assignment('f'), "Check that assignment is made";
 ok $child_context -> has_assignment('f'), "Check that assignment is made from child context pov";
 
-is $context -> get_assignment('f'), 'foo', "Retrieve previously set assignment";
-is $child_context -> get_assignment('f'), 'foo', "Retrieve previously set assignment from parent context";
+is_deeply $context -> get_assignment('f'), $fooString, "Retrieve previously set assignment";
+is_deeply $child_context -> get_assignment('f'), $fooString, "Retrieve previously set assignment from parent context";
 
 ok !$context -> has_assignment('g'), "Check that a non-existant assignment doesn't exist";
 ok !$child_context -> has_assignment('g'), "Check that a non-existant assignment doesn't exist from child's pov";
 
-$child_context -> add_assignment(f => 'bar');
+my $barString = Dallycot::Value::String -> new('bar');
+
+$child_context -> add_assignment(f => $barString);
+
+my $bazString = Dallycot::Value::String -> new('baz');
 
 eval {
-  $child_context -> add_assignment(f => 'baz');
+  $child_context -> add_assignment(f => $bazString);
 };
 
 ok $@, "Setting an assignment twice in a scope should throw an error";
 
-is 'bar', $child_context -> get_assignment('f'), "Second assignment shouldn't change the value";
+is_deeply $child_context -> get_assignment('f'), $barString, "Second assignment shouldn't change the value";
 
 ##
 # Closure creation

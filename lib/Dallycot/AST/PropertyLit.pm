@@ -17,7 +17,10 @@ sub execute {
 
   my ( $ns, $prop ) = @$self;
 
-  if ( $engine->has_namespace($ns) ) {
+  if(!defined $prop) {
+    $d -> resolve( Dallycot::Value::String->new($ns, '') )
+  }
+  elsif ( $engine->has_namespace($ns) ) {
     my $nshref = $engine->get_namespace($ns);
     $d->resolve( Dallycot::Value::URI->new( $nshref . $prop ) );
   }

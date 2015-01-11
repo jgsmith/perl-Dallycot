@@ -9,15 +9,58 @@ use utf8;
 
 use Dallycot::Library;
 
+use Digest::MD5;
+use Math::BaseCalc;
+
 use experimental qw(switch);
 
 use Promises qw(deferred);
 
-ns 'https://www.dallycot.io/ns/strings/1.0#';
+ns 'http://www.dallycot.net/ns/strings/1.0#';
 
 #====================================================================
 #
 # Basic string functions
+
+define words => (
+  hold => 0,
+  arity => 1,
+  options => {}
+), sub {
+  my ( $engine, $options, $string ) = @_;
+
+  if ( !$string ) {
+    my $d = deferred;
+    $d -> resolve( Dallycot::Value::EmptyStream -> new );
+    return $d -> promise;
+  }
+
+  my @bits = split(/\s+/, $string);
+
+  my $d = deferred;
+  $d -> resolve( Dallycot::Value::Vector->new(@bits) );
+  return $d -> promise;
+};
+
+# define characters => (
+#   hold => 0,
+#   arity => 1,
+#   options => {}
+# ), sub {
+#   my ( $engine, $options, $string ) = @_;
+#
+#   if ( !$string ) {
+#     my $d = deferred;
+#     $d -> resolve( Dallycot::Value::EmptyStream -> new );
+#     return $d -> promise;
+#   }
+#
+#   my @bits = split(//, $string);
+#
+#   my $d = deferred;
+#   $d -> resolve( Dallycot::Value::Vector->new(@bits) );
+#   return $d -> promise;
+# };
 
 define 'string-take' => (
   hold => 0,
@@ -112,6 +155,95 @@ define 'string-drop' => (
     $d->reject("string-drop requires a numeric second argument");
     return $d -> promise;
   }
+};
+
+define 'hash' => (
+  hold => 0,
+  arity => 1,
+  options => {
+    type => 'MD5'
+  }
+), sub {
+  my( $engine, $options, $string ) = @_;
+
+  my $digest = Digest::MD5::md5_hex($string->value);
+  my $num = Math::BigRat->from_hex("0x$digest");
+  my $d = deferred;
+  $d -> resolve($engine -> make_numeric($num) );
+  return $d -> promise;
+};
+
+define 'N' => (
+  hold => 0,
+  arity => 1,
+  options => {
+    accuracy => Dallycot::Value::Numeric->new(Math::BigRat->new(40))
+  }
+), sub {
+  my($engine, $options, $number) = @_;
+
+  if(!defined($number) || !$number->isa('Dallycot::Value::Numeric')) {
+    my $d = deferred;
+    $d -> reject("N requires a numeric argument");
+    return $d -> promise;
+  }
+
+  if(!defined($options->{accuracy}) || !$options->{accuracy} -> isa('Dallycot::Value::Numeric')) {
+    my $d = deferred;
+    $d -> reject("N requires a numeric accuracy");
+    return $d -> promise;
+  }
+
+  my $accuracy = $options->{accuracy}->value->as_int;
+  $number = $number->value->as_float->bround($accuracy);
+  my $d = deferred;
+  $d -> resolve(Dallycot::Value::String->new($number -> bstr));
+  return $d -> promise;
+};
+
+define 'number-string' => (
+  hold => 0,
+  arity => [1,2],
+  options => {}
+), sub {
+  my($engine, $options, $number, $base) = @_;
+
+  if(!defined($number) || !$number->isa('Dallycot::Value::Numeric')) {
+    my $d = deferred;
+    $d -> reject("number-string requires a numeric argument");
+    return $d -> promise;
+  }
+
+  $base = defined($base) ? $base -> value -> numify : 10;
+  my $d = deferred;
+
+  if($base < 2 || $base > 64) {
+    $d -> reject('number-string requires a base between 2 and 64 inclusive');
+    return $d -> promise;
+  }
+
+  my @regular_digits = (0..9, 'a'..'z', 'A'..'Z', '_' );
+
+  my $converter = Math::BaseCalc->new(digits => [0,1]);
+  if($base < 64) {
+    $converter -> digits([@regular_digits[0..$base-1]]);
+  }
+  else {
+    $converter -> digits(['A'..'Z','a'..'z',0..9,'+','/']);
+  }
+
+  my $string;
+
+  my($num, $den) = $number->value->parts;
+
+  if($number->value->is_int || $den -> is_one) {
+    $string = $converter -> to_base($num);
+  }
+  else {
+    $string = $converter -> to_base($num) . " / " . $converter -> to_base($den);
+  }
+  $d -> resolve(Dallycot::Value::String -> new($string));
+  return $d -> promise;
 };
 
 1;

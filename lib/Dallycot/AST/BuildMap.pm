@@ -26,7 +26,7 @@ sub execute {
         $d->reject("All lambdas in a mapping must have arity 1.");
       }
       else {
-        if ( $stream->isa('Dallycot::Value::Lambda') ) {
+        if ( $stream->is_lambda ) {
 
           # we really just have a composition
           push @functions, $stream;

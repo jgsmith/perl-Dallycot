@@ -9,7 +9,7 @@ use LibraryHelper;
 
 BEGIN { require_ok 'Dallycot::Library::Core::Linguistics' };
 
-uses 'https://www.dallycot.io/ns/linguistics/1.0#';
+uses 'http://www.dallycot.net/ns/linguistics/1.0#';
 
 isa_ok(Dallycot::Library::Core::Linguistics->instance, 'Dallycot::Library');
 

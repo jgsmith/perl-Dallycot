@@ -1,4 +1,4 @@
-package Dallycot::Value::String;
+package Dallycot::Value::HTML;
 
 # ABSTRACT: A string with an associated language
 
@@ -8,16 +8,21 @@ use warnings;
 use utf8;
 use parent 'Dallycot::Value::Any';
 
-use experimental qw(switch);
-
 use Promises qw(deferred);
 
 sub new {
-  my ( $class, $value, $lang ) = @_;
+  my ( $class, $value ) = @_;
 
   $class = ref $class || $class;
 
-  return bless [ $value // '', $lang // 'en' ] => $class;
+  if(!blessed($value)) {
+    my $parser = HTML::Parser->new( api_version => 3);
+    $parser -> parse($value);
+    $parser -> eof;
+    $value = HTML::Parser -> new -> parse($value);
+  }
+
+  return bless [ $value // '' ] => $class;
 }
 
 sub lang { return shift->[1] }
@@ -26,54 +31,6 @@ sub id {
   my ($self) = @_;
 
   return $self->[0] . "@" . $self->[1] . "^^String";
-}
-
-sub fetch_property {
-  my ( $self, $engine, $prop ) = @_;
-
-  my $d = deferred;
-
-  given($prop) {
-    when('@lang') {
-      $d -> resolve(Dallycot::Value::String->new($self -> lang, ''));
-    }
-    default {
-      $d -> resolve(Dallycot::Value::Undefined -> new);
-    }
-  }
-
-  return $d -> promise;
-}
-
-sub as_text {
-  my($self) = @_;
-
-  my $val = $self -> value;
-  $val =~ s{\\}{\\\\}g;
-  $val =~ s{\n}{\\n}g;
-  $val =~ s{"}{\\"}g;
-  if($self->[1] eq 'en') {
-    return qq{"$val"};
-  }
-  else {
-    return qq{"$val"\@}.$self->[1];
-  }
-}
-
-sub is_defined {
-  my($self) = @_;
-
-  return length($self->value) != 0;
-}
-
-sub prepend {
-  my($self, @things) = @_;
-
-  return __PACKAGE__ -> new(
-    join("", (map {
-      $_ -> value
-    } reverse @things), $self -> value)
-  );
 }
 
 sub calculate_length {

@@ -34,9 +34,23 @@ use Carp qw(croak);
 use Dallycot::Parser;
 use Dallycot::Processor;
 
+use AnyEvent;
+
 use Moose::Exporter;
 
 use Promises qw(deferred collect);
+
+use Module::Pluggable
+  require     => 1,
+  sub_name    => '_libraries',
+  search_path => 'Dallycot::Library';
+
+our @LIBRARIES;
+
+sub libraries {
+  return @LIBRARIES if @LIBRARIES;
+  return @LIBRARIES = shift -> _libraries;
+}
 
 my %engines;
 
@@ -45,11 +59,24 @@ sub ns {
 
   Dallycot::Registry->instance->register_namespace($uri, $meta->{'package'});
 
-  our $NAMESPACE = $uri;
+  no strict 'refs';
+
+  ${$meta->{'package'}.'::NAMESPACE'} = $uri;
+  ${$meta->{'package'}.'::NAMESPACE'} = $uri;
 
   my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
   $engine -> append_namespace_search_path($uri);
   return;
+}
+
+sub namespace {
+  my($class) = @_;
+
+  $class = ref($class) || $class;
+
+  no strict 'refs';
+
+  return ${$class . "::NAMESPACE"};
 }
 
 sub define {
@@ -58,9 +85,10 @@ sub define {
   my $body = pop @options;
   my %options = @options;
 
-  our %DEFINITIONS;
+  no strict 'refs';
 
-  my $definitions = \%DEFINITIONS; #\%{$meta->{'package'}.'::DEFINITIONS'};
+  my $definitions = \%{$meta->{'package'}.'::DEFINITIONS'};
+  $definitions = \%{$meta->{'package'}.'::DEFINITIONS'};
 
   if(is_CodeRef($body)) {
     # Perl subroutine
@@ -151,9 +179,8 @@ sub _uri_for_name {
 
   $class = ref($class) || $class;
 
-  our $NAMESPACE;
   # return Dallycot::Value::URI -> new(${$class.'::NAMESPACE'} . $name);
-  return Dallycot::Value::URI->new($NAMESPACE . $name);
+  return Dallycot::Value::URI->new($class->namespace . $name);
 }
 
 sub get_definition {
@@ -163,10 +190,12 @@ sub get_definition {
 
   $class = ref($class) || $class;
 
-  our %DEFINITIONS;
+  no strict 'refs';
 
-  if(exists $DEFINITIONS{$name} && defined $DEFINITIONS{$name}) {
-    return $DEFINITIONS{$name};
+  my $definitions = \%{$class."::DEFINITIONS"};
+
+  if(exists $definitions->{$name} && defined $definitions->{$name}) {
+    return $definitions->{$name};
   }
   else {
     return;
@@ -221,7 +250,7 @@ sub apply {
     my $engine = $parent_engine -> with_child_scope;
     if(defined $def -> {arity}) {
       if(is_ArrayRef($def->{arity})) {
-        if($def->{arity}->[0] > @bindings || @bindings > $def->{arity}->[1]) {
+        if($def->{arity}->[0] > @bindings || (@{$def->{arity}} > 1 && @bindings > $def->{arity}->[1])) {
           my $d = deferred;
           $d -> reject("Expected " . $def->{arity}->[0] . " to " . $def->{arity}->[1] . " arguments but found " . scalar(@bindings));
           return $d -> promise;
@@ -281,8 +310,9 @@ sub apply {
       $engine -> collect( @bindings ) -> done(sub {
         my(@collected_bindings) = @_;
         collect( map { $engine -> execute($_) } values %$options ) -> done(sub {
-          my(@new_values) = @_;
+          my(@new_values) = map { @$_ } @_;
           my %new_options;
+          @new_options{keys %{$def->{options}||{}}} = values %{$def->{options}||{}};
           @new_options{keys %$options} = @new_values;
           my $lib_promise = eval {
             $def->{coderef}->($engine, \%new_options, @collected_bindings);

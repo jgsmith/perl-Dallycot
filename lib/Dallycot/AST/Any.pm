@@ -8,6 +8,12 @@ use warnings;
 use utf8;
 use parent 'Dallycot::AST::LoopBase';
 
+sub simplify {
+  my($self) = @_;
+
+  return bless [ map { $_ -> simplify } @$self ] => __PACKAGE__;
+}
+
 sub process_loop {
   my ( $self, $engine, $d, @expressions ) = @_;
 

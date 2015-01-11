@@ -14,6 +14,8 @@ use Scalar::Util qw(blessed);
 
 sub value { }
 
+sub is_defined { return 1 }
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
   my $d = deferred;

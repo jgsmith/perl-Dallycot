@@ -25,12 +25,35 @@ __PACKAGE__->types;
 
 sub is_lambda { return }
 
+sub is_defined { return }
+
+sub is_empty { return 1 }
+
+sub check_for_common_mistakes {
+  return ();
+}
+
+sub as_text {
+  my($self) = @_;
+  return $self -> to_string;
+}
+
 sub type {
   my ($self) = @_;
 
-  my $type = ref $self;
+  return  Dallycot::Value::Vector->new(
+    Dallycot::Value::URI->new('http://www.dallycot.net/ns/types/1.0/' . $self -> _type)
+  );
+}
 
-  return substr( $type, CORE::length(__PACKAGE__) + 2 );
+sub _type {
+  my($class) = @_;
+
+  $class = ref $class || $class;
+
+  my $type = substr( $class, CORE::length(__PACKAGE__) + 2 );
+  $type =~ s/::/-/;
+  return $type;
 }
 
 sub simplify {

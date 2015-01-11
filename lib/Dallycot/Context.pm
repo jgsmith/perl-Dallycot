@@ -8,6 +8,9 @@ use warnings;
 use utf8;
 use Moose;
 use Array::Utils qw(unique array_minus);
+use Scalar::Util qw(blessed);
+
+use MooseX::Types::Moose qw/ArrayRef/;
 
 use Carp qw(croak cluck);
 
@@ -131,10 +134,10 @@ sub make_closure {
     }
   }
 
-  @identifiers = unique @identifiers;
+  @identifiers = values %{ +{ map { $_ => $_ } @identifiers } };
 
   for my $identifier (@identifiers) {
-    if ( 'ARRAY' eq ref $identifier ) {
+    if ( is_ArrayRef($identifier) ) {
       if ( !defined( $namespaces{ $identifier->[0] } ) ) {
         $namespaces{ $identifier->[0] } =
           $self->get_namespace( $identifier->[0] );
@@ -142,7 +145,7 @@ sub make_closure {
     }
     elsif ( $identifier !~ /^#/ && !defined( $environment{$identifier} ) ) {
       my $value = $self->get_assignment($identifier);
-      $environment{$identifier} = $value if defined $value;
+      $environment{$identifier} = $value if blessed $value;
     }
   }
 

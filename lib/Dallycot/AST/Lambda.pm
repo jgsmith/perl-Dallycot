@@ -17,6 +17,17 @@ Readonly my $BINDINGS               => 1;
 Readonly my $BINDINGS_WITH_DEFAULTS => 2;
 Readonly my $OPTIONS                => 3;
 
+sub new {
+  my($self, $expr, $bindings, $bindings_with_defaults, $options) = @_;
+
+  my $class = ref $self || $self;
+  $bindings ||= [];
+  $bindings_with_defaults ||= [];
+  $options ||= {};
+
+  return bless [ $expr, $bindings, $bindings_with_defaults, $options ] => $class;
+}
+
 sub child_nodes {
   my ($self) = @_;
   return $self->[$EXPRESSION],

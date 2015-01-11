@@ -8,6 +8,8 @@ use warnings;
 use utf8;
 use parent 'Dallycot::AST';
 
+use Promises qw(deferred);
+
 sub step {
   my ( $self, $engine, $root ) = @_;
 
@@ -15,7 +17,10 @@ sub step {
     sub {
       my ($prop_name) = @_;
       my $prop = $prop_name->value;
-      $root->fetch_property( $engine, $prop );
+      if($prop eq '@type') {
+        return $root -> type;
+      }
+      return $root->fetch_property( $engine, $prop );
     }
   );
 }

@@ -64,6 +64,17 @@ sub id {
   return '^^Lambda';
 }
 
+sub as_text {
+  my($self) = @_;
+  my($min, $max) = $self->arity;
+  if($min < $max) {
+    return "(lambda/$min..$max)";
+  }
+  else {
+    return "(lambda/$min)";
+  }
+}
+
 sub arity {
   my ($self) = @_;
   my $min    = scalar( @{ $self->[$BINDINGS] } );

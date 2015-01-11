@@ -9,7 +9,7 @@ use LibraryHelper;
 
 BEGIN { require_ok 'Dallycot::Library::Core::Strings' };
 
-uses 'https://www.dallycot.io/ns/strings/1.0#';
+uses 'http://www.dallycot.net/ns/strings/1.0#';
 
 isa_ok(Dallycot::Library::Core::Strings->instance, 'Dallycot::Library');
 
@@ -31,5 +31,9 @@ is_deeply $result, String("t");
 $result = run('string-drop("The bright red spot.", 10)');
 
 is_deeply $result, String(" red spot.");
+
+$result = run('number-string(12345)');
+
+is_deeply $result, String("12345");
 
 done_testing();

@@ -18,7 +18,13 @@ sub value { }
 
 sub id { return '^^Undefined' }
 
-sub is_defined { return 0 }
+sub as_text {
+  return "(undef)";
+}
+
+sub is_defined { return }
+
+sub is_empty { return 1 }
 
 sub calculate_length {
   my ( $self, $engine ) = @_;

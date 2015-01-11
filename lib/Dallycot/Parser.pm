@@ -12,45 +12,76 @@ use Marpa::R2;
 use Math::BigRat;
 
 use Scalar::Util qw(blessed);
+use String::Escape qw(unbackslash unquote);
 
-my $grammar = Marpa::R2::Scanless::G->new(
-  {
-    action_object  => __PACKAGE__,
-    bless_package  => 'Dallycot::AST',
-    default_action => 'copy_arg0',
-    source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
-  }
-);
-
-our $PARSING_LIBRARY;
+my $grammar =
+    Marpa::R2::Scanless::G->new( {
+      action_object  => __PACKAGE__,
+      bless_package  => 'Dallycot::AST',
+      default_action => 'copy_arg0',
+      source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
+    });
 
 sub new {
-  return bless {} => __PACKAGE__;
+  my($class) = @_;
+
+  $class = ref($class) || $class;
+  return bless {} => $class;
+}
+
+sub grammar { return $grammar; }
+
+sub wants_more {
+  my($self, $val) = @_;
+
+  if(@_ == 2) {
+    $self->{wants_more} = $val;
+  }
+  return $self->{wants_more};
+}
+
+sub error {
+  my($self, $val) = @_;
+
+  if(@_ == 2) {
+    $self->{error} = $val;
+  }
+  return $self->{error};
+}
+
+sub warnings {
+  my($self, $warnings) = @_;
+
+  if(@_ == 2) {
+    $self->{warnings} = $warnings;
+  }
+  if(wantarray) {
+    return @{$self->{warnings}};
+  }
+  else {
+    return @{$self->{warnings}} != 0;
+  }
 }
 
 sub parse {
   my ( $self, $input ) = @_;
 
-  local ($PARSING_LIBRARY) = 0;
+  my $re = Marpa::R2::Scanless::R->new( { grammar => $self->grammar } );
 
-  return $self->_parse($input);
-}
-
-sub _parse {
-  my ( $self, $input ) = @_;
-
-  my $re = Marpa::R2::Scanless::R->new( { grammar => $grammar } );
+  $self->error(undef);
+  $self->warnings([]);
 
   my $worked = eval {
     $re->read( \$input );
     1;
   };
   if ($@) {
-    print STDERR $@, "\n";
+    $@ =~ s{Marpa::R2\s+exception\s+at.*$}{}xs;
+    $self->error($@);
     return;
   }
   elsif ( !$worked ) {
-    print STDERR "Unable to parse.\n";
+    $self->error("Unable to parse.");
     return;
   }
   my $parse = $re->value;
@@ -65,15 +96,17 @@ sub _parse {
     $result = [ bless [] => 'Dallycot::AST::Expr' ];
   }
 
+  # my @warnings = map {
+  #   $_ -> check_for_common_mistakes
+  # } @$result;
+  #
+  # if(@warnings) {
+  #   $self -> warnings(\@warnings);
+  # }
+
+  $self->wants_more( $re->exhausted );
+
   return $result;
-}
-
-sub parse_library {
-  my ( $self, $class, $input ) = @_;
-
-  local ($PARSING_LIBRARY) = $class;
-
-  return $self->_parse($input);
 }
 
 #--------------------------------------------------------------------
@@ -97,7 +130,15 @@ sub block {
 sub ns_def {
   my ( undef, $ns, $href ) = @_;
 
+  $ns =~ s{^(xml)?ns:}{}x;
+
   return bless [ $ns, $href ] => 'Dallycot::AST::XmlnsDef';
+}
+
+sub add_uses {
+  my ( undef, $ns ) = @_;
+
+  return bless [ $ns ] => 'Dallycot::AST::Uses';
 }
 
 sub lambda {
@@ -429,15 +470,17 @@ sub string_literal {
     $lang = $1;
   }
 
+  $lit = unbackslash(unquote($lit));
+
   return
-    bless [ substr( $lit, 1, length($lit) - 2 ), $lang ] =>
+    bless [ $lit, $lang ] =>
     'Dallycot::Value::String';
 }
 
 sub bool_literal {
-  my ($val) = @_;
+  my (undef, $val) = @_;
 
-  return bless [ $val eq 'true' ] => 'Dallycot::Value::Boolean';
+  return Dallycot::Value::Boolean -> new($val eq 'true');
 }
 
 sub uri_literal {
@@ -450,6 +493,10 @@ sub uri_expression {
   my ( undef, $expression ) = @_;
 
   return bless [$expression] => 'Dallycot::AST::BuildURI';
+}
+
+sub undef_literal {
+  return bless [] => 'Dallycot::Value::Undefined';
 }
 
 sub combine_identifiers_options {
@@ -485,7 +532,9 @@ sub relay_options {
 sub fetch {
   my ( undef, $ident ) = @_;
 
-  return bless [$ident] => 'Dallycot::AST::Fetch';
+  my @bits = split(/:/, $ident);
+
+  return bless \@bits => 'Dallycot::AST::Fetch';
 }
 
 sub assign {
@@ -532,6 +581,10 @@ sub cons {
   if ( ref $stream eq 'Dallycot::AST::Cons' ) {
     push @{$stream}, $scalar;
     return $stream;
+  }
+  elsif ( ref $scalar eq 'Dallycot::AST::Cons') {
+    unshift @{$scalar}, $stream;
+    return $scalar;
   }
   else {
     return bless [ $stream, $scalar ] => 'Dallycot::AST::Cons';
@@ -876,6 +929,12 @@ sub promote_value {
   }
 }
 
+sub resolve_uri {
+  my( undef, $expression ) = @_;
+
+  return bless [ $expression ] => 'Dallycot::AST::Resolve';
+}
+
 #sub y_combinator {
 #  my( undef, $expression ) = @_;
 #
@@ -890,8 +949,10 @@ __DATA__
 
 Block ::= Statement+ separator => STMT_SEP action => block
 
-Statement ::= Expression
-            | NSDef action => ns_def
+Statement ::=
+              NSDef
+            | Uses action => add_uses
+            | Expression
 
 Expression ::= ConditionList
              | Function
@@ -947,9 +1008,14 @@ Scalar ::=
     | String action => string_literal
     | Boolean action => bool_literal
     | Identifier action => fetch
+    | QCName action => fetch
     | LambdaArg action => fetch
     | Stream QUOTE action => head
+    | (LP) (RP) action => undef_literal
+    | Scalar PropRequest action => prop_request
     | Node PropRequest action => prop_request
+    | Vector PropRequest action => prop_request
+    | Stream PropRequest action => prop_request
     | Apply
     | Vector (LB) Scalar (RB) action => vector_index
     | Scalar (LB) Scalar (RB) action => vector_index
@@ -957,20 +1023,22 @@ Scalar ::=
     | ('?') Scalar action => defined_q
     | ('?') (LP) Expression (RP) action => defined_q
    || (LP) Block (RP) assoc => group
-   || Expression ('<<') Function ('<<') Stream action => stream_reduction
+   #|| Expression (LT_LT) Function (LT_LT) Stream action => stream_reduction
    || Scalar (STAR) Scalar action => product
     | Scalar (DIV) Scalar action => divide
    || Scalar (MOD) Scalar action => modulus
    || Scalar (PLUS) Scalar action => sum
     | Scalar (MINUS) Scalar action => subtract
+   || Scalar (COLON_COLON_GT) Scalar action => cons assoc => right
    || Scalar Inequality Scalar action => inequality
    || Scalar (AND) Scalar action => all
    || Scalar (OR) Scalar action => any
 
 Node ::=
       NodeDef
+    | Graph (MOD) UriLit action => modulus
     | Identifier action => fetch
-    | Uri action => uri_literal
+    | UriLit
     | ('<(') Expression (')>') action => uri_expression
     | Node PropRequest action => prop_request
     | Apply
@@ -1007,6 +1075,8 @@ Vector ::=
    || Scalar (COLON_COLON_GT) Vector action => cons assoc => right
    || Vector (LT_COLON_COLON) Scalar action => vector_push
 
+
+
 # Set ::=
 #       Identifier action => fetch
 #     | LambdaArg action => fetch
@@ -1020,8 +1090,12 @@ Vector ::=
 #    || Scalar (COLON_COLON_GT) Set action => set_add assoc => right
 #    || Set (LT_COLON_COLON) Scalar action => set_add
 
+Graph ::= NodeDef
+        | NodeDef (COLON_COLON_GT) Graph action => cons assoc => right
+        | (LC) (RC) action => build_node
 
 NodeDef ::= (LC) NodePropList (RC) action => build_node
+          | (STAR) UriLit action => resolve_uri
 
 NodePropList ::= NodeProp+ action => list
 
@@ -1037,6 +1111,7 @@ PropPattern ::= PropIdentifier
               | (LP) PropPattern (RP) assoc => group
 
 PropIdentifier ::= (COLON) Identifier action => prop_literal
+                 | ATIdentifier action => prop_literal
                  | (COLON) QCName action => prop_literal
                  | Expression
 
@@ -1057,16 +1132,22 @@ Fetched ::=
     | QCName action => fetch
 
 Lambda ::=
-      (LC) Expression (RC) action => lambda
-    | (LC) Expression (RC) (SLASH) NonNegativeInteger action => lambda
+      (LC) Block (RC) action => lambda
+    | (LC) Block (RC) (SLASH) NonNegativeInteger action => lambda
     | (LP) FunctionParameters (RP) (COLON_GT) Expression action => lambda_definition
     | (LP) (RP) (COLON_GT) Expression action => lambda_definition_sans_args
 
-Apply ::= (LP) Function (RP) (LP) FunctionArguments (RP) action => apply
-       | Fetched (LP) FunctionArguments (RP) action => apply 
+Apply ::= (LP) Expression (RP) (LP) FunctionArguments (RP) action => apply
+       | Fetched (LP) FunctionArguments (RP) action => apply
        | Apply (LP) FunctionArguments (RP) action => apply
 
-NSDef ::= NSName (COLON_EQUAL) String action => ns_def
+NSDef ::= NSName (COLON_EQUAL) StringLit action => ns_def
+        | NSName (COLON_EQUAL) UriLit action => ns_def
+
+Uses  ::= ('uses') StringLit
+        | ('uses') UriLit
+
+StringLit ::= String action => string_literal
 
 ConditionList ::= (LP) Conditions (RP) action => condition_list
                 | (LP) Conditions Otherwise (RP) action => condition_list
@@ -1107,9 +1188,13 @@ Options ::= Option+ separator => COMMA action => list
 
 Option ::= Identifier (RIGHT_ARROW) Expression action => option
 
+UriLit ::= Uri action => uri_literal
+
 Boolean ~ boolean
 
 Inequality ~ inequality
+
+ATIdentifier ~ '@' identifier
 
 Identifier ~ identifier | identifier '?'
 
@@ -1120,7 +1205,7 @@ Identifiers ::= Identifier+ separator => COMMA action => list
 IdentifiersWithGlob ::= Identifiers (COMMA) StarIdentifier
                       | Identifiers
 
-NSName ~ 'xmlns:' identifier
+NSName ~ 'xmlns:' identifier | 'ns:' identifier
 
 Name ~ identifier
 
@@ -1190,7 +1275,7 @@ Z ~ 'Z'
 
 STMT_SEP ~ ';'
 
-<any char> ~ [\d\D]
+<any char> ~ [\d\D\n\r]
 
 boolean ~ 'true' | 'false'
 
@@ -1252,14 +1337,14 @@ stringVectorChar ~ [^>] | '>' [^>] | '\' <any char>
 #'
 
 uri ~ '<' uriScheme '://' uriAuthority '/' uriPath '>'
+    | '<' uriScheme '://' uriAuthority '/' '>'
+    | '<' uriScheme '://' uriAuthority '>'
 
 uriScheme ~ [a-z] | uriScheme [-a-z0-9+.]
 
 uriAuthority ~ uriHostname | uriHostname ':' positiveInteger
 
-uriPath ~ <uriPath segment> | uriPath '/' <uriPath segment>
-
-<uriPath segment> ~ [^/\s]+
+uriPath ~ [^\s]+
 
 uriHostname ~ <uriHostname bit> '.' <uriHostname bit> | uriHostname '.' <uriHostname bit>
 

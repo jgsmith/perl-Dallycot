@@ -25,7 +25,9 @@ has cache => (
 has ua => (
   is      => 'ro',
   default => sub {
-    Mojo::UserAgent->new;
+    my $ua = Mojo::UserAgent->new;
+    $ua -> connect_timeout(30);
+    return $ua;
   }
 );
 

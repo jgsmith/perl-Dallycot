@@ -16,6 +16,12 @@ sub to_string {
   return $self->[0] . " := " . $self->[1]->to_string;
 }
 
+sub simplify {
+  my($self) = @_;
+
+  return bless [ $self -> [0], $self -> [1] -> simplify ] => __PACKAGE__;
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

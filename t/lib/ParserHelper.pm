@@ -65,6 +65,7 @@ our @EXPORT = qw(
   zip
   range
   Defined
+  nsdef
 );
 
 sub test_parses {
@@ -120,7 +121,7 @@ sub stringLit {
 }
 
 sub fetch {
-  bless [ shift ] => 'Dallycot::AST::Fetch';
+  bless \@_ => 'Dallycot::AST::Fetch';
 }
 
 sub list {
@@ -311,6 +312,10 @@ sub range {
 
 sub Defined {
   bless [ $_[0] ] => 'Dallycot::AST::Defined'
+}
+
+sub nsdef {
+  bless \@_ => 'Dallycot::AST::XmlnsDef'
 }
 
 1;

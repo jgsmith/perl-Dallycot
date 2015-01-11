@@ -12,7 +12,15 @@ use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
 
-sub type { return 'Range' }
+sub _type { return 'Range'  }
+
+sub as_text {
+  my($self) = @_;
+
+  $self -> [0] -> as_text . "..";
+}
+
+sub is_empty { return }
 
 sub calculate_length {
   my ( $self, $engine ) = @_;

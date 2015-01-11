@@ -18,16 +18,29 @@ Readonly my $FIRST     => 0;
 Readonly my $LAST      => 1;
 Readonly my $DIRECTION => 2;
 
+sub as_text {
+  my($self) = @_;
+
+  return $self->[$FIRST]->as_text . ".." . $self->[$LAST] -> as_text;
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
   my $d = deferred;
 
+  my $diff = $self->[$LAST]->value - $self->[$FIRST]->value;
+
   $d->resolve(
-    $engine->make_numeric( abs( $self->[$LAST] - $self->[$FIRST] ) ) );
+    $engine->make_numeric( $diff -> babs + 1  )
+  );
 
   return $d->promise;
 }
+
+sub is_defined { return 1 }
+
+sub is_empty { return }
 
 sub calculate_reverse {
   my ($self) = @_;
@@ -41,7 +54,7 @@ sub calculate_reverse {
   return $d->promise;
 }
 
-sub type { return 'Range' }
+sub _type { return 'Range' }
 
 sub head {
   my ($self) = @_;
@@ -162,5 +175,23 @@ sub _reduce_loop {
 
   return;
 }
+
+sub apply_map {
+  my ( $self, $engine, $d, $transform ) = @_;
+
+  my $map_t = $engine->make_map($transform);
+
+  $map_t->apply( $engine, {}, $self )->done(
+  sub {
+    $d->resolve(@_);
+  },
+  sub {
+    $d->reject(@_);
+  }
+  );
+
+  return;
+}
+
 
 1;

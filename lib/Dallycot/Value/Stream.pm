@@ -25,6 +25,40 @@ sub new {
   return bless [ $head, $tail, $promise ] => $class;
 }
 
+sub is_defined { return 1 }
+
+sub is_empty { return }
+
+sub prepend {
+  my($self, @things) = @_;
+
+  my $stream = $self;
+
+  foreach my $thing (@things) {
+    $stream = __PACKAGE__ -> new($thing, $stream);
+  }
+  return $stream;
+}
+
+sub as_text {
+  my ( $self ) = @_;
+
+  my $text = "[ ";
+  my $point = $self;
+  $text .= $point->[$HEAD]->as_text;
+  while(defined $point -> [$TAIL]) {
+    $point = $point->[$TAIL];
+    if(defined $point->[$HEAD]) {
+      $text .= ", ";
+      $text .= $point->[$HEAD]->as_text;
+    }
+  }
+  if(defined $point->[$TAIL_PROMISE]) {
+    $text .= ", ...";
+  }
+  return $text . " ]";
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

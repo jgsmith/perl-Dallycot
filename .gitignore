@@ -1,6 +1,7 @@
 /blib/
 /.build/
 _build/
+_site/
 cover_db/
 inc/
 Build

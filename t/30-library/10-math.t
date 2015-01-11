@@ -9,8 +9,8 @@ use LibraryHelper;
 
 require Dallycot::Library::Core::Streams;
 
-uses 'https://www.dallycot.io/ns/math/1.0#',
-     'https://www.dallycot.io/ns/streams/1.0#';
+uses 'http://www.dallycot.net/ns/math/1.0#',
+     'http://www.dallycot.net/ns/streams/1.0#';
 
 BEGIN { require_ok 'Dallycot::Library::Core::Math' };
 
@@ -60,7 +60,7 @@ is_deeply $result, Numeric(7), "Maximum of [1,-2,3,-4,5,-6,7] is 7";
 
 $result = run("differences(1..)...'");
 
-is_deeply $result, Numeric(-1), "Difference between successive numbers is -1";
+is_deeply $result, Numeric(1), "Difference between successive numbers is 1";
 
 $result = run("gcd(0, 123)");
 
@@ -77,5 +77,29 @@ is_deeply $result, Numeric(13), "gcd(1599, 650) is 13";
 $result = run("factorial(4)");
 
 is_deeply $result, Numeric(24), "factorial(4) should be 24";
+
+$result = run("random(123)");
+
+isa_ok $result, 'Dallycot::Value::Numeric';
+
+$result = run("sin(30)");
+
+is_deeply $result, Numeric("1/2"), "sin(30) = 1/2";
+
+$result = run("cos(60)");
+
+is_deeply $result, Numeric("1/2"), "cos(60) = 1/2";
+
+$result = run("arc-tan(1)");
+
+is_deeply $result, Numeric(45), "atan(1) = 45";
+
+$result = run("arc-tan(1,1)");
+
+is_deeply $result, Numeric(45), "atan(1,1) = 45";
+
+$result = run("arc-tan(-1,-1)");
+
+is_deeply $result, Numeric(45-180), "atan(-1,-1) = -135";
 
 done_testing();
