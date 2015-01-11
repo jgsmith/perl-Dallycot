@@ -3,8 +3,6 @@ use lib 't/lib';
 use strict;
 use warnings;
 
-#use Mojo::Base -strict;
-
 use Test::More;
 use Test::Mojo;
 use AnyEvent;

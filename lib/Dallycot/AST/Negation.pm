@@ -19,7 +19,7 @@ sub execute {
 
   return $engine->execute( $self->[0], ['Numeric'] )->then(
     sub {
-      $engine->make_numeric( -( $_[0]->value ) );
+      Dallycot::Value::Numeric -> new( -( $_[0]->value ) );
     }
   );
 }

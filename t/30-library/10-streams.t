@@ -15,6 +15,18 @@ isa_ok(Dallycot::Library::Core::Streams->instance, 'Dallycot::Library');
 
 my $result;
 
+$result = run('length("foo")');
+
+is_deeply $result, Numeric(3), "The length of 'foo' is 3";
+
+$result = run("length([1,2,3])");
+
+is_deeply $result, Numeric(3), "[1,2,3] has three elements";
+
+$result = run("length(range(1,3))");
+
+is_deeply $result, Numeric('inf'), "1..3 has 'inf' elements";
+
 $result = run("upfrom(1)...'");
 
 is_deeply $result, Numeric(2), "Second number starting at 1 is 2";

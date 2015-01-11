@@ -144,10 +144,20 @@ Returns a list of Perl packages that provide AST nodes.
 =cut
 
 sub node_types {
-  return @NODE_TYPES = @NODE_TYPES || shift->_node_types;
+  return @NODE_TYPES if @NODE_TYPES;
+  (@NODE_TYPES) = shift->_node_types;
+  return @NODE_TYPES;
 }
 
 __PACKAGE__->node_types;
+
+sub new {
+  my($class) = @_;
+
+  $class = ref $class || $class;
+
+  return bless [] => $class;
+}
 
 =method simplify
 

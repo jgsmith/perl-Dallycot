@@ -35,7 +35,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( $engine->make_numeric( $self->[2]->size() ) );
+  $d->resolve( Dallycot::Value::Numeric -> new( $self->[2]->size() ) );
 
   return $d->promise;
 }

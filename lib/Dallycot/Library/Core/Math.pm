@@ -103,7 +103,7 @@ define
         $d->reject("factorial expects a numeric argument");
     }
     elsif ( $x->value->is_int ) {
-        $d->resolve( $engine->make_numeric( $x->value->copy()->bfac() ) );
+        $d->resolve( Dallycot::Value::Numeric -> new( $x->value->copy()->bfac() ) );
     }
     else {
         # TODO: handle non-integer arguments to gamma function
@@ -128,7 +128,7 @@ define
         $d->reject("ceiling expects a numeric argument");
     }
     else {
-        $d->resolve( $engine->make_numeric( $x->value->copy->bceil ) );
+        $d->resolve( Dallycot::Value::Numeric -> new( $x->value->copy->bceil ) );
     }
 
     return $d->promise;
@@ -149,7 +149,7 @@ define
         $d->reject("floor expects a numeric argument");
     }
     else {
-        $d->resolve( $engine->make_numeric( $x->value->copy->bfloor ) );
+        $d->resolve( Dallycot::Value::Numeric -> new( $x->value->copy->bfloor ) );
     }
 
     return $d->promise;
@@ -170,7 +170,7 @@ define
         $d->reject("abs expects a numeric argument");
     }
     else {
-        $d->resolve( $engine->make_numeric( $x->value->copy->babs ) );
+        $d->resolve( Dallycot::Value::Numeric -> new( $x->value->copy->babs ) );
     }
 
     return $d->promise;
@@ -194,7 +194,7 @@ define
     }
     else {
         $d->resolve(
-            $engine->make_numeric( $x->value->copy->bnok( $y->value ) ) );
+            Dallycot::Value::Numeric -> new( $x->value->copy->bnok( $y->value ) ) );
     }
 
     return $d->promise;
@@ -216,7 +216,7 @@ define pi => (
     $accuracy = defined($accuracy) ? $accuracy -> value -> as_int : 40;
     my $pi = Math::BigFloat->bpi($accuracy);
     $d -> resolve(
-      $engine->make_numeric(
+      Dallycot::Value::Numeric -> new(
         Math::BigRat->new($pi)
       )
     );
@@ -241,7 +241,7 @@ define 'golden-ratio' => (
   }
 
   $d -> resolve(
-    $engine -> make_numeric(
+    Dallycot::Value::Numeric -> new(
       Math::BigRat->new(
         (
           (1 + Math::BigFloat->new(5) -> bsqrt($accuracy + 1)) / 2
@@ -287,7 +287,7 @@ sub _simple_trig {
   }
   my $answer = $angle -> $method($accuracy);
   $d -> resolve(
-    $engine -> make_numeric(Math::BigRat->new($answer))
+    Dallycot::Value::Numeric -> new(Math::BigRat->new($answer))
   );
   return $d;
 }
@@ -371,7 +371,7 @@ define 'arc-tan' => (
       $angle -> bround($accuracy);
     }
     else {
-      $d -> resolve($engine -> make_numeric(
+      $d -> resolve(Dallycot::Value::Numeric -> new(
         Math::BigRat -> nan
       ));
       return $d -> promise;
@@ -395,7 +395,7 @@ define 'arc-tan' => (
     }
   }
   $d -> resolve(
-    $engine -> make_numeric(Math::BigRat->new($angle))
+    Dallycot::Value::Numeric -> new(Math::BigRat->new($angle))
   );
   return $d;
 };
@@ -411,7 +411,7 @@ define gcd => (
 
   if(all { $_ -> isa('Dallycot::Value::Numeric') } @values) {
     $d -> resolve(
-      $engine -> make_numeric(
+      Dallycot::Value::Numeric -> new(
         Math::BigInt::bgcd(
           map { $_ -> value -> as_int } @values
         )
@@ -435,7 +435,7 @@ define lcm => (
 
   if(all { $_ -> isa('Dallycot::Value::Numeric') } @values) {
     $d -> resolve(
-      $engine -> make_numeric(
+      Dallycot::Value::Numeric -> new(
         Math::BigInt::blcm(
           map { $_ -> value -> as_int } @values
         )
@@ -489,7 +489,7 @@ define random => (
 
   my $random = Math::BigInt::Random::random_bigint(%bounds);
 
-  $d -> resolve($engine -> make_numeric($random));
+  $d -> resolve(Dallycot::Value::Numeric -> new($random));
   return $d -> promise;
 };
 

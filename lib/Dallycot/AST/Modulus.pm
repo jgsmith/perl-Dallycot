@@ -46,7 +46,7 @@ sub process_loop {
       sub {
         my ($right_value) = @_;
         $d->resolve(
-          $engine->make_numeric(
+          Dallycot::Value::Numeric->new(
             $left_value->value->copy->bmod( $right_value->value )
           )
         );
@@ -62,7 +62,7 @@ sub process_loop {
         my ($right_value) = @_;
         $left_value = $left_value->copy->bmod( $right_value->value );
         if ( $left_value->is_zero ) {
-          $d->resolve( $engine->make_numeric($left_value) );
+          $d->resolve( Dallycot::Value::Numeric -> new($left_value) );
         }
         else {
           $self->process_loop(

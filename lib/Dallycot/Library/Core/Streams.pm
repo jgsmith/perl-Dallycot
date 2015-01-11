@@ -22,6 +22,16 @@ ns 'http://www.dallycot.net/ns/streams/1.0#';
 uses 'http://www.dallycot.net/ns/functions/1.0#',
      'http://www.dallycot.net/ns/math/1.0#';
 
+define length => (
+  hold => 0,
+  arity => 1,
+  options => {},
+), sub {
+  my ( $engine, $options, $thing ) = @_;
+
+  $thing->calculate_length($engine);
+};
+
 define 'last' => <<'EOD';
 Y(
   (self, stream) :> (

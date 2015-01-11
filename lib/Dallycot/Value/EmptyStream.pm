@@ -39,7 +39,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( $engine->make_numeric(0) );
+  $d->resolve( $engine->ZERO );
 
   return $d->promise;
 }

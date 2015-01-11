@@ -27,7 +27,7 @@ sub execute {
         return $stream->head($engine);
       }
       else {
-        croak "The head operator requires a stream-like object.";    #);
+        croak "The head operator requires a stream-like object.";
       }
     }
   );

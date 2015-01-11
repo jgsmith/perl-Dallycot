@@ -27,7 +27,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( $engine->make_numeric( Math::BigRat->binf() ) );
+  $d->resolve( Dallycot::Value::Numeric -> new( Math::BigRat->binf() ) );
 
   return $d->promise;
 }

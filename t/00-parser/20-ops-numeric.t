@@ -34,6 +34,9 @@ test_parses(
 
   "1 = 1 or 3 > 2" => [any_(equality(intLit(1),intLit(1)), strictly_decreasing(intLit(3), intLit(2)))],
 
+  "- 1" => [negation(intLit(1))],
+  "- - 1" => [intLit(1)],
+
 );
 
 done_testing();

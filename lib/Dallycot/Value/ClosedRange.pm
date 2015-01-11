@@ -32,7 +32,7 @@ sub calculate_length {
   my $diff = $self->[$LAST]->value - $self->[$FIRST]->value;
 
   $d->resolve(
-    $engine->make_numeric( $diff -> babs + 1  )
+    Dallycot::Value::Numeric -> new( $diff -> babs + 1  )
   );
 
   return $d->promise;

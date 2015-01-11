@@ -247,7 +247,6 @@ sub apply {
   }
 
   if($def -> {coderef}) {
-    my $engine = $parent_engine -> with_child_scope;
     if(defined $def -> {arity}) {
       if(is_ArrayRef($def->{arity})) {
         if($def->{arity}->[0] > @bindings || (@{$def->{arity}} > 1 && @bindings > $def->{arity}->[1])) {
@@ -277,62 +276,66 @@ sub apply {
         }
       }
       my $d = deferred;
-      $engine-> collect( @filled_bindings ) -> done(sub {
-        my(@collected_bindings) = @_;
-        collect( map { $engine -> execute($_) } values %$options ) -> done(sub {
-          my(@new_values) = @_;
-          my %new_options;
-          @new_options{keys %$options} = @new_values;
-          $d -> resolve(Dallycot::Value::Lambda->new(
-            expression => Dallycot::AST::Apply->new(
-              $self->_uri_for_name($name),
-              [ map { bless [ $_ ] => 'Dallycot::AST::Fetch' } @args ],
-            ),
-            bindings => \@new_args,
-            options => \%new_options,
-            closure_environment => {
-              map { $filled_identifiers[$_] => $collected_bindings[$_] } (0..$#filled_identifiers)
-            }
-          ));
-        }, sub {
-          $d -> reject(@_);
-        });
+      my $engine = $parent_engine -> with_child_scope;
+      collect(
+        $engine -> collect( @filled_bindings ),
+        $engine -> collect( values %$options )
+      ) -> done(sub {
+        my($collected_bindings, $new_values) = @_;
+        my @collected_bindings = @$collected_bindings;
+        my @new_values = @$new_values;
+        my %new_options;
+        @new_options{keys %$options} = @new_values;
+        $d -> resolve(Dallycot::Value::Lambda->new(
+          expression => Dallycot::AST::Apply->new(
+            $self->_uri_for_name($name),
+            [ map { bless [ $_ ] => 'Dallycot::AST::Fetch' } @args ],
+          ),
+          bindings => \@new_args,
+          options => \%new_options,
+          closure_environment => {
+            map { $filled_identifiers[$_] => $collected_bindings[$_] } (0..$#filled_identifiers)
+          }
+        ));
       }, sub {
         $d -> reject(@_);
       });
       return $d -> promise;
     }
     elsif($def -> {hold}) {
+      my $engine = $parent_engine -> with_child_scope;
       return $def->{coderef}->($engine, $options, @bindings);
     }
     else {
       my $d = deferred;
-      $engine -> collect( @bindings ) -> done(sub {
-        my(@collected_bindings) = @_;
-        collect( map { $engine -> execute($_) } values %$options ) -> done(sub {
-          my(@new_values) = map { @$_ } @_;
-          my %new_options;
-          @new_options{keys %{$def->{options}||{}}} = values %{$def->{options}||{}};
-          @new_options{keys %$options} = @new_values;
-          my $lib_promise = eval {
-            $def->{coderef}->($engine, \%new_options, @collected_bindings);
-          };
-          if($@) {
-            $d -> reject($@);
-          }
-          elsif($lib_promise) {
-            $lib_promise->done(sub {
-              $d -> resolve(@_);
-            }, sub {
-              $d -> reject(@_);
-            });
-          }
-          else {
-            $d -> reject("Unable to call $name");
-          }
-        }, sub {
-          $d -> reject(@_);
-        });
+      my $engine = $parent_engine -> with_child_scope;
+      collect(
+        $engine -> collect( @bindings ),
+        $engine -> collect( values %$options ),
+      ) -> done( sub {
+        my($collected_bindings, $new_values) = @_;
+
+        my @collected_bindings = @$collected_bindings;
+        my @new_values = @$new_values;
+        my %new_options;
+        @new_options{keys %{$def->{options}||{}}} = values %{$def->{options}||{}};
+        @new_options{keys %$options} = @new_values;
+        my $lib_promise = eval {
+          $def->{coderef}->($engine, \%new_options, @collected_bindings);
+        };
+        if($@) {
+          $d -> reject($@);
+        }
+        elsif($lib_promise) {
+          $lib_promise->done(sub {
+            $d -> resolve(@_);
+          }, sub {
+            $d -> reject(@_);
+          });
+        }
+        else {
+          $d -> reject("Unable to call $name");
+        }
       }, sub {
         $d -> reject(@_);
       });
