@@ -23,6 +23,10 @@ sub id {
   return $self->[0]->bstr . "^^Numeric";
 }
 
+sub is_defined { return 1 }
+
+sub is_empty { return }
+
 sub as_text {
   my($self) = @_;
 

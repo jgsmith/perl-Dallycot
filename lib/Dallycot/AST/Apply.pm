@@ -77,10 +77,33 @@ sub execute {
       elsif ( $lambda->can('apply') ) {
         my @bindings = @{$self->[$BINDINGS]};
         if(@bindings && $bindings[-1]->isa('Dallycot::AST::FullPlaceholder')) {
-          pop @bindings;
-          push @bindings, (bless [] => 'Dallycot::AST::Placeholder')x($lambda->min_arity - @bindings);
+          if($lambda->min_arity < @bindings) {
+            # we have something like f(..., ___) indicating we *want* a lambda
+            # since we don't have room for any placeholders, we'll just create
+            # a lambda and return it
+            # we need to evaluate any options or bindings first
+            pop @bindings;
+            return Dallycot::AST::Lambda->new(
+              Dallycot::AST::Apply->new(
+                $self -> [$EXPRESSION],
+                \@bindings,
+                $self -> [$OPTIONS]
+              )
+            )->execute($engine) -> done(
+              sub {
+                $d -> resolve(@_);
+              },
+              sub {
+                $d -> reject(@_);
+              }
+            );
+          }
+          else {
+            pop @bindings;
+            push @bindings, (bless [] => 'Dallycot::AST::Placeholder')x($lambda->min_arity - @bindings);
+          }
         }
-        $lambda->apply(
+        return $lambda->apply(
           $engine,
           { %{ $self->[$OPTIONS] } },
           @bindings
@@ -91,7 +114,7 @@ sub execute {
           sub {
             $d->reject(@_);
           }
-          );
+        );
       }
       else {
         $d->reject( "Value of type "

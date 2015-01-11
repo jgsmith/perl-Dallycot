@@ -28,7 +28,11 @@ sub prepend {
 
 sub as_text { return "[ ]" }
 
-sub is_defined { return 0 }
+sub is_empty { return 1 }
+
+sub is_defined { return 1 }
+
+sub _type { return 'Stream' }
 
 sub calculate_length {
   my ( $self, $engine ) = @_;

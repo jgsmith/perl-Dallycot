@@ -8,6 +8,8 @@ use warnings;
 use utf8;
 use parent 'Dallycot::Value::Any';
 
+use experimental qw(switch);
+
 use Promises qw(deferred);
 
 sub new {
@@ -24,6 +26,23 @@ sub id {
   my ($self) = @_;
 
   return $self->[0] . "@" . $self->[1] . "^^String";
+}
+
+sub fetch_property {
+  my ( $self, $engine, $prop ) = @_;
+
+  my $d = deferred;
+
+  given($prop) {
+    when('@lang') {
+      $d -> resolve(Dallycot::Value::String->new($self -> lang, ''));
+    }
+    default {
+      $d -> resolve(Dallycot::Value::Undefined -> new);
+    }
+  }
+
+  return $d -> promise;
 }
 
 sub as_text {

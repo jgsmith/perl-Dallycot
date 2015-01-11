@@ -60,7 +60,7 @@ is_deeply $result, Numeric(7), "Maximum of [1,-2,3,-4,5,-6,7] is 7";
 
 $result = run("differences(1..)...'");
 
-is_deeply $result, Numeric(-1), "Difference between successive numbers is -1";
+is_deeply $result, Numeric(1), "Difference between successive numbers is 1";
 
 $result = run("gcd(0, 123)");
 

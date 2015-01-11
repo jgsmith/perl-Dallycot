@@ -5,7 +5,6 @@ package Dallycot::CLI;
 use Moose;
 with 'MooseX::Getopt';
 
-
 use Mojo;
 use AnyEvent;
 use Promises qw(deferred), backend => ['AnyEvent'];
@@ -14,6 +13,14 @@ use Dallycot;
 use Dallycot::Parser;
 use Dallycot::Processor;
 use Dallycot::Channel::Terminal;
+
+my $has_tangle = eval {
+  require Dallycot::Tangle;
+  1;
+};
+
+if($@) { print STDERR "$@\n"; }
+
 
 BEGIN {
   require Dallycot::Library;
@@ -24,6 +31,12 @@ has 'c' => (
   is => 'ro',
   isa => 'Bool',
   documentation => 'check syntax only (parses but does not execute)',
+);
+
+has 'S' => (
+  is => 'ro',
+  isa => 'Bool',
+  documentation => 'look for programfile using PATH environment variable'
 );
 
 has 'v' => (
@@ -286,6 +299,7 @@ sub process_line {
 
   if($app -> parser -> error) {
     $app -> channel -> send($app->parser->error);
+    $app -> primary_prompt;
   }
   elsif(defined $parse) {
     $app -> execute($parse) -> then(sub {
@@ -313,9 +327,19 @@ sub process_line {
 sub run_file {
   my($app, $filename, $ignore_existance) = @_;
 
-
-  if(-f $filename) {
-    open my $file, "<", $filename or do {
+  my $file;
+  if($app -> S) {
+    my @dirs = (split(/:/, $ENV{PATH}), '.');
+    $file = shift(@dirs) . '/' . $filename;
+    while(!-f $file && @dirs) {
+      $file = shift(@dirs) . '/' . $filename;
+    }
+  }
+  else {
+    $file = $filename;
+  }
+  if(-f $file) {
+    open my $file, "<", $file or do {
       my $d = deferred;
       $d -> reject("Unable to read $filename");
       return $d -> promise;
@@ -323,6 +347,16 @@ sub run_file {
     local($/) = undef;
     my $source = <$file>;
     close $file;
+    if($filename =~ m{\.md$}) {
+      if($has_tangle) {
+        $source = Dallycot::Tangle->new->parse($source);
+      }
+      else {
+        my $d = deferred;
+        $d -> reject("Unable to parse markdown: Markdent or its prerequisites are not installed");
+        return $d -> promise;
+      }
+    }
     my $parse = $app->parser->parse($source);
     if($app->parser->warnings) {
       $app->channel->send("Warnings:\n  " . join("\n  ", $app->parser->warnings)."\n");

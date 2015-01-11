@@ -325,9 +325,9 @@ $result = run("def-foo(2,4)");
 
 is_deeply $result, Numeric(8);
 
-$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
+#$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
 
-is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
+#is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
 
 $result = run("1 ::> 2 ::> []");
 

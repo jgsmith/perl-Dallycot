@@ -38,6 +38,10 @@ sub calculate_length {
   return $d->promise;
 }
 
+sub is_defined { return 1 }
+
+sub is_empty { return }
+
 sub calculate_reverse {
   my ($self) = @_;
 
@@ -50,7 +54,7 @@ sub calculate_reverse {
   return $d->promise;
 }
 
-sub type { return 'Range' }
+sub _type { return 'Range' }
 
 sub head {
   my ($self) = @_;

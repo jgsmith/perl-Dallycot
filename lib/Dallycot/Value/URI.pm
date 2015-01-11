@@ -18,7 +18,7 @@ sub new {
 
   $class = ref $class || $class;
 
-  $uri = URI->new($uri)->canonical->as_string;
+  $uri = URI->new($uri);
 
   return bless [$uri] => $class;
 }
@@ -28,7 +28,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( $engine->make_numeric( length $self->[0] ) );
+  $d->resolve( $engine->make_numeric( length $self->[0]->canonical->as_string ) );
 
   return $d->promise;
 }
@@ -39,16 +39,19 @@ sub value_at {
   my $d = deferred;
 
   $d->resolve(
-    bless [ substr( $self->[0], $index - 1, 1 ), 'en' ] =>
-      'Dallycot::Value::String' );
+    bless [ substr( $self->[0]->canonical->as_string, $index - 1, 1 ), 'en' ] =>
+      'Dallycot::Value::String'
+  );
 
   return $d->promise;
 }
 
+
+
 sub id {
   my($self) = @_;
 
-  return "<" . $self->[0] . ">";
+  return "<" . $self->[0]->canonical->as_string . ">";
 }
 
 sub as_text {
@@ -69,6 +72,10 @@ sub is_lambda {
   return $def -> is_lambda;
 }
 
+sub is_defined { return 1 }
+
+sub is_empty { return }
+
 sub min_arity {
   my( $self ) = @_;
 
@@ -84,7 +91,9 @@ sub min_arity {
 sub _get_library_and_method {
   my($self) = @_;
 
-  my($namespace, $method) = split(/#/, $self->[0], 2);
+  my $uri = $self->[0]->canonical->as_string;
+  
+  my($namespace, $method) = split(/#/, $uri, 2);
   if(!defined $method) {
     if($self -> [0] =~ m{^(.*/)(.+?)$}x) {
       $namespace = $1;
@@ -122,7 +131,7 @@ sub apply {
   }
 }
 
-sub execute {
+sub resolve {
   my ( $self, $engine ) = @_;
 
   my $d = deferred;

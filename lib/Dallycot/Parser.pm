@@ -12,6 +12,7 @@ use Marpa::R2;
 use Math::BigRat;
 
 use Scalar::Util qw(blessed);
+use String::Escape qw(unbackslash unquote);
 
 my $grammar =
     Marpa::R2::Scanless::G->new( {
@@ -469,8 +470,10 @@ sub string_literal {
     $lang = $1;
   }
 
+  $lit = unbackslash(unquote($lit));
+
   return
-    bless [ substr( $lit, 1, length($lit) - 2 ), $lang ] =>
+    bless [ $lit, $lang ] =>
     'Dallycot::Value::String';
 }
 
@@ -926,6 +929,12 @@ sub promote_value {
   }
 }
 
+sub resolve_uri {
+  my( undef, $expression ) = @_;
+
+  return bless [ $expression ] => 'Dallycot::AST::Resolve';
+}
+
 #sub y_combinator {
 #  my( undef, $expression ) = @_;
 #
@@ -1003,7 +1012,10 @@ Scalar ::=
     | LambdaArg action => fetch
     | Stream QUOTE action => head
     | (LP) (RP) action => undef_literal
+    | Scalar PropRequest action => prop_request
     | Node PropRequest action => prop_request
+    | Vector PropRequest action => prop_request
+    | Stream PropRequest action => prop_request
     | Apply
     | Vector (LB) Scalar (RB) action => vector_index
     | Scalar (LB) Scalar (RB) action => vector_index
@@ -1011,7 +1023,7 @@ Scalar ::=
     | ('?') Scalar action => defined_q
     | ('?') (LP) Expression (RP) action => defined_q
    || (LP) Block (RP) assoc => group
-   || Expression ('<<') Function ('<<') Stream action => stream_reduction
+   #|| Expression (LT_LT) Function (LT_LT) Stream action => stream_reduction
    || Scalar (STAR) Scalar action => product
     | Scalar (DIV) Scalar action => divide
    || Scalar (MOD) Scalar action => modulus
@@ -1024,8 +1036,9 @@ Scalar ::=
 
 Node ::=
       NodeDef
+    | Graph (MOD) UriLit action => modulus
     | Identifier action => fetch
-    | Uri action => uri_literal
+    | UriLit
     | ('<(') Expression (')>') action => uri_expression
     | Node PropRequest action => prop_request
     | Apply
@@ -1062,6 +1075,8 @@ Vector ::=
    || Scalar (COLON_COLON_GT) Vector action => cons assoc => right
    || Vector (LT_COLON_COLON) Scalar action => vector_push
 
+
+
 # Set ::=
 #       Identifier action => fetch
 #     | LambdaArg action => fetch
@@ -1075,8 +1090,12 @@ Vector ::=
 #    || Scalar (COLON_COLON_GT) Set action => set_add assoc => right
 #    || Set (LT_COLON_COLON) Scalar action => set_add
 
+Graph ::= NodeDef
+        | NodeDef (COLON_COLON_GT) Graph action => cons assoc => right
+        | (LC) (RC) action => build_node
 
 NodeDef ::= (LC) NodePropList (RC) action => build_node
+          | (STAR) UriLit action => resolve_uri
 
 NodePropList ::= NodeProp+ action => list
 
@@ -1092,6 +1111,7 @@ PropPattern ::= PropIdentifier
               | (LP) PropPattern (RP) assoc => group
 
 PropIdentifier ::= (COLON) Identifier action => prop_literal
+                 | ATIdentifier action => prop_literal
                  | (COLON) QCName action => prop_literal
                  | Expression
 
@@ -1122,10 +1142,10 @@ Apply ::= (LP) Expression (RP) (LP) FunctionArguments (RP) action => apply
        | Apply (LP) FunctionArguments (RP) action => apply
 
 NSDef ::= NSName (COLON_EQUAL) StringLit action => ns_def
-        | NSName (COLON_EQUAL) Uri action => ns_def
+        | NSName (COLON_EQUAL) UriLit action => ns_def
 
 Uses  ::= ('uses') StringLit
-        | ('uses') Uri
+        | ('uses') UriLit
 
 StringLit ::= String action => string_literal
 
@@ -1168,9 +1188,13 @@ Options ::= Option+ separator => COMMA action => list
 
 Option ::= Identifier (RIGHT_ARROW) Expression action => option
 
+UriLit ::= Uri action => uri_literal
+
 Boolean ~ boolean
 
 Inequality ~ inequality
+
+ATIdentifier ~ '@' identifier
 
 Identifier ~ identifier | identifier '?'
 
@@ -1251,7 +1275,7 @@ Z ~ 'Z'
 
 STMT_SEP ~ ';'
 
-<any char> ~ [\d\D]
+<any char> ~ [\d\D\n\r]
 
 boolean ~ 'true' | 'false'
 

@@ -45,4 +45,16 @@ define foldl1 => <<'EOD';
   )
 EOD
 
+define nest => <<'EOD';
+Y(
+  (self, function, count) :> (
+    (count > 3) : function . self(self, function, count-1)
+    (count = 3) : function . function . function
+    (count = 2) : function . function
+    (count = 1) : function
+    (         ) : { () }/1
+  )
+)
+EOD
+
 1;

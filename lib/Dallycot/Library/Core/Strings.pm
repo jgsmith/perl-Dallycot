@@ -22,6 +22,46 @@ ns 'http://www.dallycot.net/ns/strings/1.0#';
 #
 # Basic string functions
 
+define words => (
+  hold => 0,
+  arity => 1,
+  options => {}
+), sub {
+  my ( $engine, $options, $string ) = @_;
+
+  if ( !$string ) {
+    my $d = deferred;
+    $d -> resolve( Dallycot::Value::EmptyStream -> new );
+    return $d -> promise;
+  }
+
+  my @bits = split(/\s+/, $string);
+
+  my $d = deferred;
+  $d -> resolve( Dallycot::Value::Vector->new(@bits) );
+  return $d -> promise;
+};
+
+# define characters => (
+#   hold => 0,
+#   arity => 1,
+#   options => {}
+# ), sub {
+#   my ( $engine, $options, $string ) = @_;
+#
+#   if ( !$string ) {
+#     my $d = deferred;
+#     $d -> resolve( Dallycot::Value::EmptyStream -> new );
+#     return $d -> promise;
+#   }
+#
+#   my @bits = split(//, $string);
+#
+#   my $d = deferred;
+#   $d -> resolve( Dallycot::Value::Vector->new(@bits) );
+#   return $d -> promise;
+# };
+
 define 'string-take' => (
   hold => 0,
   arity => 2,

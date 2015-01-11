@@ -25,6 +25,10 @@ sub new {
   return bless [ $head, $tail, $promise ] => $class;
 }
 
+sub is_defined { return 1 }
+
+sub is_empty { return }
+
 sub prepend {
   my($self, @things) = @_;
 

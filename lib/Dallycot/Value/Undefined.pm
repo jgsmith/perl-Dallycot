@@ -22,7 +22,9 @@ sub as_text {
   return "(undef)";
 }
 
-sub is_defined { return 0 }
+sub is_defined { return }
+
+sub is_empty { return 1 }
 
 sub calculate_length {
   my ( $self, $engine ) = @_;

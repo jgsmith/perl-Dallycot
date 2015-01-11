@@ -8,6 +8,7 @@ use warnings;
 use utf8;
 use Moose;
 use Array::Utils qw(unique array_minus);
+use Scalar::Util qw(blessed);
 
 use MooseX::Types::Moose qw/ArrayRef/;
 
@@ -144,7 +145,7 @@ sub make_closure {
     }
     elsif ( $identifier !~ /^#/ && !defined( $environment{$identifier} ) ) {
       my $value = $self->get_assignment($identifier);
-      $environment{$identifier} = $value if defined $value;
+      $environment{$identifier} = $value if blessed $value;
     }
   }
 

@@ -18,7 +18,9 @@ sub as_text {
   "[" . join(", ", map { $_ -> as_text } @$self) . "]";
 }
 
-sub is_defined {
+sub is_defined { return 1 }
+
+sub is_empty {
   my($self) = @_;
 
   return @$self != 0;

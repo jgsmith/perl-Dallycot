@@ -29,13 +29,13 @@ test_parses(
     )
   ],
 
-  "0 << { #1 + #2 }/2 << [1,2,3,4,5]" => [
-    reduce(
-      intLit(0),
-      lambda(['#1', '#2'], {}, sum(fetch('#1'), fetch('#2'))),
-      list(intLit(1),intLit(2),intLit(3),intLit(4),intLit(5))
-    )
-  ],
+#  "0 << { #1 + #2 }/2 << [1,2,3,4,5]" => [
+#    reduce(
+#      intLit(0),
+#      lambda(['#1', '#2'], {}, sum(fetch('#1'), fetch('#2'))),
+#      list(intLit(1),intLit(2),intLit(3),intLit(4),intLit(5))
+#    )
+#  ],
 
   "1 ::> []" => [cons(list(), intLit(1))],
 

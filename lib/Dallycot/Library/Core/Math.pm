@@ -530,14 +530,15 @@ define mean => <<'EOD';
 EOD
 
 define differences => <<'EOD';
-diff := Y(
-  (self, sh, st) :> (
-    (?sh and ?st) : [ sh - st', self(self, st', st...) ]
-    (?sh        ) : [ sh ]
-    (           ) : [    ]
-  )
-);
-{ diff(#', #...) }
+(stream, d = 1) :> (
+  nest(Y(
+    (self, s) :> (
+      (?(s') and ?(s...)) : [ s...' - s', self(self, s...) ]
+      (?(s')            ) : [ -s' ]
+      (                 ) : [    ]
+    )
+  ), d)(stream)
+)
 EOD
 
 1;
