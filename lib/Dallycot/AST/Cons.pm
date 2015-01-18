@@ -13,19 +13,12 @@ use Promises qw(deferred);
 sub execute {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $engine->collect(@$self)->done(
+  return $engine->collect(@$self)->then(
     sub {
       my($root, @things) = @_;
-      $d -> resolve($root -> prepend(@things));
-    },
-    sub {
-      $d -> reject(@_);
+      $root -> prepend(@things);
     }
   );
-
-  return $d -> promise;
 }
 
 1;

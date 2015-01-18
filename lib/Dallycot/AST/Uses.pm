@@ -10,10 +10,11 @@ use parent 'Dallycot::AST';
 
 use Promises qw(deferred);
 
-sub to_json {
-}
-
 sub to_string { return "" }
+
+sub is_declarative { return 1 }
+
+sub identifier { }
 
 sub as_text {
   my($self) = @_;

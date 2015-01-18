@@ -190,7 +190,7 @@ test_parses(
   )],
 
   "upfrom_f(yf, n) :> [ n, yf(yf, n+1)];
-   upfrom := upfrom_f(upfrom_f, _)" => sequence(
+   upfrom := upfrom_f(upfrom_f, _)" => [
     assignment(
       upfrom_f => lambda(
         [qw(yf n)],
@@ -215,7 +215,7 @@ test_parses(
         placeholder()
       )
     )
-  ),
+  ],
 
   "upfrom_f(self, n) :> [ n, self(self, n+1) ]" => [assignment(upfrom_f => lambda(['self', 'n'], {}, list(fetch('n'), apply(fetch('self'), fetch('self'), sum(fetch('n'), intLit(1))))))],
 

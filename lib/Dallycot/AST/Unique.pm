@@ -18,14 +18,12 @@ sub to_string {
 sub execute {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $engine->collect(@$self)->done(
+  return $engine->collect(@$self)->then(
     sub {
       my (@values) = map { @$_ } @_;
 
       my @types = map { $_->type } @values;
-      $engine->coerce( @values, \@types )->done(
+      return $engine->coerce( @values, \@types )->then(
         sub {
           my (@new_values) = @_;
 
@@ -33,23 +31,15 @@ sub execute {
           my %seen;
           my @unique = grep { !$seen{ $_->id }++ } @new_values;
           if ( @unique != @new_values ) {
-            $d->resolve( $engine->FALSE );
+            return $engine->FALSE;
           }
           else {
-            $d->resolve( $engine->TRUE );
+            return $engine->TRUE;
           }
-        },
-        sub {
-          $d->reject(@_);
         }
       );
-    },
-    sub {
-      $d->reject(@_);
     }
   );
-
-  return $d->promise;
 }
 
 1;

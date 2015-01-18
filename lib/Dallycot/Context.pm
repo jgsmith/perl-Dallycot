@@ -7,6 +7,9 @@ use warnings;
 
 use utf8;
 use Moose;
+
+use namespace::autoclean;
+
 use Array::Utils qw(unique array_minus);
 use Scalar::Util qw(blessed);
 
@@ -15,6 +18,8 @@ use MooseX::Types::Moose qw/ArrayRef/;
 use Carp qw(croak cluck);
 
 use experimental qw(switch);
+
+use Promises qw(deferred);
 
 #
 # Contexts form a chain from the kernel on down
@@ -51,7 +56,7 @@ sub add_namespace {
 sub get_namespace {
   my ( $self, $ns ) = @_;
 
-  if ( defined( $self->namespaces->{$ns} ) ) {
+  if ( exists( $self->namespaces->{$ns} ) ) {
     return $self->namespaces->{$ns};
   }
   elsif ( $self->has_parent ) {
@@ -69,13 +74,25 @@ sub has_namespace {
 sub add_assignment {
   my ( $self, $identifier, $expr ) = @_;
 
-  if ( ( $self->is_closure || $self->has_parent )
-    && defined( $self->environment->{$identifier} ) )
-  {
-    croak "Identifiers may not be redefined in a sub-context or closure";
+  if ( ( $self->is_closure || $self->has_parent ) ) {
+    my $d = $self -> environment -> {$identifier};
+    if($d && $d -> is_resolved) {
+      croak "Identifiers may not be redefined in a sub-context or closure";
+    }
   }
-  $self->environment->{$identifier} = $expr;
-  return;
+  if(defined $expr) {
+    if($expr -> can('resolve')) {
+      return $self->environment->{$identifier} = $expr;
+    }
+    else {
+      my $d = deferred;
+      $d -> resolve($expr);
+      return $self->environment->{$identifier} = $d;
+    }
+  }
+  else {
+    return $self->environment->{$identifier} = deferred;
+  }
 }
 
 sub get_assignment {
@@ -156,5 +173,7 @@ sub make_closure {
     namespace_search_path => $self -> namespace_search_path
   );
 }
+
+__PACKAGE__ -> meta -> make_immutable;
 
 1;

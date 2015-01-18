@@ -8,6 +8,8 @@ use warnings;
 use utf8;
 use Moose;
 
+use namespace::autoclean;
+
 use Promises qw(deferred);
 
 use experimental qw(switch);
@@ -21,6 +23,20 @@ use Dallycot::AST;
 use Readonly;
 
 use Math::BigRat try => 'GMP';
+
+BEGIN {
+  $Dallycot::Processor::USING_XS = eval {
+    require Dallycot::Processor::XS;
+    1;
+  };
+
+  if($Dallycot::Processor::USING_XS) {
+    extends 'Dallycot::Processor::XS';
+  }
+  else {
+    extends 'Dallycot::Processor::PP';
+  }
+}
 
 has context => (
   is      => 'ro',
@@ -51,14 +67,21 @@ has channels => (
 );
 
 has max_cost => (
-  is      => 'rw',
+  is      => 'ro',
   isa     => 'Int',
   default => 100_000
 );
 
+has ignore_cost => (
+  is      => 'ro',
+  isa     => 'Bool',
+  default => 0
+);
+
 has cost => (
-  is      => 'rw',
+  is      => 'ro',
   isa     => 'Int',
+  writer  => '_cost',
   default => 0
 );
 
@@ -105,13 +128,6 @@ sub create_channel {
   return;
 }
 
-sub add_cost {
-  my ( $self, $delta ) = @_;
-
-  $self->cost( $self->cost + $delta );
-  return $self->cost > $self->max_cost;
-}
-
 sub with_child_scope {
   my ($self) = @_;
 
@@ -122,7 +138,7 @@ sub with_child_scope {
     max_cost => $self -> max_cost - $self -> cost,
     context => Dallycot::Context->new(
       parent => $ctx,
-      namespace_search_path => $ctx->namespace_search_path
+      namespace_search_path => [ @{$ctx->namespace_search_path} ]
     )
   );
 }
@@ -130,21 +146,15 @@ sub with_child_scope {
 sub with_new_closure {
   my ( $self, $environment, $namespaces, $search_path ) = @_;
 
-  return $self->new(
+  return __PACKAGE__->new(
     parent  => $self,
     max_cost => $self -> max_cost - $self -> cost,
     context => Dallycot::Context->new(
-      environment => $environment,
-      namespaces  => $namespaces,
-      namespace_search_path => ($search_path // $self->context->namespace_search_path)
+      environment => +{ %$environment },
+      namespaces  => +{ %$namespaces },
+      namespace_search_path => [@{($search_path // $self->context->namespace_search_path)}]
     )
   );
-}
-
-sub DEMOLISH {
-  my($self) = @_;
-
-  $self -> parent -> add_cost($self -> cost) if $self -> has_parent;
 }
 
 sub _execute_expr {
@@ -207,13 +217,6 @@ sub UNDEFINED () { return $UNDEFINED }
 sub ZERO ()      { return $ZERO }
 sub ONE ()       { return $ONE }
 
-sub execute_all {
-  my ( $self, $deferred, @stmts ) = @_;
-
-  $self->_execute_loop( $deferred, ['Any'], @stmts );
-  return;
-}
-
 sub _execute_loop {
   my ( $self, $deferred, $expected_types, $stmt, @stmts ) = @_;
 
@@ -232,7 +235,7 @@ sub _execute {
   my ( $self, $expected_types, $ast ) = @_;
 
   my $promise = eval {
-    if ( $self->add_cost(1) ) {
+    if ( $self->add_cost(1) > $self -> max_cost ) {
       my $d = deferred;
       $d->reject("Exceeded maximum evaluation cost");
       $d -> promise;
@@ -256,6 +259,10 @@ sub _execute {
 
 sub execute {
   my ( $self, $ast, @ast ) = @_;
+
+  if(!blessed $ast) {
+    print STDERR "$ast not blessed at ", join(" ", caller), "\n";
+  }
 
   my @expected_types = ('Any');
 
@@ -539,5 +546,7 @@ sub make_filter {
 
   return $new_engine->make_lambda( $FILTER_APPLIER, ['s'] );
 }
+
+__PACKAGE__ -> meta -> make_immutable;
 
 1;

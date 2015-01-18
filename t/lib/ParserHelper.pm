@@ -7,6 +7,8 @@ use Test::More;
 
 use Dallycot::Parser;
 
+use Scalar::Util qw(blessed);
+
 use Exporter 'import';
 
 our @EXPORT = qw(
@@ -96,7 +98,13 @@ sub Noop {
 }
 
 sub sequence {
-  bless \@_ => 'Dallycot::AST::Sequence';
+  my(@things) = @_;
+
+  my @assignments = grep { blessed($_) && $_ -> isa('Dallycot::AST::Assign') } @things;
+  my @statements = grep { blessed($_) && !$_ -> isa('Dallycot::AST::Assign') } @things;
+  my @identifiers = map { $_ -> identifier } @assignments;
+
+  bless [ \@assignments, \@statements, \@identifiers ] => 'Dallycot::AST::Sequence';
 }
 
 sub placeholder {

@@ -25,11 +25,7 @@ sub is_empty { return }
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( Dallycot::Value::Numeric -> new( Math::BigRat->binf() ) );
-
-  return $d->promise;
+  return Dallycot::Value::Numeric -> new( Math::BigRat->binf() );
 }
 
 sub head {
@@ -62,37 +58,19 @@ sub tail {
 }
 
 sub apply_map {
-  my ( $self, $engine, $d, $transform ) = @_;
+  my ( $self, $engine, $transform ) = @_;
 
   my $map_t = $engine->make_map($transform);
 
-  $map_t->apply( $engine, {}, $self )->done(
-    sub {
-      $d->resolve(@_);
-    },
-    sub {
-      $d->reject(@_);
-    }
-  );
-
-  return;
+  return $map_t->apply( $engine, {}, $self );
 }
 
 sub apply_filter {
-  my ( $self, $engine, $d, $filter ) = @_;
+  my ( $self, $engine, $filter ) = @_;
 
   my $filter_t = $engine->make_filter($filter);
 
-  $filter_t->apply( $engine, {}, $self )->done(
-    sub {
-      $d->resolve(@_);
-    },
-    sub {
-      $d->reject(@_);
-    }
-  );
-
-  return;
+  return $filter_t->apply( $engine, {}, $self );
 }
 
 sub reduce {

@@ -3,6 +3,8 @@ use Mojo::Base -strict;
 use Test::More;
 use Test::Mojo;
 
+use AnyEvent;
+
 BEGIN {
   use_ok 'Dallycot::Context';
   use_ok 'Dallycot::AST';
@@ -50,8 +52,8 @@ $context -> add_assignment(f => $fooString);
 ok $context -> has_assignment('f'), "Check that assignment is made";
 ok $child_context -> has_assignment('f'), "Check that assignment is made from child context pov";
 
-is_deeply $context -> get_assignment('f'), $fooString, "Retrieve previously set assignment";
-is_deeply $child_context -> get_assignment('f'), $fooString, "Retrieve previously set assignment from parent context";
+is_deeply get_resolution($context -> get_assignment('f')), $fooString, "Retrieve previously set assignment";
+is_deeply get_resolution($child_context -> get_assignment('f')), $fooString, "Retrieve previously set assignment from parent context";
 
 ok !$context -> has_assignment('g'), "Check that a non-existant assignment doesn't exist";
 ok !$child_context -> has_assignment('g'), "Check that a non-existant assignment doesn't exist from child's pov";
@@ -68,7 +70,7 @@ eval {
 
 ok $@, "Setting an assignment twice in a scope should throw an error";
 
-is_deeply $child_context -> get_assignment('f'), $barString, "Second assignment shouldn't change the value";
+is_deeply get_resolution($child_context -> get_assignment('f')), $barString, "Second assignment shouldn't change the value";
 
 ##
 # Closure creation
@@ -82,7 +84,7 @@ my $closure_context = $context -> make_closure($node);
 
 ok $closure_context -> has_assignment('f');
 
-is $closure_context->get_assignment('f'), $context->get_assignment('f');
+is get_resolution($closure_context->get_assignment('f')), get_resolution($context->get_assignment('f'));
 
 
 # my $parser = Dallycot::Parser->new;
@@ -96,3 +98,16 @@ is $closure_context->get_assignment('f'), $context->get_assignment('f');
 # ok !$closure_context -> has_assignment('upfrom_f');
 
 done_testing();
+
+sub get_resolution {
+  my($promise) = @_;
+  return unless blessed $promise;
+  my $cv = AnyEvent -> condvar;
+  $promise -> done( sub {
+    $cv -> send(@_);
+  }, sub {
+    $cv -> croak( @_ );
+  });
+
+  $cv -> recv;
+}

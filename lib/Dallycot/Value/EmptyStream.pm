@@ -37,11 +37,7 @@ sub _type { return 'Stream' }
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( $engine->ZERO );
-
-  return $d->promise;
+  return $engine -> ZERO;
 }
 
 sub calculate_reverse {
@@ -55,11 +51,15 @@ sub calculate_reverse {
 }
 
 sub apply_map {
-  my ( $self, $engine, $d, $transform ) = @_;
+  my ( $self, $engine, $transform ) = @_;
 
-  $d->resolve($self);
+  return $self;
+}
 
-  return;
+sub apply_filter {
+  my( $self, $engine, $transform ) = @_;
+
+  return $self;
 }
 
 sub value_at {

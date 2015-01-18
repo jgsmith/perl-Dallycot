@@ -44,11 +44,7 @@ sub id {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( $engine -> ONE );
-
-  return $d->promise;
+  return $engine -> ONE;
 }
 
 sub is_equal {

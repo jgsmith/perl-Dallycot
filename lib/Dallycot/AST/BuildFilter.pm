@@ -8,44 +8,60 @@ use warnings;
 use utf8;
 use parent 'Dallycot::AST';
 
-use Promises qw(deferred);
+use Carp           qw(croak);
+use Dallycot::Util qw(maybe_promise);
+use List::Util     qw(all any);
+use Promises       qw(deferred collect);
+
 
 sub execute {
   my ( $self, $engine ) = @_;
 
   my $d = deferred;
 
-  $engine->collect(@$self)->done(
+  return $engine->collect(@$self)->then(
     sub {
       my (@functions) = @_;
       my $stream = pop @functions;
-      if ( grep { !$_->isa('Dallycot::Value::Lambda') } @functions ) {
-        $d->reject("All but the last term in a filter must be lambdas.");
+      return collect(
+        map { maybe_promise($_ -> is_lambda) } @functions
+      ) -> then( sub {
+        my @flags = map { @$_ } @_;
+        if(any { !$_ } @flags) {
+          croak "All but the last term in a filter must be lambdas.";
+        }
+        return (\@functions, $stream);
+      });
+    }
+  ) -> then(sub {
+    my($functions, $stream) = @_;
+
+    return collect(
+      map { maybe_promise($_ -> min_arity ) } @$functions
+    ) -> then(sub {
+      my(@arities) = map { @$_ } @_;
+      if(any { 1 != $_ } @arities) {
+        croak "All lambdas in a filter must have arity 1.";
       }
-      elsif ( grep { 1 != $_->min_arity } @functions ) {
-        $d->reject("All lambdas in a filter must have arity 1.");
+      return($functions, $stream);
+    });
+  }) -> then(sub {
+    my($functions, $stream) = @_;
+
+    return maybe_promise($stream -> is_lambda) -> then(sub {
+      my($flag) = @_;
+      if($flag) {
+        return $engine->make_filter(
+          $engine->compose_filters(@$functions, $stream)
+        );
       }
       else {
-        if ( $stream->isa('Dallycot::Value::Lambda') ) {
-
-          # we really just have a composition
-          push @functions, $stream;
-          my $filter = $engine->compose_filters(@functions);
-          $d->resolve( $engine->make_filter($filter) );
-        }
-        else {
-          my $filter = $engine->compose_filters(@functions);
-
-          $stream->apply_filter( $engine, $d, $filter );
-        }
+        return $stream -> apply_filter( $engine,
+          $engine -> compose_filters(@$functions)
+        );
       }
-    },
-    sub {
-      $d->reject(@_);
-    }
-  );
-
-  return $d->promise;
+    });
+  });
 }
 
 1;

@@ -38,11 +38,7 @@ sub as_text {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( Dallycot::Value::Numeric -> new( scalar @$self ) );
-
-  return $d->promise;
+  return Dallycot::Value::Numeric -> new( scalar @$self );
 }
 
 sub calculate_reverse {
@@ -56,39 +52,29 @@ sub calculate_reverse {
 }
 
 sub apply_map {
-  my ( $self, $engine, $d, $transform ) = @_;
+  my ( $self, $engine, $transform ) = @_;
 
-  collect( map { $transform->apply( $engine, {}, $_ ) } @$self )->done(
+  return collect( map { $transform->apply( $engine, {}, $_ ) } @$self )->then(
     sub {
       my @values = map { @$_ } @_;
-      $d->resolve( bless \@values => __PACKAGE__ );
-    },
-    sub {
-      $d->reject(@_);
+      bless \@values => __PACKAGE__;
     }
   );
-
-  return;
 }
 
 sub apply_filter {
-  my ( $self, $engine, $d, $filter ) = @_;
+  my ( $self, $engine, $filter ) = @_;
 
-  collect( map { $filter->apply( $engine, {}, $_ ) } @$self )->done(
+  return collect( map { $filter->apply( $engine, {}, $_ ) } @$self )->then(
     sub {
       my (@hits) = map { $_->value } map { @$_ } @_;
       my @values;
       for ( my $i = 0 ; $i < @hits ; $i++ ) {
         push @values, $self->[$i] if $hits[$i];
       }
-      $d->resolve( bless \@values => __PACKAGE__ );
-    },
-    sub {
-      $d->reject(@_);
+      return bless \@values => __PACKAGE__;
     }
   );
-
-  return;
 }
 
 sub value_at {

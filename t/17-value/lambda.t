@@ -14,8 +14,8 @@ use Promises backend => ['AnyEvent'];
 use Dallycot::Parser;
 use Dallycot::Processor;
 
-BEGIN { 
-  use_ok 'Dallycot::Value' 
+BEGIN {
+  use_ok 'Dallycot::Value'
 };
 
 my $processor = Dallycot::Processor -> new;
@@ -24,7 +24,7 @@ my $parser = Dallycot::Parser->new;
 
 run('times(x, y) :> x * y');
 
-my $times = $processor -> get_assignment('times');
+my $times = get_resolution($processor -> get_assignment('times'));
 
 isa_ok $times, 'Dallycot::Value::Lambda';
 
@@ -61,7 +61,7 @@ sub run {
     if('HASH' eq $parse) {
       $parse = [ $parse ];
     }
-    $processor->cost(0);
+    $processor->add_cost(-$processor->cost);
     $processor -> execute(@{$parse}) -> done(
       sub { $cv -> send( @_ ) },
       sub { $cv -> croak( @_ ) }
@@ -80,4 +80,16 @@ sub run {
     #print STDERR "($stmt): ", Data::Dumper->Dump([$parser->program($stmt)]);
   }
   $ret;
+}
+
+sub get_resolution {
+  my($promise) = @_;
+  my $cv = AnyEvent -> condvar;
+  $promise -> done( sub {
+    $cv -> send(@_);
+  }, sub {
+    $cv -> croak( @_ );
+  });
+
+  $cv -> recv;
 }

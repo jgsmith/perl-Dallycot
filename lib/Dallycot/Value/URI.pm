@@ -27,11 +27,7 @@ sub new {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( Dallycot::Value::Numeric -> new( length $self->[0]->as_string ) );
-
-  return $d->promise;
+  return Dallycot::Value::Numeric -> new( length $self->[0]->as_string );
 }
 
 sub value_at {
@@ -67,10 +63,13 @@ sub is_lambda {
   my($lib, $method) = $self->_get_library_and_method;
 
   return unless defined $lib;
-  my $def = $lib -> get_assignment($method);
-  return unless blessed($def);
-  return 1 if $def->isa(__PACKAGE__);
-  return $def -> is_lambda;
+  $lib -> get_assignment($method) -> then(sub {
+    my($def) = @_;
+
+    return unless blessed($def);
+    return 1 if $def->isa(__PACKAGE__);
+    return $def -> is_lambda;
+  });
 }
 
 sub is_defined { return 1 }
@@ -95,7 +94,7 @@ sub _get_library_and_method {
   my($self) = @_;
 
   my $uri = $self->[0]->as_string;
-  
+
   my($namespace, $method) = split(/#/, $uri, 2);
   if(!defined $method) {
     if($self -> [0] =~ m{^(.*/)(.+?)$}x) {

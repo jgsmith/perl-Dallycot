@@ -23,7 +23,8 @@ our @EXPORT = qw(
 );
 
 my $processor = Dallycot::Processor -> new(
-  context => Dallycot::Context -> new
+  context => Dallycot::Context -> new,
+  max_cost => 1_000_000,
 );
 
 my $parser = Dallycot::Parser -> new;
@@ -41,11 +42,10 @@ sub run {
 
   eval {
     my $parse = $parser -> parse($stmt);
-    if('HASH' eq $parse) {
+    if('HASH' eq ref $parse) {
       $parse = [ $parse ];
     }
-    $processor -> max_cost(100000);
-    $processor -> cost(0);
+    $processor -> add_cost(-$processor->cost);
     $processor -> execute(@{$parse}) -> done(
       sub { $cv -> send( @_ ) },
       sub { $cv -> croak( @_ ) }

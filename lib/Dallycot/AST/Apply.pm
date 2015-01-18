@@ -8,8 +8,8 @@ use warnings;
 use utf8;
 use parent 'Dallycot::AST';
 
+use Carp     qw(croak);
 use Promises qw(deferred);
-
 use Readonly;
 
 Readonly my $EXPRESSION => 0;
@@ -61,18 +61,16 @@ sub to_string {
 sub execute {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
   my $expr = $self->[$EXPRESSION];
   if($expr->isa('Dallycot::Value')) {
     $expr = bless [ $expr ] => 'Dallycot::AST::Identity';
   }
 
-  $engine->execute( $expr )->done(
+  return $engine->execute( $expr )->then(
     sub {
       my ($lambda) = @_;
       if ( !$lambda ) {
-        $d->reject("Undefined value can not be a function.");
+        croak "Undefined value can not be a function.";
       }
       elsif ( $lambda->can('apply') ) {
         my @bindings = @{$self->[$BINDINGS]};
@@ -89,14 +87,7 @@ sub execute {
                 \@bindings,
                 $self -> [$OPTIONS]
               )
-            )->execute($engine) -> done(
-              sub {
-                $d -> resolve(@_);
-              },
-              sub {
-                $d -> reject(@_);
-              }
-            );
+            )->execute($engine);
           }
           else {
             pop @bindings;
@@ -107,27 +98,15 @@ sub execute {
           $engine,
           { %{ $self->[$OPTIONS] } },
           @bindings
-          )->done(
-          sub {
-            $d->resolve(@_);
-          },
-          sub {
-            $d->reject(@_);
-          }
-        );
+          );
       }
       else {
-        $d->reject( "Value of type "
+        croak "Value of type "
             . $lambda->type
-            . " can not be used as a function." );
+            . " can not be used as a function.";
       }
-    },
-    sub {
-      $d->reject(@_);
     }
   );
-
-  return $d->promise;
 }
 
 1;
