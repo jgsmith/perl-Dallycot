@@ -8,6 +8,8 @@ use Test::Mojo;
 use AnyEvent;
 use Promises backend => ['EV'];
 
+use Scalar::Util qw(blessed);
+
 use Dallycot::Parser;
 
 
@@ -78,12 +80,12 @@ $result = run('upfrom_f(self,n) :> [ n, self(self, n+1) ]');
 isa_ok $result, 'Dallycot::Value::Lambda';
 
 ok $processor -> has_assignment('upfrom_f'), "We've stored something in the environment (upfrom_f)";
-is $processor -> get_assignment('upfrom_f'), $result, "The returned closure is stored in the environment (upfrom_f)";
+is get_resolution($processor -> get_assignment('upfrom_f')), $result, "The returned closure is stored in the environment (upfrom_f)";
 
 $result = run('upfrom := Y(upfrom_f)');
 
 ok $processor -> has_assignment('upfrom'), "We've stored something in the environment (upfrom)";
-is $result, $processor -> get_assignment('upfrom'), "The returned closure is stored in the environment (upfrom)";
+is $result, get_resolution($processor -> get_assignment('upfrom')), "The returned closure is stored in the environment (upfrom)";
 
 $result = run("upfrom");
 
@@ -133,7 +135,7 @@ isa_ok $result, 'Dallycot::Value::Stream';
 
 $result = run("doubles := Y((f,s) :> ([ 2 * s', f(f, s...) ]))");
 
-is_deeply $result, $processor->context -> get_assignment('doubles'), "Return is the last statement";
+is_deeply $result, get_resolution($processor -> get_assignment('doubles')), "Return is the last statement";
 
 $result = run("doubles(upfrom(1))'");
 
@@ -159,7 +161,10 @@ $result = run("
   ))
 ");
 
-is_deeply $result, $processor->context->get_assignment('evens'), "Returns the last statement (evens)";
+isa_ok $result, 'Dallycot::Value::Lambda';
+my $expected = get_resolution($processor->get_assignment('evens'));
+is_deeply $result, $expected, "Returns the last statement (evens)";
+#is_deeply $result, get_resolution($processor->get_assignment('evens')); #, "Returns the last statement (evens)";
 
 $result = run("evens(upfrom(1))'");
 
@@ -177,7 +182,7 @@ $result = run("
   ))
 ");
 
-is_deeply $result, $processor->context->get_assignment('odds'), "Returns the last statement (odds)";
+is_deeply $result, get_resolution($processor->context->get_assignment('odds')), "Returns the last statement (odds)";
 
 ok !$processor->context->has_assignment('odds_f'), "Doesn't have the 'odds_f' from the inner scope";
 
@@ -196,7 +201,7 @@ filter := Y((ff, f, s) :> (
   ))
 EOF
 
-is_deeply $result, $processor->context->get_assignment('filter'), "Returns the last statement (filter)";
+is_deeply $result, get_resolution($processor->context->get_assignment('filter')), "Returns the last statement (filter)";
 
 $result = run("filter(odd?, upfrom(1))......'");
 
@@ -209,7 +214,7 @@ EOF
 # # use Data::Dumper;
 # # print STDERR Data::Dumper->Dump([$processor -> context -> get_assignment("filter")]);
 
-is_deeply $result, $processor -> context -> get_assignment('map'), "Returns the last statement (map)";
+is_deeply $result, get_resolution($processor -> context -> get_assignment('map')), "Returns the last statement (map)";
 
 $result = run("quintuple(x) :> 5 * x; map(quintuple, upfrom(1))'");
 
@@ -221,7 +226,7 @@ is_deeply $result, Numeric(5), "The mapping should accept an anonymous function"
 
 $result = run("times25 := quintuple . quintuple");
 
-is_deeply $result, $processor -> context -> get_assignment('times25'), "Returns the stored definition (times25)";
+is_deeply $result, get_resolution($processor -> context -> get_assignment('times25')), "Returns the stored definition (times25)";
 
 $result = run("times25(4)");
 
@@ -367,10 +372,14 @@ sub run {
 
   eval {
     my $parse = $parser -> parse($stmt);
-    if('HASH' eq $parse) {
+    if('HASH' eq ref $parse) {
       $parse = [ $parse ];
     }
-    $processor->cost(0);
+    # if(!blessed($parse->[0])) {
+    #   print STDERR Data::Dumper->Dump([$parse]);
+    # }
+    # print STDERR "parse stmts: ", join(", ", @$parse), "\n";
+    $processor->add_cost(-$processor -> cost);
     $processor -> execute(@{$parse}) -> done(
       sub { $cv -> send( @_ ) },
       sub { $cv -> croak( @_ ) }
@@ -389,4 +398,17 @@ sub run {
     #print STDERR "($stmt): ", Data::Dumper->Dump([$parser->program($stmt)]);
   }
   $ret;
+}
+
+sub get_resolution {
+  my($promise) = @_;
+  return unless blessed $promise;
+  my $cv = AnyEvent -> condvar;
+  $promise -> done( sub {
+    $cv -> send(@_);
+  }, sub {
+    $cv -> croak( @_ );
+  });
+
+  $cv -> recv;
 }

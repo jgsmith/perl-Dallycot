@@ -10,6 +10,8 @@ use experimental qw(switch);
 
 use MooseX::Singleton;
 
+use namespace::autoclean;
+
 use CHI;
 use Promises qw(deferred);
 use RDF::Trine::Parser;
@@ -60,5 +62,7 @@ sub get {
 
   return $deferred->promise;
 }
+
+__PACKAGE__ -> meta -> make_immutable;
 
 1;

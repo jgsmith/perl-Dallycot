@@ -28,6 +28,8 @@ use warnings;
 use utf8;
 use MooseX::Singleton;
 
+use namespace::autoclean -except => [qw/_libraries/];
+
 use MooseX::Types::Moose qw/ArrayRef CodeRef/;
 use Carp qw(croak);
 
@@ -49,7 +51,7 @@ our @LIBRARIES;
 
 sub libraries {
   return @LIBRARIES if @LIBRARIES;
-  return @LIBRARIES = shift -> _libraries;
+  return @LIBRARIES = grep { $_ -> isa('Dallycot::Library') } shift -> _libraries;
 }
 
 my %engines;
@@ -93,8 +95,12 @@ sub define {
   if(is_CodeRef($body)) {
     # Perl subroutine
     #$meta -> add_method( 'run_' . $name, $body );
+    my $uri_promise = deferred;
+    $uri_promise -> resolve($meta->{'package'}->_uri_for_name($name));
+
     $definitions->{$name} = {
       %options,
+      uri => $uri_promise,
       coderef => $body
     };
   }
@@ -109,20 +115,10 @@ sub define {
       croak "Unable to parse Dallycot source for $name";
     }
 
-    $engine->with_child_scope->execute(@{$parsed})->done(sub {
-      my($expr) = @_;
-      #$engine -> add_assignment($name, $expr);
-      $definitions->{$name} = {
-        %options,
-        expression => $expr
-      };
-      $cv -> send();
-    }, sub {
-      my($err) = @_;
-      $cv -> croak("Unable to define $name: $err for $body\n");
-    });
-
-    $cv -> recv;
+    $definitions->{$name} = {
+      %options,
+      expression => $engine->with_child_scope->execute(@{$parsed})
+    };
   }
   return;
 }
@@ -162,7 +158,6 @@ sub get_assignment {
 
   my $class = ref($self) || $self;
 
-
   my $def = $self -> get_definition($name);
 
   return unless defined $def && keys %$def;
@@ -170,7 +165,7 @@ sub get_assignment {
     return $def -> {expression};
   }
   else {
-    return $self->_uri_for_name($name);
+    return $def -> {uri};
   }
 }
 
@@ -275,18 +270,17 @@ sub apply {
           push @filled_bindings, $binding;
         }
       }
-      my $d = deferred;
       my $engine = $parent_engine -> with_child_scope;
-      collect(
+      return collect(
         $engine -> collect( @filled_bindings ),
         $engine -> collect( values %$options )
-      ) -> done(sub {
+      ) -> then(sub {
         my($collected_bindings, $new_values) = @_;
         my @collected_bindings = @$collected_bindings;
         my @new_values = @$new_values;
         my %new_options;
         @new_options{keys %$options} = @new_values;
-        $d -> resolve(Dallycot::Value::Lambda->new(
+        return Dallycot::Value::Lambda->new(
           expression => Dallycot::AST::Apply->new(
             $self->_uri_for_name($name),
             [ map { bless [ $_ ] => 'Dallycot::AST::Fetch' } @args ],
@@ -296,23 +290,19 @@ sub apply {
           closure_environment => {
             map { $filled_identifiers[$_] => $collected_bindings[$_] } (0..$#filled_identifiers)
           }
-        ));
-      }, sub {
-        $d -> reject(@_);
+        );
       });
-      return $d -> promise;
     }
     elsif($def -> {hold}) {
       my $engine = $parent_engine -> with_child_scope;
       return $def->{coderef}->($engine, $options, @bindings);
     }
     else {
-      my $d = deferred;
       my $engine = $parent_engine -> with_child_scope;
-      collect(
+      return collect(
         $engine -> collect( @bindings ),
         $engine -> collect( values %$options ),
-      ) -> done( sub {
+      ) -> then( sub {
         my($collected_bindings, $new_values) = @_;
 
         my @collected_bindings = @$collected_bindings;
@@ -320,31 +310,16 @@ sub apply {
         my %new_options;
         @new_options{keys %{$def->{options}||{}}} = values %{$def->{options}||{}};
         @new_options{keys %$options} = @new_values;
-        my $lib_promise = eval {
-          $def->{coderef}->($engine, \%new_options, @collected_bindings);
-        };
-        if($@) {
-          $d -> reject($@);
-        }
-        elsif($lib_promise) {
-          $lib_promise->done(sub {
-            $d -> resolve(@_);
-          }, sub {
-            $d -> reject(@_);
-          });
-        }
-        else {
-          $d -> reject("Unable to call $name");
-        }
-      }, sub {
-        $d -> reject(@_);
+        $def->{coderef}->($engine, \%new_options, @collected_bindings);
       });
-      return $d -> promise;
     }
   }
   elsif($def -> {expression}) {
     my $engine = $parent_engine -> with_child_scope;
-    return $def -> {expression} -> apply($engine, $options, @bindings);
+    return $def -> {expression} -> then(sub {
+      my($lambda) = @_;
+      $lambda -> apply($engine, $options, @bindings);
+    });
   }
   else {
     my $d = deferred;
@@ -352,5 +327,9 @@ sub apply {
     return $d -> promise;
   }
 }
+
+__PACKAGE__ -> meta -> make_immutable;
+
+__PACKAGE__ -> libraries;
 
 1;

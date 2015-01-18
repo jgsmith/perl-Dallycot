@@ -18,11 +18,8 @@ sub is_defined { return 1 }
 
 sub calculate_length {
   my ( $self, $engine ) = @_;
-  my $d = deferred;
 
-  $d->resolve( Dallycot::Value::Numeric -> new( Math::BigRat->binf() ) );
-
-  return $d->promise;
+  return Dallycot::Value::Numeric -> new( Math::BigRat->binf() );
 }
 
 sub head {

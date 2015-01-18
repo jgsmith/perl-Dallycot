@@ -42,13 +42,17 @@ has 'S' => (
 has 'v' => (
   is => 'ro',
   isa => 'Bool',
+  traits => ['Getopt'],
   documentation => 'print version and licensing banner and exit',
+  cmd_flag => 'v',
 );
 
 has 'V' => (
   is => 'ro',
   isa => 'Bool',
+  traits => ['Getopt'],
   documentation => 'print installed namespaces and exit',
+  cmd_flag => 'V',
 );
 
 has '_parser' => (
@@ -58,7 +62,12 @@ has '_parser' => (
 
 has '_engine' => (
   accessor => 'engine',
-  default => sub { Dallycot::Processor -> new }
+  default => sub {
+    Dallycot::Processor -> new(
+      max_cost => 1_000_000,
+      ignore_cost => 1
+    )
+  }
 );
 
 has '_channel' => (
@@ -83,6 +92,16 @@ has '_statement_counter' => (
 
 has '_done' => (
   accessor => 'done',
+);
+
+has '_in' => (
+  accessor => 'in',
+  default => sub { Dallycot::Value::Vector -> new }
+);
+
+has '_out' => (
+  accessor => 'out',
+  default => sub { Dallycot::Value::Vector -> new }
 );
 
 sub check {
@@ -135,10 +154,10 @@ sub run {
          -> append_namespace_search_path($Dallycot::Library::CLI::NAMESPACE);
 
     $app -> engine
-         -> add_assignment('in', $in = Dallycot::Value::Vector->new);
+         -> add_assignment('in', $app -> in);
 
     $app -> engine
-         -> add_assignment('out', $out = Dallycot::Value::Vector->new);
+         -> add_assignment('out', $app -> out);
 
     $app->primary_prompt;
   }, sub {
@@ -234,7 +253,7 @@ sub primary_prompt {
              $app -> check_parse($line);
            }
          }
-         else { #if($line -> isa('Dallycot::Value::Undefined')) {
+         else {
            $app -> channel -> send("\n");
            $app -> done -> resolve(undef);
          }
@@ -283,7 +302,7 @@ sub secondary_prompt {
 sub add_history {
   my( $app, $line ) = @_;
 
-  my $in = $app -> engine -> get_assignment('in');
+  my $in = $app -> in;
   my $stmt_counter = $app -> statement_counter;
   $app -> statement_counter($app -> statement_counter + 1);
   $app -> channel -> add_history($line);
@@ -307,7 +326,7 @@ sub process_line {
       if(defined $ret) {
         $app -> channel
              -> send("\nout[$stmt_counter] := ", $ret -> as_text);
-        my $out = $app->engine->get_assignment('out');
+        my $out = $app->out;
         ${$out}[$stmt_counter-1] = $ret;
       }
     }, sub {
@@ -372,7 +391,12 @@ sub run_file {
       }
       return $d -> promise;
     }
-    elsif(!$app->check) {
+    elsif($app->check) {
+      my $d = deferred;
+      $d -> resolve();
+      return $d -> promise;
+    }
+    else {
       return $app->execute($parse);
     }
   }
@@ -395,8 +419,7 @@ sub execute {
     if('HASH' eq $parse) {
       $parse = [ $parse ];
     }
-    $app -> engine -> max_cost(1_000_000);
-    $app -> engine -> cost(0);
+    $app -> engine -> add_cost(-$app -> engine -> cost);
     return $app -> engine -> execute(@{$parse}) -> catch(sub {
       my($err) = @_;
       while($err =~ s{\s+at\s.+?\sline\s+\d+.*?$}{}x) {

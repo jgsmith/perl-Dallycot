@@ -143,6 +143,8 @@ Returns a list of Perl packages that provide AST nodes.
 
 =cut
 
+sub is_declarative { return }
+
 sub node_types {
   return @NODE_TYPES if @NODE_TYPES;
   (@NODE_TYPES) = shift->_node_types;

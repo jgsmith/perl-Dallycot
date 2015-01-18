@@ -1,0 +1,18 @@
+package Dallycot::Processor::XS;
+
+# ABSTRACT: XS implementation of Processor methods
+
+use strict;
+use warnings;
+
+use utf8;
+
+use Moose;
+
+use Dallycot;
+
+require XSLoader;
+
+XSLoader::load(__PACKAGE__, $Dallycot::VERSION);
+
+1;

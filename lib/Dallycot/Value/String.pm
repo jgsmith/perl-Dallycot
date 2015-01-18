@@ -79,11 +79,7 @@ sub prepend {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( Dallycot::Value::Numeric -> new( length $self->[0] ) );
-
-  return $d->promise;
+  return Dallycot::Value::Numeric -> new( length $self->[0] );
 }
 
 sub calculate_reverse {

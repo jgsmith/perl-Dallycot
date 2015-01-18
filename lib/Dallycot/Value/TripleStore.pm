@@ -33,11 +33,7 @@ sub is_empty {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( Dallycot::Value::Numeric -> new( $self->[2]->size() ) );
-
-  return $d->promise;
+  return Dallycot::Value::Numeric -> new( $self->[2]->size() );
 }
 
 sub type {

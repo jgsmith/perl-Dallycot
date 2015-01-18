@@ -41,11 +41,7 @@ sub value {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( $self->new( $self->[0]->copy->bfloor->length ) );
-
-  return $d->promise;
+  return $self->new( $self->[0]->copy->bfloor->length );
 }
 
 sub is_equal {

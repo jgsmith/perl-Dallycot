@@ -14,6 +14,8 @@ use Math::BigRat;
 use Scalar::Util qw(blessed);
 use String::Escape qw(unbackslash unquote);
 
+use Dallycot::AST::Sequence;
+
 my $grammar =
     Marpa::R2::Scanless::G->new( {
       action_object  => __PACKAGE__,
@@ -87,7 +89,8 @@ sub parse {
   my $parse = $re->value;
   my $result;
   if ( $parse && $$parse && $$parse->isa('Dallycot::AST::Sequence') ) {
-    $result = [ @{$$parse} ];
+     $result = $$parse;
+     $result = [ @{$result->[0]}, @{$result->[1]} ];
   }
   elsif ($parse) {
     $result = [$$parse];
@@ -120,7 +123,7 @@ sub block {
   my ( undef, @statements ) = @_;
 
   if ( @statements > 1 ) {
-    return bless [@statements] => 'Dallycot::AST::Sequence';
+    return Dallycot::AST::Sequence -> new(@statements);
   }
   else {
     return $statements[0];
@@ -417,7 +420,7 @@ sub build_string_vector {
 
   $lit =~ s/^<<//;
   $lit =~ s/>>$//;
-  my @matches = map { unbackslash($_) } 
+  my @matches = map { unbackslash($_) }
                 map { s/\\ / /g; $_ }
                 split(/(?<!\\)\s+/, $lit);
 

@@ -11,6 +11,7 @@ use parent 'Dallycot::Value::Any';
 use Promises qw(deferred collect);
 
 use Scalar::Util qw(blessed);
+use Carp qw(croak);
 
 use Readonly;
 
@@ -94,14 +95,14 @@ sub min_arity {
 }
 
 sub _arity_in_range {
-  my ( $self, $arity, $min, $max, $promise ) = @_;
+  my ( $self, $arity, $min, $max ) = @_;
 
   if ( $arity < $min || $arity > $max ) {
     if ( $min == $max ) {
-      $promise->reject("Expected $min but found $arity arguments.");
+      croak "Expected $min but found $arity arguments.";
     }
     else {
-      $promise->reject("Expected $min..$max but found $arity arguments.");
+      croak "Expected $min..$max but found $arity arguments.";
     }
     return;
   }
@@ -109,19 +110,16 @@ sub _arity_in_range {
 }
 
 sub _options_are_good {
-  my ( $self, $options, $promise ) = @_;
+  my ( $self, $options ) = @_;
 
   if (%$options) {
     my @bad_options =
       grep { not exists ${ $self->[$OPTIONS] }{$_} } keys %$options;
     if ( @bad_options > 1 ) {
-      $promise->reject(
-        "Options " . join( ", ", sort(@bad_options) ) . " are not allowed." );
-      return;
+      croak  "Options " . join( ", ", sort(@bad_options) ) . " are not allowed.";
     }
     elsif (@bad_options) {
-      $promise->reject( "Option " . $bad_options[0] . " is not allowed." );
-      return;
+      croak "Option " . $bad_options[0] . " is not allowed.";
     }
   }
   return 1;
@@ -137,8 +135,6 @@ sub _get_bindings {
 
   my ( $min_arity, $max_arity ) = $self->arity;
   my $arity = scalar(@bindings);
-
-  my $d = deferred;
 
   my (
     @new_bindings,    @new_bindings_with_defaults,
@@ -176,42 +172,26 @@ sub _get_bindings {
     }
   }
 
-  $engine->collect(@filled_bindings)->done(
-    sub {
-      my @binding_values = @_;
-      my %bindings;
-      @bindings{@filled_identifiers} = @binding_values;
-      $d->resolve( \%bindings, \@new_bindings, \@new_bindings_with_defaults );
-    },
-    sub {
-      $d->reject(@_);
-    }
-  );
+  my %bindings;
+  @bindings{@filled_identifiers} = map {
+    $engine->execute($_)
+  } @filled_bindings;
 
-  return $d->promise;
+  return (\%bindings, \@new_bindings, \@new_bindings_with_defaults);
 }
 
 sub _get_options {
   my ( $self, $engine, $options ) = @_;
 
-  my $d = deferred;
-
   my @option_names = keys %$options;
 
-  $engine->collect( @{$options}{@option_names} )->done(
-    sub {
-      my (@option_values) = @_;
-      my %options;
+  my %ret_options;
 
-      @options{@option_names} = @option_values;
-      $d->resolve( +{ %{ $self->[$OPTIONS] }, %options } );
-    },
-    sub {
-      $d->reject(@_);
-    }
-  );
+  @ret_options{keys %$options} = map {
+    $engine->execute($_)
+  } values %$options;
 
-  return $d->promise;
+  return +{ %{ $self->[$OPTIONS] }, %ret_options };
 }
 
 sub child_nodes { return () }
@@ -219,61 +199,38 @@ sub child_nodes { return () }
 sub apply {
   my ( $self, $engine, $options, @bindings ) = @_;
 
-  my $promise = deferred;
-
   my ( $min_arity, $max_arity ) = $self->arity;
 
   my $arity = scalar(@bindings);
 
-  if ( $self->_arity_in_range( $arity, $min_arity, $max_arity, $promise )
-    && $self->_options_are_good( $options, $promise ) )
-  {
+  $self->_arity_in_range( $arity, $min_arity, $max_arity );
+  $self->_options_are_good( $options );
+  my ( $filled_bindings, $new_bindings, $new_bindings_with_defaults ) = $self -> _get_bindings( $engine, @bindings );
+  my ( $filled_options ) = $self -> _get_options( $engine, $options );
 
-    collect(
-      $self -> _get_bindings( $engine, @bindings ),
-      $self -> _get_options( $engine, $options )
-    ) -> done(
-      sub {
-        my( $binding_values, $filled_options ) = @_;
-        my ( $filled_bindings, $new_bindings, $new_bindings_with_defaults ) = @$binding_values;
-        ($filled_options) = @$filled_options;
-        
-        my %environment =
-          ( %{ $self->[$CLOSURE_ENVIRONMENT] || {} }, %$filled_bindings );
+  my %environment =
+    ( %{ $self->[$CLOSURE_ENVIRONMENT] || {} }, %$filled_bindings );
 
-        if ( @$new_bindings || @$new_bindings_with_defaults ) {
-          $promise->resolve(
-            bless [
-              $self->[$EXPRESSION],        $new_bindings,
-              $new_bindings_with_defaults, $filled_options,
-              \%environment,               $self->[$CLOSURE_NAMESPACES],
-              $self->[$CLOSURE_NAMESPACE_PATH]
-            ] => __PACKAGE__
-          );
-        }
-        else {
-          my $new_engine = $engine->with_new_closure(
-            +{ %environment, %{$filled_options} },
-            $self->[$CLOSURE_NAMESPACES],
-            $self->[$CLOSURE_NAMESPACE_PATH]
-          );
-          $new_engine->execute( $self->[$EXPRESSION] )->done(
-            sub {
-              $promise->resolve(@_);
-            },
-            sub {
-              $promise->reject(@_);
-            }
-          );
-        }
-      },
-      sub {
-        $promise->reject(@_);
-      }
+  if ( @$new_bindings || @$new_bindings_with_defaults ) {
+    my $promise = deferred;
+    $promise->resolve(
+      bless [
+        $self->[$EXPRESSION],        $new_bindings,
+        $new_bindings_with_defaults, $filled_options,
+        \%environment,               $self->[$CLOSURE_NAMESPACES],
+        $self->[$CLOSURE_NAMESPACE_PATH]
+      ] => __PACKAGE__
     );
+    return $promise -> promise;
   }
-
-  return $promise->promise;
+  else {
+    my $new_engine = $engine->with_new_closure(
+      +{ %environment, %{$filled_options} },
+      $self->[$CLOSURE_NAMESPACES],
+      $self->[$CLOSURE_NAMESPACE_PATH]
+    );
+    return $new_engine->execute( $self->[$EXPRESSION] );
+  }
 }
 
 1;

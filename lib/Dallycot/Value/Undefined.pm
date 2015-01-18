@@ -29,11 +29,7 @@ sub is_empty { return 1 }
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $d->resolve( $engine->ZERO );
-
-  return $d->promise;
+  return $engine->ZERO;
 }
 
 sub is_equal {
