@@ -39,7 +39,6 @@ sub to_string {
 sub execute {
   my ( $self, $engine ) = @_;
 
-
   my $registry = Dallycot::Registry->instance;
   if ( @$self > 1 ) {
     if ( $engine->has_namespace( $self->[0] ) ) {

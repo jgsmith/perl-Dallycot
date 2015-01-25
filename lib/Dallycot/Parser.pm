@@ -398,9 +398,21 @@ sub compose {
 }
 
 sub compose_map {
-  my ( undef, @functions ) = @_;
+  my ( undef, $left, $right ) = @_;
 
-  return bless [@functions] => 'Dallycot::AST::BuildMap';
+  if($right -> isa('Dallycot::AST::BuildMap')) {
+    if($left -> isa('Dallycot::AST::BuildMap')) {
+      push @$left, @$right;
+      return $left;
+    }
+    else {
+      unshift @$right, $left;
+      return $right;
+    }
+  }
+  else {
+    return bless [ $left, $right ] => 'Dallycot::AST::BuildMap';
+  }
 }
 
 sub compose_filter {
@@ -817,14 +829,14 @@ sub stream_constant {
   my ( undef, $constants ) = @_;
 
   if (@$constants) {
-    my $result = bless [ pop @$constants, undef ] => 'Dallycot::Value::List';
+    my $result = bless [ pop @$constants, undef ] => 'Dallycot::Value::Stream';
     while (@$constants) {
-      $result = bless [ pop @$constants, $result ] => 'Dallycot::Value::List';
+      $result = bless [ pop @$constants, $result ] => 'Dallycot::Value::Stream';
     }
     return $result;
   }
   else {
-    return bless [] => 'Dallycot::Value::List';
+    return bless [] => 'Dallycot::Value::EmptyStream';
   }
 }
 

@@ -328,6 +328,32 @@ $result = run("def-foo(2,4)");
 
 is_deeply $result, Numeric(8);
 
+$result = run(<<'EOD');
+sine-wave(strings, terminal-width -> 80) :> (
+  number-of-strings := 4;
+  max-string-length := 3;
+  offset := max-string-length div 2;
+  multiplier := terminal-width - offset;
+  blank-line :=
+"                                                                              "
+;
+  (y) :> (
+    string := strings[((y - 1) mod number-of-strings) + 1];
+    "  " ::> string;
+  );
+)
+EOD
+
+isa_ok $result, 'Dallycot::Value::Lambda';
+
+$result = run('sine-wave(5)');
+
+isa_ok $result, 'Dallycot::Value::Lambda';
+
+$result = run("(sine-wave(<<the big red fox>>) @ 1..)...'");
+
+is_deeply $result, String("  big");
+
 #$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
 
 #is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";

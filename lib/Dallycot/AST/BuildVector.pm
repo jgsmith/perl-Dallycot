@@ -8,25 +8,16 @@ use warnings;
 use utf8;
 use parent 'Dallycot::AST';
 
-use Promises qw(deferred);
-
 sub execute {
   my ( $self, $engine ) = @_;
 
-  my $d = deferred;
-
-  $engine->collect(@$self)->done(
+  return $engine->collect(@$self)->then(
     sub {
       my (@bits) = @_;
 
-      $d->resolve( bless \@bits => 'Dallycot::Value::Vector' );
-    },
-    sub {
-      $d->reject(@_);
+      bless \@bits => 'Dallycot::Value::Vector';
     }
   );
-
-  return $d->promise;
 }
 
 1;

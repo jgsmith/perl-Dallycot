@@ -16,7 +16,7 @@ ns 'http://www.dallycot.net/ns/cli/1.0#';
 
 define print => (
   hold => 0,
-  arity => [0],
+  arity => [1],
   options => {}
 ), sub {
   my($engine, $options, @things) = @_;

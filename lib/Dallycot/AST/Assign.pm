@@ -33,7 +33,6 @@ sub simplify {
 sub execute {
   my ( $self, $engine ) = @_;
 
-
   my $registry = Dallycot::Registry->instance;
 
   my $d;
