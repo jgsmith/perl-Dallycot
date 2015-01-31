@@ -14,9 +14,13 @@ use Math::BaseCalc;
 
 use experimental qw(switch);
 
+use Carp qw(croak);
 use Promises qw(deferred);
 
 ns 'http://www.dallycot.net/ns/strings/1.0#';
+
+uses 'http://www.dallycot.net/ns/functions/1.0#',
+     'http://www.dallycot.net/ns/streams/1.0#';
 
 #====================================================================
 #
@@ -157,6 +161,15 @@ define 'string-drop' => (
   }
 };
 
+define 'string-join' => << 'EOD';
+(joiner, string-stream) :> last(
+  foldl1(
+    { #1 ::> joiner ::> #2 }/2,
+    string-stream
+  )
+)
+EOD
+
 define 'hash' => (
   hold => 0,
   arity => 1,
@@ -171,6 +184,27 @@ define 'hash' => (
   my $d = deferred;
   $d -> resolve(Dallycot::Value::Numeric -> new($num) );
   return $d -> promise;
+};
+
+define 'string-multiply' => (
+  hold => 0,
+  arity => 2,
+  options => {}
+), sub {
+  my($engine, $options, $string, $count) = @_;
+
+  if(!defined($string) || !$string -> isa('Dallycot::Value::String')) {
+    croak 'string-multiple requires a string as its first argument.';
+  }
+  if(!defined($count) || !$count -> isa('Dallycot::Value::Numeric')) {
+    croak 'string-multiple requires a numeric second argument.';
+  }
+  my $base = $string -> value;
+  my $c = $count -> value -> as_int;
+  return Dallycot::Value::String->new(
+    $base x $c,
+    $string -> lang
+  );
 };
 
 define 'N' => (

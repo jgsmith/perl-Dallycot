@@ -163,6 +163,10 @@ test_parses(
 
   "{ # } @ g" => [map_(lambda(['#'], {}, fetch('#')), fetch('g'))],
 
+  'f @ g @ <1,2,3>' => [map_(
+    fetch('f'), fetch('g'), vector(intLit(1), intLit(2), intLit(3))
+  )],
+
   "upfrom_f(yf, n) :> [ n, yf(yf, n+1)]" => [assignment(
     upfrom_f => lambda(
       [qw(yf n)],

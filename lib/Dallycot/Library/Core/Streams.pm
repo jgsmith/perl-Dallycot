@@ -94,7 +94,7 @@ define 'fibonacci-sequence' => <<'EOD';
 EOD
 
 define 'leonardo-sequence' => <<'EOD';
-  [ 1, 1, Y((self, a, b) :> [ a + b + 1, self(self, b, a + b + 1) ]) ]
+  [ 1, 1, Y((self, a, b) :> [ a + b + 1, self(self, b, a + b + 1) ])(1, 1) ]
 EOD
 
 define prime => '(n) :> primes[n]';
