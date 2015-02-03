@@ -527,7 +527,7 @@ define 'count-and-sum' => <<'EOD';
 EOD
 
 define mean => <<'EOD';
-  (s) :> { #[2] div #[1] } @ count-and-sum(s)
+  (s) :> ({ #[2] div #[1] } @ count-and-sum(s))
 EOD
 
 define differences => <<'EOD';

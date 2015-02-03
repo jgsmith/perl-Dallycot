@@ -402,6 +402,9 @@ sub run {
 
   eval {
     my $parse = $parser -> parse($stmt);
+    if(!$parse) {
+      print STDERR "unable to parse: $stmt\n";
+    }
     if('HASH' eq ref $parse) {
       $parse = [ $parse ];
     }

@@ -963,12 +963,6 @@ sub resolve_uri {
   return bless [ $expression ] => 'Dallycot::AST::Resolve';
 }
 
-#sub y_combinator {
-#  my( undef, $expression ) = @_;
-#
-#  return bless [ $expression ] => 'Dallycot::AST::YCombinator';
-#}
-
 1;
 
 __DATA__
@@ -977,22 +971,10 @@ __DATA__
 
 Block ::= Statement+ separator => STMT_SEP action => block
 
-Statement ::=
-              NSDef
+Statement ::= NSDef
             | Uses action => add_uses
             | Expression
 
-Expression ::= ConditionList
-             | Function
-             | Scalar
-             | Vector
-             | Stream
-             | Node
-             | Assign
-             | FuncDef
-             | TypePromotion
-
-TypePromotion ::= Expression ('^^') TypeSpec action => promote_value
 
 TypeSpec ::= TypeName
            | TypeSpec PIPE TypeName
@@ -1030,7 +1012,7 @@ ConstantVector ::= (LT) ConstantValues (GT)
 
 ConstantValues ::= ConstantValue+ separator => COMMA action => list
 
-Scalar ::=
+Expression ::=
       Integer action => integer_literal
     | Float action => float_literal
     | String action => string_literal
@@ -1038,86 +1020,59 @@ Scalar ::=
     | Identifier action => fetch
     | QCName action => fetch
     | LambdaArg action => fetch
-    | Stream QUOTE action => head
+    | Node
+    | Lambda
     | (LP) (RP) action => undef_literal
-    | Scalar PropRequest action => prop_request
-    | Node PropRequest action => prop_request
-    | Vector PropRequest action => prop_request
-    | Stream PropRequest action => prop_request
-    | Apply
-    | Vector (LB) Scalar (RB) action => vector_index
-    | Scalar (LB) Scalar (RB) action => vector_index
-    | (MINUS) Scalar action => negate
-    | ('?') Scalar action => defined_q
-    | ('?') (LP) Expression (RP) action => defined_q
-   || (LP) Block (RP) assoc => group
-   || Expression ('<<') Function ('<<') Stream action => stream_reduction
-   || Function ('<<') Stream action => stream_reduction1
-   || Scalar (STAR) Scalar action => product
-    | Scalar (DIV) Scalar action => divide
-   || Scalar (MOD) Scalar action => modulus
-   || Scalar (PLUS) Scalar action => sum
-    | Scalar (MINUS) Scalar action => subtract
-   || Scalar (COLON_COLON_GT) Scalar action => cons assoc => right
-   || Scalar Inequality Scalar action => inequality
-   || Scalar (AND) Scalar action => all
-   || Scalar (OR) Scalar action => any
+    | Expression (LB) Expression (RB) action => vector_index
+    | ConditionList
+    | (LP) Block (RP) assoc => group
+    | (LB) ExpressionList (RB) assoc => group action => stream
+    | (LB) (RB) action => empty_stream
+    | StringVector action => build_string_vector
+    | (LT) ExpressionList (GT) action => build_vector
+    | (LT) (GT) action => empty_vector
+    | ('<>') action => empty_vector
+    # | (LP_LC) ExpressionList (RC_RP) assoc => group action => build_set
+    # | (LP_LC) (LC_LP) action => empty_set
+    # | ('({})') action => empty_set
+   || Apply
+   || Expression QUOTE assoc => left action => head
+    | Expression DOT_DOT_DOT assoc => left action => tail
+    | Expression ('^^') TypeSpec action => promote_value
+   || Expression PropRequest assoc => left action => prop_request
+   || ('?') Expression assoc => right action => defined_q
+    | (MINUS) Expression assoc => right action => negate
+    | (TILDE) Expression assoc => right action => invert
+    | Expression (DOT_DOT) Expression action => closed_range
+    | Expression (DOT_DOT) action => semi_range
+   || Expression (Z) Expression action => zip assoc => right
+   || Expression (MAP) Expression action => compose_map assoc => right
+    | Expression (FILTER) Expression action => compose_filter assoc => right
+   || Expression ('<<') Expression ('<<') Expression action => stream_reduction
+   || Expression ('<<') Expression action => stream_reduction1 assoc => right
+   || Expression (DOT) Expression action => compose
+   || Expression (STAR) Expression action => product
+    | Expression (DIV) Expression action => divide
+   || Expression (MOD) Expression action => modulus assoc => right
+   || Expression (PLUS) Expression action => sum
+    | Expression (MINUS) Expression action => subtract
+  #  || Expression (PIPE) Expression action => set_union
+  #  || Expression (AMP) Expression action => set_intersection
+   || Expression (COLON_COLON_GT) Expression action => cons assoc => right
+   || Expression (LT_COLON_COLON) Expression action => vector_push assoc => left
+   || Expression Inequality Expression action => inequality
+   || Expression (AND) Expression action => all
+   || Expression (OR) Expression action => any
+   || Identifier (COLON_EQUAL) Expression action => assign assoc => right
+    | Identifier (LP) FunctionParameters (RP) (COLON_GT) Expression action => function_definition assoc => right
+    | Identifier (LP) (RP) (COLON_GT) Expression action => function_definition_sans_args assoc => right
+    | Identifier (SLASH) PositiveInteger (COLON_GT) Expression action => function_definition assoc => right
 
 Node ::=
       NodeDef
     | Graph (MOD) UriLit action => modulus
-    | Identifier action => fetch
     | UriLit
     | ('<(') Expression (')>') action => uri_expression
-    | Node PropRequest action => prop_request
-    | Apply
-
-Stream ::=
-      Identifier action => fetch
-    | LambdaArg action => fetch
-    | Apply
-    | Stream PropRequest action => prop_request
-    | (LB) ExpressionList (RB) assoc => group action => stream
-    | (LB) (RB) action => empty_stream
-   || (LP) Block (RP) assoc => group
-    | Scalar (DOT_DOT) Scalar action => closed_range
-    | Scalar (DOT_DOT) action => semi_range
-   || Stream (DOT_DOT_DOT) action => tail
-   || Stream (Z) Vector action => zip assoc => right
-    | Stream (Z) Stream action => zip
-    | Vector (Z) Vector action => zip assoc => right
-   || FunctionOrFetched (MAP) Stream action => compose_map assoc => right
-    | FunctionOrFetched (FILTER) Stream action => compose_filter assoc => right
-   || Scalar (COLON_COLON_GT) Stream action => cons assoc => right
-
-Vector ::=
-      Identifier action => fetch
-    | LambdaArg action => fetch
-    | StringVector action => build_string_vector
-    | Apply
-    | (LT) ExpressionList (GT) action => build_vector
-    | (LT) (GT) action => empty_vector
-    | ('<>') action => empty_vector
-   || FunctionOrFetched (MAP) Vector action => compose_map assoc => right
-   || FunctionOrFetched (FILTER) Vector action => compose_filter assoc => right
-   || Vector (DOT_DOT_DOT) action => tail
-   || Scalar (COLON_COLON_GT) Vector action => cons assoc => right
-   || Vector (LT_COLON_COLON) Scalar action => vector_push
-
-
-
-# Set ::=
-#       Identifier action => fetch
-#     | LambdaArg action => fetch
-#     | Apply
-#     | (LP_LC) ExpressionList (RC_RP) action => build_set
-#     | (LP_LC) (RC_RP) action => empty_set
-#     | Set (PIPE) Set action => set_union
-#     | Set (AMP) Set action => set_intersection
-#    || Function (MAP) Set action => compose_map assoc => right
-#    || Function (FILTER) Set action => compose_map assoc => right
-#    || Scalar (COLON_COLON_GT) Set action => set_add assoc => right
-#    || Set (LT_COLON_COLON) Scalar action => set_add
 
 Graph ::= NodeDef
         | NodeDef (COLON_COLON_GT) Graph action => cons assoc => right
@@ -1143,17 +1098,6 @@ PropIdentifier ::= (COLON) Identifier action => prop_literal
                  | ATIdentifier action => prop_literal
                  | (COLON) QCName action => prop_literal
                  | Expression
-
-Function ::=
-      Lambda
-    | Apply
-    | (MINUS) Function action => negate
-    | (TILDE) Function action => invert
-    | (LP) Block (RP) assoc => group
-   || FunctionOrFetched (DOT) FunctionOrFetched action => compose
-
-FunctionOrFetched ::= Function
-                    | Fetched
 
 Fetched ::=
       Identifier action => fetch
@@ -1186,12 +1130,6 @@ Conditions ::= Condition+ action => list
 Condition ::= (LP) Expression (RP) (COLON) Expression action => condition
 
 Otherwise ::= (LP) (RP) (COLON) Expression
-
-Assign ::= Identifier (COLON_EQUAL) Expression action => assign
-
-FuncDef ::= Identifier (LP) FunctionParameters (RP) (COLON_GT) Expression action => function_definition
-          | Identifier (LP) (RP) (COLON_GT) Expression action => function_definition_sans_args
-          | Identifier (SLASH) PositiveInteger (COLON_GT) Expression action => function_definition
 
 FunctionParameters ::= IdentifiersWithPossibleDefaults action => combine_identifiers_options
           | OptionDefinitions action => relay_options
