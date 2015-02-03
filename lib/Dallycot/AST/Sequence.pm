@@ -62,7 +62,9 @@ sub execute {
     $child_scope -> add_assignment( $ident );
   }
 
-  return $child_scope->execute(@{$self->[0]}, @{$self->[1]});
+  $child_scope->collect(@{$self->[0]})->done(sub{});
+
+  return $child_scope->execute(@{$self->[1]});
 }
 
 sub identifiers {

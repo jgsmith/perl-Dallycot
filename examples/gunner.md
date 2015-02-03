@@ -245,8 +245,9 @@ We pass the `attack-target` function in because we haven't defined it yet, and a
 
 ```
 fire-gun(gun, target, elevation, tries, attack-target) :> (
-  hit-at := gun-range(gun) * math:sin(elevation);
   distance := math:ceil(target-distance(target) - hit-at);
+  hit-at := gun-range(gun) * math:sin(elevation);
+  
   (
     (math:abs(distance) < 100) : destroy-target(tries)
     (         distance  < 100) : under-shoot(gun, target, -distance, tries, attack-target)
@@ -282,7 +283,7 @@ A round of the game consists of a number of attacks against the same target. For
 game-round(round, total-shells) :> (
   gun    := make-gun();
   target := make-target(gun);
-  
+
   update-stats() :> (
     stats := attack-target(gun, target, 1..6);
     < (stats[1] + total-shells), stats[2] >
