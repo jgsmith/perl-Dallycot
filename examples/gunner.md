@@ -43,7 +43,7 @@ ns:strings := "http://www.dallycot.net/ns/strings/1.0#";
 We make the function routines available without a namespace just to make some of the code easier to write, namely the use of `Y`.
 
 ```
-uses "http://www.dallycot.net/ns/functions/1.0#";
+uses "http://www.dallycot.net/ns/core/1.0#";
 ```
 
 All of these libraries are part of the Dallycot distribution.

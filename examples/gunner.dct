@@ -11,7 +11,7 @@ ns:cli := "http://www.dallycot.net/ns/cli/1.0#";
 ns:math := "http://www.dallycot.net/ns/math/1.0#";
 ns:strings := "http://www.dallycot.net/ns/strings/1.0#";
 
-uses "http://www.dallycot.net/ns/functions/1.0#";
+uses "http://www.dallycot.net/ns/core/1.0#";
 
 print-lines := Y(
   (self, stream) :> (

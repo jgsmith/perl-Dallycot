@@ -62,10 +62,6 @@ sub tail {
   return $d->promise;
 }
 
-sub reduce {
-
-}
-
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 

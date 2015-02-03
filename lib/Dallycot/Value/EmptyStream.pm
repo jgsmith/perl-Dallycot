@@ -88,14 +88,4 @@ sub tail {
   return $p->promise;
 }
 
-sub reduce {
-  my ( $self, $engine, $start, $lambda ) = @_;
-
-  my $p = deferred;
-
-  $p->resolve($start);
-
-  return $p->promise;
-}
-
 1;

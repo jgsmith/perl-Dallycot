@@ -77,17 +77,4 @@ sub apply_filter {
   });
 }
 
-sub reduce {
-  my ( $self, $engine, $start, $lambda ) = @_;
-
-  # since we're open ended, we know we can't reduce
-  # might want a 'reduce until...', though we can do this
-  # with filters on a sequence
-  my $promise = deferred;
-
-  $promise->reject("An open-ended Range can not be reduced.");
-
-  return $promise->promise;
-}
-
 1;

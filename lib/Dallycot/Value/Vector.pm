@@ -122,46 +122,4 @@ sub tail {
   return $d->promise;
 }
 
-sub reduce {
-  my ( $self, $engine, $start, $lambda ) = @_;
-
-  my $promise = deferred;
-
-  $self->_reduce_loop(
-    $engine, $promise,
-    start  => $start,
-    lambda => $lambda,
-    index  => 0
-  );
-
-  return $promise->promise;
-}
-
-sub _reduce_loop {
-  my ( $self, $engine, $promise, %params ) = @_;
-
-  my ( $start, $lambda, $index ) = @params{qw(start lambda index)};
-
-  if ( $index < @$self ) {
-    $lambda->apply( $engine, {}, $start, $self->[$index] )->done(
-      sub {
-        my ($next_start) = @_;
-        $self->_reduce_loop(
-          $engine, $promise,
-          start  => $next_start,
-          lambda => $lambda,
-          index  => $index + 1
-        );
-      },
-      sub {
-        $promise->reject(@_);
-      }
-    );
-  }
-  else {
-    $promise->resolve($start);
-  }
-  return;
-}
-
 1;

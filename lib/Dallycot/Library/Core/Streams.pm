@@ -30,15 +30,6 @@ define length => (
   $thing->calculate_length($engine);
 };
 
-define 'last' => <<'EOD';
-Y(
-  (self, stream) :> (
-    (?(stream...)) : self(self, stream...)
-    (            ) : stream'
-  )
-)
-EOD
-
 define 'set-first' => '(s, sh) :> [sh, s... ]';
 
 define 'set-rest' => "(s, st) :> [ s', st ]";

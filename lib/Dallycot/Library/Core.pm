@@ -38,6 +38,15 @@ define foldl1 => <<'EOD';
   )
 EOD
 
+define 'last' => <<'EOD';
+Y(
+  (self, stream) :> (
+    (?(stream...)) : self(self, stream...)
+    (            ) : stream'
+  )
+)
+EOD
+
 define nest => <<'EOD';
 Y(
   (self, function, count) :> (

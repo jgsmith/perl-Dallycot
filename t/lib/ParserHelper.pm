@@ -302,7 +302,13 @@ sub index_ {
 }
 
 sub reduce {
-  bless \@_ => 'Dallycot::AST::Reduce'
+  apply(
+    uriLit('http://www.dallycot.net/ns/core/1.0#last'),
+    apply(
+      uriLit('http://www.dallycot.net/ns/core/1.0#foldl'),
+      @_
+    )
+  );
 }
 
 sub type_promotion {

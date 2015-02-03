@@ -354,9 +354,13 @@ $result = run("(sine-wave(<<the big red fox>>) @ 1..)...'");
 
 is_deeply $result, String("  big");
 
-#$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
+$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
 
-#is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
+is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
+
+$result = run("((a,b) :> (a + b)) << (1..5)");
+
+is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
 
 $result = run("1 ::> 2 ::> []");
 

@@ -15,6 +15,8 @@ use Scalar::Util qw(blessed);
 use String::Escape qw(unbackslash unquote);
 
 use Dallycot::AST::Sequence;
+use Dallycot::AST::Apply;
+use Dallycot::Value::URI;
 
 my $grammar =
     Marpa::R2::Scanless::G->new( {
@@ -918,7 +920,29 @@ sub closed_range {
 sub stream_reduction {
   my ( undef, $start, $function, $stream ) = @_;
 
-  return bless [ $start, $function, $stream ] => 'Dallycot::AST::Reduce';
+  return Dallycot::AST::Apply->new(
+    Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#last'),
+    [ Dallycot::AST::Apply->new(
+      Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl'),
+      [ $start, $function, $stream],
+      {}
+    ) ],
+    {}
+  );
+}
+
+sub stream_reduction1 {
+  my ( undef, $function, $stream ) = @_;
+
+  return Dallycot::AST::Apply->new(
+    Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#last'),
+    [ Dallycot::AST::Apply->new(
+      Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl1'),
+      [ $function, $stream],
+      {}
+    ) ],
+    {}
+  );
 }
 
 sub promote_value {
@@ -1027,7 +1051,8 @@ Scalar ::=
     | ('?') Scalar action => defined_q
     | ('?') (LP) Expression (RP) action => defined_q
    || (LP) Block (RP) assoc => group
-   #|| Expression (LT_LT) Function (LT_LT) Stream action => stream_reduction
+   || Expression ('<<') Function ('<<') Stream action => stream_reduction
+   || Function ('<<') Stream action => stream_reduction1
    || Scalar (STAR) Scalar action => product
     | Scalar (DIV) Scalar action => divide
    || Scalar (MOD) Scalar action => modulus

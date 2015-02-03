@@ -5,7 +5,7 @@ printing them one per line forming a sine wave. The program assumes an
 80-column terminal.
 
 ```
-uses "http://www.dallycot.net/ns/functions/1.0#";
+uses "http://www.dallycot.net/ns/core/1.0#";
 uses "http://www.dallycot.net/ns/math/1.0#";
 uses "http://www.dallycot.net/ns/streams/1.0#";
 uses "http://www.dallycot.net/ns/strings/1.0#";

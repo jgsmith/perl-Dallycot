@@ -7,10 +7,12 @@ use Test::More;
 
 use LibraryHelper;
 
+require Dallycot::Library::Core;
 require Dallycot::Library::Core::Streams;
 
 uses 'http://www.dallycot.net/ns/math/1.0#',
-     'http://www.dallycot.net/ns/streams/1.0#';
+     'http://www.dallycot.net/ns/streams/1.0#',
+     'http://www.dallycot.net/ns/core/1.0#';
 
 BEGIN { require_ok 'Dallycot::Library::Core::Math' };
 
