@@ -178,17 +178,16 @@ sub apply_map {
 
     return $map_t -> apply( $engine, {}, $self );
   });
-  # my $map_t = $engine->make_map($transform);
-  #
-  # return $map_t->apply( $engine, {}, $self );
 }
 
 sub apply_filter {
   my( $self, $engine, $filter ) = @_;
 
-  my $filter_t = $engine->make_filter($filter);
+  $engine->make_filter($filter) -> then(sub {
+    my($filter_t) = @_;
 
-  return $filter_t -> apply( $engine, {}, $self );
+    return $filter_t -> apply( $engine, {}, $self);
+  });
 }
 
 

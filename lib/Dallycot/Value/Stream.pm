@@ -121,16 +121,16 @@ sub apply_map {
 
     $map_t -> apply( $engine, {}, $self );
   });
-  #
-  # return $map_t->apply( $engine, {}, $self );
 }
 
 sub apply_filter {
   my ( $self, $engine, $filter ) = @_;
 
-  my $filter_t = $engine->make_filter($filter);
+  $engine->make_filter($filter) -> then(sub {
+    my($filter_t) = @_;
 
-  return $filter_t->apply( $engine, {}, $self );
+    $filter_t -> apply( $engine, {}, $self );
+  });
 }
 
 sub drop {

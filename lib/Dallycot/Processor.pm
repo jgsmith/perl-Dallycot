@@ -352,126 +352,21 @@ sub make_map {
   );
 }
 
-# filter := (
-#   filter_f(ff, f, s) :> (
-#     (?s) : (
-#       (f(s')) : [ s', ff(ff, f, s...) ],
-#       (     ) :       ff(ff, f, s...)
-#     )
-#     (  ) : [ ]
-#   );
-#   filter_f(filter_f, _, _)
-# );
-# filter(f, _)
-#
-my $FILTER = bless(
-  [
-    bless(
-      [
-        [
-          bless(
-            [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-            'Dallycot::AST::Defined'
-          ),
-          bless(
-            [
-              [
-                bless(
-                  [
-                    bless( ['f'], 'Dallycot::AST::Fetch' ),
-                    [
-                      bless(
-                        [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-                        'Dallycot::AST::Head'
-                      )
-                    ],
-                    {}
-                  ],
-                  'Dallycot::AST::Apply'
-                ),
-                bless(
-                  [
-                    bless(
-                      [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-                      'Dallycot::AST::Head'
-                    ),
-                    bless(
-                      [
-                        bless( ['ff'], 'Dallycot::AST::Fetch' ),
-                        [
-                          bless( ['ff'], 'Dallycot::AST::Fetch' ),
-                          bless( ['f'],  'Dallycot::AST::Fetch' ),
-                          bless(
-                            [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-                            'Dallycot::AST::Tail'
-                          )
-                        ],
-                        {}
-                      ],
-                      'Dallycot::AST::Apply'
-                    )
-                  ],
-                  'Dallycot::AST::BuildList'
-                )
-              ],
-              [
-                undef,
-                bless(
-                  [
-                    bless( ['ff'], 'Dallycot::AST::Fetch' ),
-                    [
-                      bless( ['ff'], 'Dallycot::AST::Fetch' ),
-                      bless( ['f'],  'Dallycot::AST::Fetch' ),
-                      bless(
-                        [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-                        'Dallycot::AST::Tail'
-                      )
-                    ],
-                    {}
-                  ],
-                  'Dallycot::AST::Apply'
-                )
-              ]
-            ],
-            'Dallycot::AST::Condition'
-          )
-        ],
-        [ undef, bless( [], 'Dallycot::AST::BuildList' ) ]
-      ],
-      'Dallycot::AST::Condition'
-    ),
-    [ 'ff', 'f', 's' ],
-    [],
-    {},
-    {},
-    {}
-  ],
-  'Dallycot::Value::Lambda'
-);
-
-my $FILTER_APPLIER = bless(
-  [
-    bless( ['__filter_f'], 'Dallycot::AST::Fetch' ),
-    [
-      bless( ['__filter_f'], 'Dallycot::AST::Fetch' ),
-      bless( ['___filter'],  'Dallycot::AST::Fetch' ),
-      bless( ['s'],          'Dallycot::AST::Fetch' )
-    ],
-    {}
-  ],
-  'Dallycot::AST::Apply'
-);
-
 sub make_filter {
-  my ( $self, $filter ) = @_;
+  my ( $self, $selector ) = @_;
 
-  my $new_engine = $self->with_child_scope;
-
-  $new_engine->context->add_assignment( "___filter", $filter );
-
-  $new_engine->context->add_assignment( "__filter_f", $FILTER );
-
-  return $new_engine->make_lambda( $FILTER_APPLIER, ['s'] );
+  return $self -> execute(
+    Dallycot::AST::Apply->new(
+      Dallycot::Value::URI->new(
+        'http://www.dallycot.net/ns/core/1.0#filter'
+      ),
+      [
+        $selector,
+        Dallycot::AST::Placeholder->new
+      ],
+      {}
+    )
+  );
 }
 
 __PACKAGE__ -> meta -> make_immutable;
