@@ -282,6 +282,11 @@ A round of the game consists of a number of attacks against the same target. For
 game-round(round, total-shells) :> (
   gun    := make-gun();
   target := make-target(gun);
+  
+  update-stats() :> (
+    stats := attack-target(gun, target, 1..6);
+    < (stats[1] + total-shells), stats[2] >
+  );
 
   print-lines(<
     "Maximum range of your gun is " ::> strings:number-string(gun-range(gun)) ::> " yards.",
@@ -296,8 +301,7 @@ game-round(round, total-shells) :> (
     ""
   >);
 
-  stats := attack-target(gun, target, 1..6);
-  < (stats[1] + total-shells), stats[2] >
+  update-stats();
 );
 ```
 
