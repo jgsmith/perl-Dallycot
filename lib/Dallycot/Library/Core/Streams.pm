@@ -8,10 +8,8 @@ use warnings;
 use utf8;
 use Dallycot::Library;
 
-BEGIN {
-  require Dallycot::Library::Core::Functions;
-  require Dallycot::Library::Core::Math;
-}
+use Dallycot::Library::Core ();
+use Dallycot::Library::Core::Math ();
 
 use Promises qw(deferred collect);
 
@@ -19,7 +17,7 @@ use experimental qw(switch);
 
 ns 'http://www.dallycot.net/ns/streams/1.0#';
 
-uses 'http://www.dallycot.net/ns/functions/1.0#',
+uses 'http://www.dallycot.net/ns/core/1.0#',
      'http://www.dallycot.net/ns/math/1.0#';
 
 define length => (

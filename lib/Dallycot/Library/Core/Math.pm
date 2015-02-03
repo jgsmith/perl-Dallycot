@@ -6,9 +6,10 @@ use strict;
 use warnings;
 
 use utf8;
-require Dallycot::Library::Core::Functions;
 
 use Dallycot::Library;
+
+use Dallycot::Library::Core ();
 
 use Promises qw(deferred collect);
 use Math::BigInt::Random;
@@ -19,7 +20,7 @@ use experimental qw(switch);
 
 ns 'http://www.dallycot.net/ns/math/1.0#';
 
-uses 'http://www.dallycot.net/ns/functions/1.0#';
+uses 'http://www.dallycot.net/ns/core/1.0#';
 
 define
   'divisible-by?' => (

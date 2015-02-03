@@ -173,9 +173,14 @@ sub _reduce_loop {
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 
-  my $map_t = $engine->make_map($transform);
+  $engine->make_map($transform) -> then(sub {
+    my($map_t) = @_;
 
-  return $map_t->apply( $engine, {}, $self );
+    return $map_t -> apply( $engine, {}, $self );
+  });
+  # my $map_t = $engine->make_map($transform);
+  #
+  # return $map_t->apply( $engine, {}, $self );
 }
 
 sub apply_filter {

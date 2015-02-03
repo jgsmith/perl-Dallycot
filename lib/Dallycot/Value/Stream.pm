@@ -116,9 +116,13 @@ sub _resolve_tail_promise {
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 
-  my $map_t = $engine->make_map($transform);
+  $engine->make_map($transform) -> then(sub {
+    my($map_t) = @_;
 
-  return $map_t->apply( $engine, {}, $self );
+    $map_t -> apply( $engine, {}, $self );
+  });
+  #
+  # return $map_t->apply( $engine, {}, $self );
 }
 
 sub apply_filter {

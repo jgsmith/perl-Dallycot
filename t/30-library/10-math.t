@@ -16,6 +16,8 @@ BEGIN { require_ok 'Dallycot::Library::Core::Math' };
 
 isa_ok(Dallycot::Library::Core::Math->instance, 'Dallycot::Library');
 
+ok(Dallycot::Registry->instance->has_namespace('http://www.dallycot.net/ns/core/1.0#'), 'Core namespace is registered');
+
 my $result;
 
 $result = run('even?(3)');

@@ -8,6 +8,7 @@ use warnings;
 use utf8;
 use MooseX::Singleton;
 use MooseX::Types::Moose qw(ArrayRef);
+use Promises qw(collect deferred);
 
 has type_handlers => (
   is      => 'ro',
@@ -20,6 +21,23 @@ has namespaces => (
   isa     => 'HashRef',
   default => sub { +{} }
 );
+
+has _namespace_promises => (
+  is      => 'ro',
+  isa     => 'HashRef',
+  default => sub { +{} }
+);
+
+sub register_used_namespaces {
+  my($self, @uris) = @_;
+
+  for my $ns (@uris) {
+    $self -> _namespace_promises -> {$ns} ||= deferred;
+  }
+  return collect(
+    map { $self -> _namespace_promises -> {$_} -> promise } @uris
+  );
+}
 
 sub has_assignment {
   my ( $self, $ns, $symbol ) = @_;
@@ -61,7 +79,7 @@ sub get_assignment {
 sub has_namespace {
   my ( $self, $ns ) = @_;
 
-  return exists $self->namespaces->{$ns};
+  return exists $self->namespaces->{$ns} && defined $self -> namespaces -> {$ns};
 }
 
 sub register_namespace {
@@ -70,6 +88,9 @@ sub register_namespace {
   if ( !$self->has_namespace($ns) ) {
     $self->namespaces->{$ns} = $context;
   }
+
+  $self -> _namespace_promises -> {$ns} ||= deferred;
+  $self -> _namespace_promises -> {$ns} -> resolve();
 
   return;
 }

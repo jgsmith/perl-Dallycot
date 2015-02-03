@@ -43,7 +43,8 @@ use Moose::Exporter;
 use Promises qw(deferred collect);
 
 use Module::Pluggable
-  require     => 1,
+  inner       => 1,
+  instantiate => 'instance',
   sub_name    => '_libraries',
   search_path => 'Dallycot::Library';
 
@@ -67,7 +68,7 @@ sub ns {
   ${$meta->{'package'}.'::NAMESPACE'} = $uri;
 
   my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
-  $engine -> append_namespace_search_path($uri);
+  uses($meta, $uri);
   return;
 }
 
@@ -94,7 +95,6 @@ sub define {
 
   if(is_CodeRef($body)) {
     # Perl subroutine
-    #$meta -> add_method( 'run_' . $name, $body );
     my $uri_promise = deferred;
     $uri_promise -> resolve($meta->{'package'}->_uri_for_name($name));
 
@@ -109,16 +109,24 @@ sub define {
     my $parser = Dallycot::Parser->new;
     my $parsed = $parser -> parse($body);
     my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
-    my $cv = AnyEvent -> condvar;
 
     if(!$parsed) {
       croak "Unable to parse Dallycot source for $name";
     }
 
-    $definitions->{$name} = {
-      %options,
-      expression => $engine->with_child_scope->execute(@{$parsed})
-    };
+    ${$meta->{'package'}.'::USES_PROMISE'} -> done(sub {
+      $definitions->{$name} = {
+        %options,
+        expression => $engine->with_child_scope->execute(@{$parsed})->catch(
+          sub {
+            my($err) = @_;
+
+            print STDERR "Error defining $name: $err\n";
+            die $err;
+          }
+        )
+      };
+    });
   }
   return;
 }
@@ -127,7 +135,22 @@ sub uses {
   my($meta, @uris) = @_;
 
   my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
-  $engine -> append_namespace_search_path(@uris);
+
+  my $promise = Dallycot::Registry->instance->register_used_namespaces(@uris) -> then(sub {
+    $engine -> append_namespace_search_path(@uris);
+  });
+
+  no strict 'refs';
+
+  my $prior_promise = ${$meta->{'package'}.'::USES_PROMISE'};
+  if($prior_promise) {
+    $prior_promise = $prior_promise->then(sub { $promise });
+  }
+  else {
+    $prior_promise = $promise;
+  }
+  ${$meta->{'package'}.'::USES_PROMISE'} = $prior_promise;
+
   return;
 }
 
@@ -174,7 +197,6 @@ sub _uri_for_name {
 
   $class = ref($class) || $class;
 
-  # return Dallycot::Value::URI -> new(${$class.'::NAMESPACE'} . $name);
   return Dallycot::Value::URI->new($class->namespace . $name);
 }
 

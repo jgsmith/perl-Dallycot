@@ -17,9 +17,12 @@ use experimental qw(switch);
 use Carp qw(croak);
 use Promises qw(deferred);
 
+use Dallycot::Library::Core ();
+use Dallycot::Library::Core::Streams ();
+
 ns 'http://www.dallycot.net/ns/strings/1.0#';
 
-uses 'http://www.dallycot.net/ns/functions/1.0#',
+uses 'http://www.dallycot.net/ns/core/1.0#',
      'http://www.dallycot.net/ns/streams/1.0#';
 
 #====================================================================

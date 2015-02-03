@@ -335,94 +335,21 @@ sub compose_filters {
     ['#'] );
 }
 
-#
-# map_f(f, t, s) :> (
-#   (?s) : [ t(s'), f(f, t, s...) ]
-#   (  ) : [ ]
-# )
-#
-# ___transform := t
-# map_t := { map_f(map_f, ___transorm, #) }
-#
-my $MAPPER = bless(
-  [
-    bless(
-      [
-        [
-          bless(
-            [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-            'Dallycot::AST::Defined'
-          ),
-          bless(
-            [
-              bless(
-                [
-                  bless( ['t'], 'Dallycot::AST::Fetch' ),
-                  [
-                    bless(
-                      [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-                      'Dallycot::AST::Head'
-                    )
-                  ],
-                  {}
-                ],
-                'Dallycot::AST::Apply'
-              ),
-              bless(
-                [
-                  bless( ['f'], 'Dallycot::AST::Fetch' ),
-                  [
-                    bless( ['f'], 'Dallycot::AST::Fetch' ),
-                    bless( ['t'], 'Dallycot::AST::Fetch' ),
-                    bless(
-                      [ bless( ['s'], 'Dallycot::AST::Fetch' ) ],
-                      'Dallycot::AST::Tail'
-                    )
-                  ],
-                  {}
-                ],
-                'Dallycot::AST::Apply'
-              )
-            ],
-            'Dallycot::AST::BuildList'
-          )
-        ],
-        [ undef, bless( [], 'Dallycot::AST::BuildList' ) ]
-      ],
-      'Dallycot::AST::Condition'
-    ),
-    [ 'f', 't', 's' ],
-    [],
-    {},
-    {},
-    {}
-  ],
-  'Dallycot::Value::Lambda'
-);
-
-my $MAP_APPLIER = bless(
-  [
-    bless( ['__map_f'], 'Dallycot::AST::Fetch' ),
-    [
-      bless( ['__map_f'],      'Dallycot::AST::Fetch' ),
-      bless( ['___transform'], 'Dallycot::AST::Fetch' ),
-      bless( ['s'],            'Dallycot::AST::Fetch' )
-    ],
-    {}
-  ],
-  'Dallycot::AST::Apply'
-);
-
 sub make_map {
   my ( $self, $transform ) = @_;
 
-  my $new_engine = $self->with_child_scope;
-
-  $new_engine->context->add_assignment( "___transform", $transform );
-
-  $new_engine->context->add_assignment( "__map_f", $MAPPER );
-
-  return $new_engine->make_lambda( $MAP_APPLIER, ['s'] );
+  return $self -> execute(
+    Dallycot::AST::Apply->new(
+      Dallycot::Value::URI->new(
+        'http://www.dallycot.net/ns/core/1.0#map'
+      ),
+      [
+        $transform,
+        Dallycot::AST::Placeholder->new
+      ],
+      {}
+    )
+  );
 }
 
 # filter := (
@@ -548,5 +475,7 @@ sub make_filter {
 }
 
 __PACKAGE__ -> meta -> make_immutable;
+
+require Dallycot::Library::Core;
 
 1;

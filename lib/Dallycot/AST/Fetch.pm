@@ -65,11 +65,11 @@ sub execute {
       return $d -> promise;
     }
   }
-  elsif ( $registry->has_assignment( $engine -> get_namespace_search_path, $self->[0] ) ) {
-    return maybe_promise($registry->get_assignment( $engine -> get_namespace_search_path, $self->[0] ));
-  }
   elsif ( $engine->has_assignment( $self->[0] ) ) {
     return maybe_promise($engine->get_assignment( $self->[0] ));
+  }
+  elsif ( $registry->has_assignment( $engine -> get_namespace_search_path, $self->[0] ) ) {
+    return maybe_promise($registry->get_assignment( $engine -> get_namespace_search_path, $self->[0] ));
   }
   else {
     my $d = deferred;
