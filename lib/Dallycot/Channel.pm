@@ -2,6 +2,7 @@ package Dallycot::Channel;
 
 # ABSTRACT: i/o channel base class
 
+use utf8;
 use Moose;
 use Carp qw(croak);
 

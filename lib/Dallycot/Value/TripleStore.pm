@@ -39,11 +39,8 @@ sub calculate_length {
 sub type {
   my ($self) = @_;
 
-  eval {
-    my @types = map { $_->[1] } $self->_fetch_property('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
-    return Dallycot::Value::Set->new(@types);
-  };
-  return Dallycot::Value::Set->new;
+  my @types = map { $_->[1] } $self->_fetch_property('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
+  return Dallycot::Value::Set->new(@types);
 }
 
 sub _fetch_property {

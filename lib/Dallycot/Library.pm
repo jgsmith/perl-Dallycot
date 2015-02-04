@@ -121,7 +121,7 @@ sub define {
               my ($err) = @_;
 
               print STDERR "Error defining $name: $err\n";
-              die $err;
+              croak $err;
             }
           )
         };

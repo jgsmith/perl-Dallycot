@@ -2,6 +2,7 @@ package Dallycot::CLI;
 
 # ABSTRACT: command line interface application
 
+use utf8;
 use Moose;
 with 'MooseX::Getopt';
 

@@ -396,20 +396,20 @@ sub compose {
 }
 
 sub compose_map {
-  my ( undef, $left, $right ) = @_;
+  my ( undef, $left_term, $right_term ) = @_;
 
-  if ( $right->isa('Dallycot::AST::BuildMap') ) {
-    if ( $left->isa('Dallycot::AST::BuildMap') ) {
-      push @$left, @$right;
-      return $left;
+  if ( $right_term->isa('Dallycot::AST::BuildMap') ) {
+    if ( $left_term->isa('Dallycot::AST::BuildMap') ) {
+      push @$left_term, @$right_term;
+      return $left_term;
     }
     else {
-      unshift @$right, $left;
-      return $right;
+      unshift @$right_term, $left_term;
+      return $right_term;
     }
   }
   else {
-    return bless [ $left, $right ] => 'Dallycot::AST::BuildMap';
+    return bless [ $left_term, $right_term ] => 'Dallycot::AST::BuildMap';
   }
 }
 
@@ -431,12 +431,18 @@ sub build_string_vector {
   $lit =~ s/^<<//;
   $lit =~ s/>>$//;
   my @matches = map { unbackslash($_) }
-    map { my $a = $_; $a =~ s/\\ / /g; $a }
-    split( /(?<!\\)\s+/, $lit );
+    map { unbackslash_spaces($_) }
+    split( m{(?<!\\)\s+}x, $lit );
 
   return
     bless [ map { bless [ $_, $lang ] => 'Dallycot::Value::String'; } @matches ] =>
     'Dallycot::Value::Vector';
+}
+
+sub unbackslash_spaces {
+  my ($text) = @_;
+  $text =~ s/\\ / /g;
+  return $text;
 }
 
 sub integer_literal {
@@ -812,16 +818,20 @@ sub empty_set {
 sub build_set {
   my ( undef, $expressions ) = @_;
 
-  my @expressions = map {
-    if ( $_->isa('Dallycot::AST::Union') ) {
-      @$_;
-    }
-    else {
-      $_;
-    }
-  } @$expressions;
+  my @expressions = map { flatten_union($_) } @$expressions;
 
   return bless \@expressions => 'Dallycot::AST::BuildSet';
+}
+
+sub flatten_union {
+  my ($thing) = @_;
+
+  if ( $thing->isa('Dallycot::AST::Union') ) {
+    return @$thing;
+  }
+  else {
+    return $thing;
+  }
 }
 
 sub stream_constant {

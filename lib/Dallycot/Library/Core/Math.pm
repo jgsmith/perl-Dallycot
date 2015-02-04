@@ -353,28 +353,36 @@ define
 
   my $angle;
   if ( defined($x) ) {
-    if ( $x->is_pos && !$x->is_zero ) {
-      $angle = $y->batan2( $x, $accuracy );
-    }
-    elsif ( $x->is_neg && $y->is_pos ) {
-      $angle = $y->batan2( $x, $accuracy + 1 ) + Math::BigFloat->bpi( $accuracy + 1 );
-      $angle->bround($accuracy);
-    }
-    elsif ( $x->is_neg && $y->is_neg ) {
-      $angle = $y->batan2( $x, $accuracy + 1 ) - Math::BigFloat->bpi( $accuracy + 1 );
-      $angle->bround($accuracy);
-    }
-    elsif ( $x->is_zero && $y->is_pos && !$y->is_zero ) {
-      $angle = Math::BigFloat->bpi( $accuracy + 1 ) / 2;
-      $angle->bround($accuracy);
-    }
-    elsif ( $x->is_zero && $y->is_neg ) {
-      $angle = -Math::BigFloat->bpi( $accuracy + 1 ) / 2;
-      $angle->bround($accuracy);
-    }
-    else {
-      $d->resolve( Dallycot::Value::Numeric->new( Math::BigRat->nan ) );
-      return $d->promise;
+    my $key = 0;
+    $key |= 0x04 if $x->is_pos && !$x->is_zero;
+    $key |= 0x0c if $x->is_neg;
+    $key |= 0x01 if $y->is_pos && !$y->is_zero;
+    $key |= 0x03 if $y->is_neg;
+
+    given ($key) {
+      when ( [ 0x04, 0x05, 0x07 ] ) {    # $x > 0, $y anything
+        $angle = $y->batan2( $x, $accuracy );
+      }
+      when (0x0d) {                      # $x < 0, $y > 0
+        $angle = $y->batan2( $x, $accuracy + 1 ) + Math::BigFloat->bpi( $accuracy + 1 );
+        $angle->bround($accuracy);
+      }
+      when (0x0f) {                      # $x < 0, $y < 0
+        $angle = $y->batan2( $x, $accuracy + 1 ) - Math::BigFloat->bpi( $accuracy + 1 );
+        $angle->bround($accuracy);
+      }
+      when (0x01) {                      # $x = 0, $y > 0
+        $angle = Math::BigFloat->bpi( $accuracy + 1 ) / 2;
+        $angle->bround($accuracy);
+      }
+      when (0x03) {                      # $x = 0, $y < 0
+        $angle = -Math::BigFloat->bpi( $accuracy + 1 ) / 2;
+        $angle->bround($accuracy);
+      }
+      default {
+        $d->resolve( Dallycot::Value::Numeric->new( Math::BigRat->nan ) );
+        return $d->promise;
+      }
     }
   }
   else {

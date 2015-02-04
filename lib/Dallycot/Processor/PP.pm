@@ -2,6 +2,7 @@ package Dallycot::Processor::PP;
 
 # ABSTRACT: Pure Perl implementation of Processor routines
 
+use utf8;
 use Moose;
 
 sub add_cost {

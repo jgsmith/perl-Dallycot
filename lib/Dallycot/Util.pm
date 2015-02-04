@@ -1,5 +1,6 @@
 package Dallycot::Util;
 
+use utf8;
 use strict;
 use warnings;
 

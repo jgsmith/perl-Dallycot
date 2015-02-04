@@ -2,6 +2,7 @@ package Dallycot::Channel::Terminal;
 
 # ABSTRACT: Term::ReadLine-based i/o channel
 
+use utf8;
 use Moose;
 extends 'Dallycot::Channel';
 

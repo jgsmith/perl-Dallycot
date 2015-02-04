@@ -2,6 +2,7 @@ package Dallycot::Tangle;
 
 # ABSTRACT: Extract Dallycot source from a markdown document
 
+use utf8;
 use Moose;
 with 'Markdent::Role::Handler';
 
@@ -89,7 +90,7 @@ sub tangle_section {
 
   $self->code_blocks->{$section_name} = '';
 
-  my @references = $code =~ m{_"(.+?)"}g;
+  my @references = $code =~ m{_"(.+?)"}xg;
   foreach my $ref (@references) {
     my $replacement;
     my @ref_bits = map { $self->_normalize_name($_) } split( /:/, $ref );
@@ -97,7 +98,7 @@ sub tangle_section {
       $ref_bits[0] = $name_parts[0];
     }
     $replacement = $self->tangle_section( join( ":", @ref_bits ), @stack, $section_name );
-    $code =~ s{_"\Q$ref\E"}{$replacement};
+    $code =~ s{_"\Q$ref\E"}{$replacement}x;
   }
 
   return $code;
@@ -169,7 +170,7 @@ sub _normalize_name {
   $name =~ s{\s+$}{};
   $name =~ s{\s+}{ }g;
   $name =~ s{:+}{--}g;
-  $name =~ s{[^-_0-9A-Za-z ]+}{}g;
+  $name =~ s{[^-_0-9A-Za-z ]+}{}xg;
   return lc($name);
 }
 
@@ -182,7 +183,7 @@ sub save_link {
     return if $name eq '';
     return $self->code_link_name($name);
   }
-  elsif ( $info{uri} =~ m{^#(.*)$} && $info{title} eq 'start:' ) {
+  elsif ( $info{uri} =~ m{^#(.*)$}x && $info{title} eq 'start:' ) {
     return $self->start_with( $self->_normalize_name($1) );
   }
 }
