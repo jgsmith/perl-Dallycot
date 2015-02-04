@@ -9,7 +9,7 @@ use utf8;
 use parent 'Dallycot::AST';
 
 use Dallycot::Util qw(maybe_promise);
-use Promises       qw(deferred);
+use Promises qw(deferred);
 
 sub new {
   my ( $class, $identifier ) = @_;
@@ -45,36 +45,36 @@ sub execute {
       my $ns = $engine->get_namespace( $self->[0] );
       if ( $registry->has_namespace($ns) ) {
         if ( $registry->has_assignment( $ns, $self->[1] ) ) {
-          return maybe_promise($registry->get_assignment( $ns, $self->[1] ));
+          return maybe_promise( $registry->get_assignment( $ns, $self->[1] ) );
         }
         else {
           my $d = deferred;
           $d->reject( join( ":", @$self ) . " is undefined." );
-          return $d -> promise;
+          return $d->promise;
         }
       }
       else {
         my $d = deferred;
         $d->reject("The namespace \"$ns\" is unregistered.");
-        return $d -> promise;
+        return $d->promise;
       }
     }
     else {
       my $d = deferred;
       $d->reject("The namespace prefix \"@{[$self->[0]]}\" is undefined.");
-      return $d -> promise;
+      return $d->promise;
     }
   }
   elsif ( $engine->has_assignment( $self->[0] ) ) {
-    return maybe_promise($engine->get_assignment( $self->[0] ));
+    return maybe_promise( $engine->get_assignment( $self->[0] ) );
   }
-  elsif ( $registry->has_assignment( $engine -> get_namespace_search_path, $self->[0] ) ) {
-    return maybe_promise($registry->get_assignment( $engine -> get_namespace_search_path, $self->[0] ));
+  elsif ( $registry->has_assignment( $engine->get_namespace_search_path, $self->[0] ) ) {
+    return maybe_promise( $registry->get_assignment( $engine->get_namespace_search_path, $self->[0] ) );
   }
   else {
     my $d = deferred;
     $d->reject( $self->[0] . " is undefined." );
-    return $d -> promise;
+    return $d->promise;
   }
 }
 

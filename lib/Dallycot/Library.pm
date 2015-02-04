@@ -52,156 +52,159 @@ our @LIBRARIES;
 
 sub libraries {
   return @LIBRARIES if @LIBRARIES;
-  return @LIBRARIES = grep { $_ -> isa('Dallycot::Library') } shift -> _libraries;
+  return @LIBRARIES = grep { $_->isa('Dallycot::Library') } shift->_libraries;
 }
 
 my %engines;
 
 sub ns {
-  my($meta, $uri) = @_;
+  my ( $meta, $uri ) = @_;
 
-  Dallycot::Registry->instance->register_namespace($uri, $meta->{'package'});
+  Dallycot::Registry->instance->register_namespace( $uri, $meta->{'package'} );
 
   no strict 'refs';
 
-  ${$meta->{'package'}.'::NAMESPACE'} = $uri;
-  ${$meta->{'package'}.'::NAMESPACE'} = $uri;
+  ${ $meta->{'package'} . '::NAMESPACE' } = $uri;
+  ${ $meta->{'package'} . '::NAMESPACE' } = $uri;
 
-  my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
-  uses($meta, $uri);
+  my $engine = $engines{ $meta->{'package'} } ||= Dallycot::Processor->new;
+  uses( $meta, $uri );
   return;
 }
 
 sub namespace {
-  my($class) = @_;
+  my ($class) = @_;
 
   $class = ref($class) || $class;
 
   no strict 'refs';
 
-  return ${$class . "::NAMESPACE"};
+  return ${ $class . "::NAMESPACE" };
 }
 
 sub define {
-  my($meta, $name, @options) = @_;
+  my ( $meta, $name, @options ) = @_;
 
-  my $body = pop @options;
+  my $body    = pop @options;
   my %options = @options;
 
   no strict 'refs';
 
-  my $definitions = \%{$meta->{'package'}.'::DEFINITIONS'};
-  $definitions = \%{$meta->{'package'}.'::DEFINITIONS'};
+  my $definitions = \%{ $meta->{'package'} . '::DEFINITIONS' };
+  $definitions = \%{ $meta->{'package'} . '::DEFINITIONS' };
 
-  if(is_CodeRef($body)) {
+  if ( is_CodeRef($body) ) {
+
     # Perl subroutine
     my $uri_promise = deferred;
-    $uri_promise -> resolve($meta->{'package'}->_uri_for_name($name));
+    $uri_promise->resolve( $meta->{'package'}->_uri_for_name($name) );
 
     $definitions->{$name} = {
       %options,
-      uri => $uri_promise,
+      uri     => $uri_promise,
       coderef => $body
     };
   }
   else {
     # Dallycot source
     my $parser = Dallycot::Parser->new;
-    my $parsed = $parser -> parse($body);
-    my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
+    my $parsed = $parser->parse($body);
+    my $engine = $engines{ $meta->{'package'} } ||= Dallycot::Processor->new;
 
-    if(!$parsed) {
+    if ( !$parsed ) {
       croak "Unable to parse Dallycot source for $name";
     }
 
-    ${$meta->{'package'}.'::USES_PROMISE'} -> done(sub {
-      $definitions->{$name} = {
-        %options,
-        expression => $engine->with_child_scope->execute(@{$parsed})->catch(
-          sub {
-            my($err) = @_;
+    ${ $meta->{'package'} . '::USES_PROMISE' }->done(
+      sub {
+        $definitions->{$name} = {
+          %options,
+          expression => $engine->with_child_scope->execute( @{$parsed} )->catch(
+            sub {
+              my ($err) = @_;
 
-            print STDERR "Error defining $name: $err\n";
-            die $err;
-          }
-        )
-      };
-    });
+              print STDERR "Error defining $name: $err\n";
+              die $err;
+            }
+          )
+        };
+      }
+    );
   }
   return;
 }
 
 sub uses {
-  my($meta, @uris) = @_;
+  my ( $meta, @uris ) = @_;
 
-  my $engine = $engines{$meta->{'package'}} ||= Dallycot::Processor->new;
+  my $engine = $engines{ $meta->{'package'} } ||= Dallycot::Processor->new;
 
-  my $promise = Dallycot::Registry->instance->register_used_namespaces(@uris) -> then(sub {
-    $engine -> append_namespace_search_path(@uris);
-  });
+  my $promise = Dallycot::Registry->instance->register_used_namespaces(@uris)->then(
+    sub {
+      $engine->append_namespace_search_path(@uris);
+    }
+  );
 
   no strict 'refs';
 
-  my $prior_promise = ${$meta->{'package'}.'::USES_PROMISE'};
-  if($prior_promise) {
-    $prior_promise = $prior_promise->then(sub { $promise });
+  my $prior_promise = ${ $meta->{'package'} . '::USES_PROMISE' };
+  if ($prior_promise) {
+    $prior_promise = $prior_promise->then( sub {$promise} );
   }
   else {
     $prior_promise = $promise;
   }
-  ${$meta->{'package'}.'::USES_PROMISE'} = $prior_promise;
+  ${ $meta->{'package'} . '::USES_PROMISE' } = $prior_promise;
 
   return;
 }
 
-Moose::Exporter -> setup_import_methods(
-  with_meta => [
-    qw(ns define uses)
-  ],
-  also => 'Moose',
+Moose::Exporter->setup_import_methods(
+  with_meta => [qw(ns define uses)],
+  also      => 'Moose',
 );
 
 sub init_meta {
-  my( undef, %p ) = @_;
+  my ( undef, %p ) = @_;
 
-  my $meta = MooseX::Singleton -> init_meta(%p);
-  $meta -> superclasses(__PACKAGE__);
+  my $meta = MooseX::Singleton->init_meta(%p);
+  $meta->superclasses(__PACKAGE__);
   return $meta;
 }
 
 sub has_assignment {
-  my($self, $name) = @_;
+  my ( $self, $name ) = @_;
 
-  my $def = $self -> get_definition($name);
+  my $def = $self->get_definition($name);
   return defined($def) && keys %$def;
 }
 
 sub get_assignment {
-  my($self, $name) = @_;
+  my ( $self, $name ) = @_;
 
   my $class = ref($self) || $self;
 
-  my $def = $self -> get_definition($name);
+  my $def = $self->get_definition($name);
 
   return unless defined $def && keys %$def;
-  if($def -> {expression}) {
-    return $def -> {expression};
+  if ( $def->{expression} ) {
+    return $def->{expression};
   }
   else {
-    return $def -> {uri};
+    return $def->{uri};
   }
 }
 
 sub _uri_for_name {
-  my($class, $name) = @_;
+  my ( $class, $name ) = @_;
 
   $class = ref($class) || $class;
 
-  return Dallycot::Value::URI->new($class->namespace . $name);
+  return Dallycot::Value::URI->new( $class->namespace . $name );
 }
 
 sub get_definition {
-  my($class, $name) = @_;
+  my ( $class, $name ) = @_;
 
   return unless defined $name;
 
@@ -209,9 +212,9 @@ sub get_definition {
 
   no strict 'refs';
 
-  my $definitions = \%{$class."::DEFINITIONS"};
+  my $definitions = \%{ $class . "::DEFINITIONS" };
 
-  if(exists $definitions->{$name} && defined $definitions->{$name}) {
+  if ( exists $definitions->{$name} && defined $definitions->{$name} ) {
     return $definitions->{$name};
   }
   else {
@@ -220,17 +223,17 @@ sub get_definition {
 }
 
 sub min_arity {
-  my($self, $name) = @_;
+  my ( $self, $name ) = @_;
 
   my $def = $self->get_definition($name);
 
-  if(!$def) {
+  if ( !$def ) {
     return 0;
   }
 
-  if($def -> {coderef}) {
-    if(defined($def->{arity})) {
-      if(is_ArrayRef($def->{arity})) {
+  if ( $def->{coderef} ) {
+    if ( defined( $def->{arity} ) ) {
+      if ( is_ArrayRef( $def->{arity} ) ) {
         return $def->{arity}->[0];
       }
       else {
@@ -247,111 +250,117 @@ sub min_arity {
 }
 
 sub _is_placeholder {
-  my( $self, $obj ) = @_;
+  my ( $self, $obj ) = @_;
 
   return blessed($obj) && $obj->isa('Dallycot::AST::Placeholder');
 }
 
 sub apply {
-  my($self, $name, $parent_engine, $options, @bindings) = @_;
+  my ( $self, $name, $parent_engine, $options, @bindings ) = @_;
 
   my $def = $self->get_definition($name);
 
-  if(!$def) {
+  if ( !$def ) {
     my $d = deferred;
-    $d -> reject("$name is undefined.");
-    return $d -> promise;
+    $d->reject("$name is undefined.");
+    return $d->promise;
   }
 
-  if($def -> {coderef}) {
-    if(defined $def -> {arity}) {
-      if(is_ArrayRef($def->{arity})) {
-        if($def->{arity}->[0] > @bindings || (@{$def->{arity}} > 1 && @bindings > $def->{arity}->[1])) {
+  if ( $def->{coderef} ) {
+    if ( defined $def->{arity} ) {
+      if ( is_ArrayRef( $def->{arity} ) ) {
+        if ( $def->{arity}->[0] > @bindings
+          || ( @{ $def->{arity} } > 1 && @bindings > $def->{arity}->[1] ) )
+        {
           my $d = deferred;
-          $d -> reject("Expected " . $def->{arity}->[0] . " to " . $def->{arity}->[1] . " arguments but found " . scalar(@bindings));
-          return $d -> promise;
+          $d->reject( "Expected "
+              . $def->{arity}->[0] . " to "
+              . $def->{arity}->[1]
+              . " arguments but found "
+              . scalar(@bindings) );
+          return $d->promise;
         }
       }
-      elsif($def->{arity} != @bindings) {
+      elsif ( $def->{arity} != @bindings ) {
         my $d = deferred;
-        $d -> reject("Expected " . $def->{arity} . " argument(s)s but found " . scalar(@bindings));
-        return $d -> promise;
+        $d->reject( "Expected " . $def->{arity} . " argument(s)s but found " . scalar(@bindings) );
+        return $d->promise;
       }
     }
+
     # we look for placeholders and return a lambda if there are any
-    if( grep { $self->_is_placeholder($_) } @bindings ) {
-      my(@filled_bindings, @filled_identifiers, @args, @new_args);
+    if ( grep { $self->_is_placeholder($_) } @bindings ) {
+      my ( @filled_bindings, @filled_identifiers, @args, @new_args );
       foreach my $binding (@bindings) {
-        if($self -> _is_placeholder($binding)) {
-          push @new_args, '__arg_'.$#args;
-          push @args, '__arg_'.$#args;
+        if ( $self->_is_placeholder($binding) ) {
+          push @new_args, '__arg_' . $#args;
+          push @args,     '__arg_' . $#args;
         }
         else {
-          push @filled_identifiers, '__arg_'.$#args;
-          push @args, '__arg_'.$#args;
-          push @filled_bindings, $binding;
+          push @filled_identifiers, '__arg_' . $#args;
+          push @args,               '__arg_' . $#args;
+          push @filled_bindings,    $binding;
         }
       }
-      my $engine = $parent_engine -> with_child_scope;
-      return collect(
-        $engine -> collect( @filled_bindings ),
-        $engine -> collect( values %$options )
-      ) -> then(sub {
-        my($collected_bindings, $new_values) = @_;
-        my @collected_bindings = @$collected_bindings;
-        my @new_values = @$new_values;
-        my %new_options;
-        @new_options{keys %$options} = @new_values;
-        return Dallycot::Value::Lambda->new(
-          expression => Dallycot::AST::Apply->new(
-            $self->_uri_for_name($name),
-            [ map { bless [ $_ ] => 'Dallycot::AST::Fetch' } @args ],
-          ),
-          bindings => \@new_args,
-          options => \%new_options,
-          closure_environment => {
-            map { $filled_identifiers[$_] => $collected_bindings[$_] } (0..$#filled_identifiers)
-          }
-        );
-      });
+      my $engine = $parent_engine->with_child_scope;
+      return collect( $engine->collect(@filled_bindings), $engine->collect( values %$options ) )->then(
+        sub {
+          my ( $collected_bindings, $new_values ) = @_;
+          my @collected_bindings = @$collected_bindings;
+          my @new_values         = @$new_values;
+          my %new_options;
+          @new_options{ keys %$options } = @new_values;
+          return Dallycot::Value::Lambda->new(
+            expression => Dallycot::AST::Apply->new(
+              $self->_uri_for_name($name),
+              [ map { bless [$_] => 'Dallycot::AST::Fetch' } @args ],
+            ),
+            bindings => \@new_args,
+            options  => \%new_options,
+            closure_environment =>
+              { map { $filled_identifiers[$_] => $collected_bindings[$_] } ( 0 .. $#filled_identifiers ) }
+          );
+        }
+      );
     }
-    elsif($def -> {hold}) {
-      my $engine = $parent_engine -> with_child_scope;
-      return $def->{coderef}->($engine, $options, @bindings);
+    elsif ( $def->{hold} ) {
+      my $engine = $parent_engine->with_child_scope;
+      return $def->{coderef}->( $engine, $options, @bindings );
     }
     else {
-      my $engine = $parent_engine -> with_child_scope;
-      return collect(
-        $engine -> collect( @bindings ),
-        $engine -> collect( values %$options ),
-      ) -> then( sub {
-        my($collected_bindings, $new_values) = @_;
+      my $engine = $parent_engine->with_child_scope;
+      return collect( $engine->collect(@bindings), $engine->collect( values %$options ), )->then(
+        sub {
+          my ( $collected_bindings, $new_values ) = @_;
 
-        my @collected_bindings = @$collected_bindings;
-        my @new_values = @$new_values;
-        my %new_options;
-        @new_options{keys %{$def->{options}||{}}} = values %{$def->{options}||{}};
-        @new_options{keys %$options} = @new_values;
-        $def->{coderef}->($engine, \%new_options, @collected_bindings);
-      });
+          my @collected_bindings = @$collected_bindings;
+          my @new_values         = @$new_values;
+          my %new_options;
+          @new_options{ keys %{ $def->{options} || {} } } = values %{ $def->{options} || {} };
+          @new_options{ keys %$options } = @new_values;
+          $def->{coderef}->( $engine, \%new_options, @collected_bindings );
+        }
+      );
     }
   }
-  elsif($def -> {expression}) {
-    my $engine = $parent_engine -> with_child_scope;
-    return $def -> {expression} -> then(sub {
-      my($lambda) = @_;
-      $lambda -> apply($engine, $options, @bindings);
-    });
+  elsif ( $def->{expression} ) {
+    my $engine = $parent_engine->with_child_scope;
+    return $def->{expression}->then(
+      sub {
+        my ($lambda) = @_;
+        $lambda->apply( $engine, $options, @bindings );
+      }
+    );
   }
   else {
     my $d = deferred;
-    $d -> reject("Value is not a lambda");
-    return $d -> promise;
+    $d->reject("Value is not a lambda");
+    return $d->promise;
   }
 }
 
-__PACKAGE__ -> meta -> make_immutable;
+__PACKAGE__->meta->make_immutable;
 
-__PACKAGE__ -> libraries;
+__PACKAGE__->libraries;
 
 1;

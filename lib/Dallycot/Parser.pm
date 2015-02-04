@@ -18,16 +18,16 @@ use Dallycot::AST::Sequence;
 use Dallycot::AST::Apply;
 use Dallycot::Value::URI;
 
-my $grammar =
-    Marpa::R2::Scanless::G->new( {
-      action_object  => __PACKAGE__,
-      bless_package  => 'Dallycot::AST',
-      default_action => 'copy_arg0',
-      source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
-    });
+my $grammar = Marpa::R2::Scanless::G->new(
+  { action_object  => __PACKAGE__,
+    bless_package  => 'Dallycot::AST',
+    default_action => 'copy_arg0',
+    source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
+  }
+);
 
 sub new {
-  my($class) = @_;
+  my ($class) = @_;
 
   $class = ref($class) || $class;
   return bless {} => $class;
@@ -36,34 +36,34 @@ sub new {
 sub grammar { return $grammar; }
 
 sub wants_more {
-  my($self, $val) = @_;
+  my ( $self, $val ) = @_;
 
-  if(@_ == 2) {
+  if ( @_ == 2 ) {
     $self->{wants_more} = $val;
   }
   return $self->{wants_more};
 }
 
 sub error {
-  my($self, $val) = @_;
+  my ( $self, $val ) = @_;
 
-  if(@_ == 2) {
+  if ( @_ == 2 ) {
     $self->{error} = $val;
   }
   return $self->{error};
 }
 
 sub warnings {
-  my($self, $warnings) = @_;
+  my ( $self, $warnings ) = @_;
 
-  if(@_ == 2) {
+  if ( @_ == 2 ) {
     $self->{warnings} = $warnings;
   }
-  if(wantarray) {
-    return @{$self->{warnings}};
+  if (wantarray) {
+    return @{ $self->{warnings} };
   }
   else {
-    return @{$self->{warnings}} != 0;
+    return @{ $self->{warnings} } != 0;
   }
 }
 
@@ -73,7 +73,7 @@ sub parse {
   my $re = Marpa::R2::Scanless::R->new( { grammar => $self->grammar } );
 
   $self->error(undef);
-  $self->warnings([]);
+  $self->warnings( [] );
 
   my $worked = eval {
     $re->read( \$input );
@@ -91,8 +91,8 @@ sub parse {
   my $parse = $re->value;
   my $result;
   if ( $parse && $$parse && $$parse->isa('Dallycot::AST::Sequence') ) {
-     $result = $$parse;
-     $result = [ @{$result->[0]}, @{$result->[1]} ];
+    $result = $$parse;
+    $result = [ @{ $result->[0] }, @{ $result->[1] } ];
   }
   elsif ($parse) {
     $result = [$$parse];
@@ -125,7 +125,7 @@ sub block {
   my ( undef, @statements ) = @_;
 
   if ( @statements > 1 ) {
-    return Dallycot::AST::Sequence -> new(@statements);
+    return Dallycot::AST::Sequence->new(@statements);
   }
   else {
     return $statements[0];
@@ -143,7 +143,7 @@ sub ns_def {
 sub add_uses {
   my ( undef, $ns ) = @_;
 
-  return bless [ $ns ] => 'Dallycot::AST::Uses';
+  return bless [$ns] => 'Dallycot::AST::Uses';
 }
 
 sub lambda {
@@ -154,8 +154,7 @@ sub lambda {
   return bless [
     $expression,
 
-    (
-        $arity == 0 ? []
+    (   $arity == 0 ? []
       : $arity == 1 ? ['#']
       :               [ map { '#' . $_ } 1 .. $arity ]
     ),
@@ -167,7 +166,7 @@ sub lambda {
 sub negate {
   my ( undef, $expression ) = @_;
 
-  given (blessed $expression) {
+  given ( blessed $expression) {
     when ('Dallycot::AST::Negation') {
       return $expression->[0];
     }
@@ -180,7 +179,7 @@ sub negate {
 sub invert {
   my ( undef, $expression ) = @_;
 
-  given (blessed $expression) {
+  given ( blessed $expression) {
     when ('Dallycot::AST::Invert') {
       return $expression->[0];
     }
@@ -278,8 +277,7 @@ sub build_sum_product {
       push @sums, bless [ $differences[0] ] => $negation_class
     }
     default {
-      push @sums,
-        bless [ bless [@differences] => $sum_class ] => $negation_class;
+      push @sums, bless [ bless [@differences] => $sum_class ] => $negation_class;
     }
   }
 
@@ -296,14 +294,13 @@ sub product {
 sub divide {
   my ( undef, $numerator, $dividend ) = @_;
 
-  return product( undef, $numerator,
-    ( bless [$dividend] => 'Dallycot::AST::Reciprocal' ) );
+  return product( undef, $numerator, ( bless [$dividend] => 'Dallycot::AST::Reciprocal' ) );
 }
 
 sub modulus {
   my ( undef, $expr, $mod ) = @_;
 
-  given (blessed $expr) {
+  given ( blessed $expr) {
     when ('Dallycot::AST::Modulus') {
       push @{$expr}, $mod;
       return $expr;
@@ -324,8 +321,7 @@ sub sum {
 sub subtract {
   my ( undef, $left_value, $right_value ) = @_;
 
-  return sum( undef, $left_value,
-    bless [$right_value] => 'Dallycot::AST::Negation' );
+  return sum( undef, $left_value, bless [$right_value] => 'Dallycot::AST::Negation' );
 }
 
 my %ops = qw(
@@ -395,15 +391,15 @@ sub compose {
   my ( undef, @functions ) = @_;
 
   return
-    bless [ map { ( blessed $_ eq 'Dallycot::AST::Compose' ) ? @{$_} : $_ }
-      @functions ] => 'Dallycot::AST::Compose';
+    bless [ map { ( blessed $_ eq 'Dallycot::AST::Compose' ) ? @{$_} : $_ } @functions ] =>
+    'Dallycot::AST::Compose';
 }
 
 sub compose_map {
   my ( undef, $left, $right ) = @_;
 
-  if($right -> isa('Dallycot::AST::BuildMap')) {
-    if($left -> isa('Dallycot::AST::BuildMap')) {
+  if ( $right->isa('Dallycot::AST::BuildMap') ) {
+    if ( $left->isa('Dallycot::AST::BuildMap') ) {
       push @$left, @$right;
       return $left;
     }
@@ -435,12 +431,12 @@ sub build_string_vector {
   $lit =~ s/^<<//;
   $lit =~ s/>>$//;
   my @matches = map { unbackslash($_) }
-                map { s/\\ / /g; $_ }
-                split(/(?<!\\)\s+/, $lit);
+    map { s/\\ / /g; $_ }
+    split( /(?<!\\)\s+/, $lit );
 
   return
-    bless [ map { bless [ $_, $lang ] => 'Dallycot::Value::String'; }
-      @matches ] => 'Dallycot::Value::Vector';
+    bless [ map { bless [ $_, $lang ] => 'Dallycot::Value::String'; } @matches ] =>
+    'Dallycot::Value::Vector';
 }
 
 sub integer_literal {
@@ -454,8 +450,7 @@ sub rational_literal {
 
   return bless [
     do {
-      my $rat =
-        Math::BigRat->new( Math::BigInt->new($num), Math::BigInt->new($den) );
+      my $rat = Math::BigRat->new( Math::BigInt->new($num), Math::BigInt->new($den) );
       $rat->bnorm();
       $rat;
       }
@@ -476,23 +471,20 @@ sub string_literal {
     $lang = $1;
   }
 
-  $lit = unbackslash(unquote($lit));
+  $lit = unbackslash( unquote($lit) );
 
-  return
-    bless [ $lit, $lang ] =>
-    'Dallycot::Value::String';
+  return bless [ $lit, $lang ] => 'Dallycot::Value::String';
 }
 
 sub bool_literal {
-  my (undef, $val) = @_;
+  my ( undef, $val ) = @_;
 
-  return Dallycot::Value::Boolean -> new($val eq 'true');
+  return Dallycot::Value::Boolean->new( $val eq 'true' );
 }
 
 sub uri_literal {
   my ( undef, $lit ) = @_;
-  return
-    bless [ substr( $lit, 1, length($lit) - 2 ) ] => 'Dallycot::Value::URI';
+  return bless [ substr( $lit, 1, length($lit) - 2 ) ] => 'Dallycot::Value::URI';
 }
 
 sub uri_expression {
@@ -515,14 +507,14 @@ sub combine_identifiers_options {
     return +{
       bindings               => $bindings->{'bindings'},
       bindings_with_defaults => $bindings->{'bindings_with_defaults'},
-      options                => { map { @$_ } @$options }
+      options                => { map {@$_} @$options }
     };
   }
   else {
     return +{
       bindings               => $bindings,
       bindings_with_defaults => [],
-      options                => { map { @$_ } @$options }
+      options                => { map {@$_} @$options }
     };
   }
 }
@@ -531,14 +523,14 @@ sub relay_options {
   my ( undef, $options ) = @_;
   return +{
     bindings => [],
-    options  => { map { @$_ } @$options }
+    options  => { map {@$_} @$options }
   };
 }
 
 sub fetch {
   my ( undef, $ident ) = @_;
 
-  my @bits = split(/:/, $ident);
+  my @bits = split( /:/, $ident );
 
   return bless \@bits => 'Dallycot::AST::Fetch';
 }
@@ -552,9 +544,7 @@ sub assign {
 sub apply {
   my ( undef, $function, $bindings ) = @_;
 
-  return
-    bless [ $function, $bindings->{bindings}, $bindings->{options} ] =>
-      'Dallycot::AST::Apply';
+  return bless [ $function, $bindings->{bindings}, $bindings->{options} ] => 'Dallycot::AST::Apply';
 }
 
 sub apply_sans_params {
@@ -588,7 +578,7 @@ sub cons {
     push @{$stream}, $scalar;
     return $stream;
   }
-  elsif ( ref $scalar eq 'Dallycot::AST::Cons') {
+  elsif ( ref $scalar eq 'Dallycot::AST::Cons' ) {
     unshift @{$scalar}, $stream;
     return $scalar;
   }
@@ -604,12 +594,11 @@ sub stream_vectors {
 }
 
 sub lambda_definition_sans_args {
-  my( undef, $expression ) = @_;
+  my ( undef, $expression ) = @_;
 
   return lambda_definition(
     undef,
-    {
-      bindings               => [],
+    { bindings               => [],
       bindings_with_defaults => []
     },
     $expression
@@ -622,8 +611,7 @@ sub function_definition_sans_args {
   return function_definition(
     undef,
     $identifier,
-    {
-      bindings               => [],
+    { bindings               => [],
       bindings_with_defaults => []
     },
     $expression
@@ -634,22 +622,16 @@ sub function_definition {
   my ( undef, $identifier, $args, $expression ) = @_;
 
   if ( ref $args ) {
-    return bless [
-      $identifier,
-      bless [
-        $expression,                     $args->{bindings},
-        $args->{bindings_with_defaults}, $args->{options}
-      ] => 'Dallycot::AST::Lambda'
-    ] => 'Dallycot::AST::Assign';
+    return bless [ $identifier,
+      bless [ $expression, $args->{bindings}, $args->{bindings_with_defaults}, $args->{options} ] =>
+        'Dallycot::AST::Lambda' ] => 'Dallycot::AST::Assign';
   }
   else {
     return bless [
       $identifier,
       bless [
         $expression,
-        [
-          (
-              $args == 0 ? []
+        [ (   $args == 0 ? []
             : $args == 1 ? ['#']
             :              [ map { '#' . $_ } 1 .. $args ]
           ),
@@ -662,20 +644,17 @@ sub function_definition {
 }
 
 sub lambda_definition {
-  my( undef, $args, $expression ) = @_;
+  my ( undef, $args, $expression ) = @_;
 
   if ( ref $args ) {
-    return bless [
-      $expression,                     $args->{bindings},
-      $args->{bindings_with_defaults}, $args->{options}
-    ] => 'Dallycot::AST::Lambda';
+    return
+      bless [ $expression, $args->{bindings}, $args->{bindings_with_defaults}, $args->{options} ] =>
+      'Dallycot::AST::Lambda';
   }
   else {
     return bless [
       $expression,
-      [
-        (
-            $args == 0 ? []
+      [ (   $args == 0 ? []
           : $args == 1 ? ['#']
           :              [ map { '#' . $_ } 1 .. $args ]
         ),
@@ -723,7 +702,7 @@ sub placeholder {
 }
 
 sub append_remainder_placeholder {
-  my( undef, $bindings ) = @_;
+  my ( undef, $bindings ) = @_;
   push @{$bindings}, bless [] => 'Dallycot::AST::FullPlaceholder';
   return $bindings;
 }
@@ -732,8 +711,7 @@ sub condition_list {
   my ( undef, $conditions, $otherwise ) = @_;
 
   return
-    bless [ @$conditions,
-    ( defined($otherwise) ? ( [ undef, $otherwise ] ) : () ) ] =>
+    bless [ @$conditions, ( defined($otherwise) ? ( [ undef, $otherwise ] ) : () ) ] =>
     'Dallycot::AST::Condition';
 }
 
@@ -835,11 +813,11 @@ sub build_set {
   my ( undef, $expressions ) = @_;
 
   my @expressions = map {
-    if($_ -> isa('Dallycot::AST::Union')) {
+    if ( $_->isa('Dallycot::AST::Union') ) {
       @$_;
     }
     else {
-      $_
+      $_;
     }
   } @$expressions;
 
@@ -862,7 +840,7 @@ sub stream_constant {
 }
 
 sub _flatten_binary {
-  my( undef, $class, $left_value, $right_value ) = @_;
+  my ( undef, $class, $left_value, $right_value ) = @_;
 
   if ( ref $left_value eq $class ) {
     if ( $right_value eq $class ) {
@@ -886,21 +864,20 @@ sub _flatten_binary {
 sub zip {
   my ( undef, $left_value, $right_value ) = @_;
 
-  return _flatten_binary(undef, 'Dallycot::AST::Zip', $left_value, $right_value);
+  return _flatten_binary( undef, 'Dallycot::AST::Zip', $left_value, $right_value );
 }
 
 sub set_union {
-  my( undef, $left_value, $right_value ) = @_;
+  my ( undef, $left_value, $right_value ) = @_;
 
-  return _flatten_binary(undef, 'Dallycot::AST::Union', $left_value, $right_value);
+  return _flatten_binary( undef, 'Dallycot::AST::Union', $left_value, $right_value );
 }
 
 sub set_intersection {
-  my( undef, $left_value, $right_value ) = @_;
+  my ( undef, $left_value, $right_value ) = @_;
 
-  return _flatten_binary(undef, 'Dallycot::AST::Intersection', $left_value, $right_value);
+  return _flatten_binary( undef, 'Dallycot::AST::Intersection', $left_value, $right_value );
 }
-
 
 sub vector_index {
   my ( undef, $vector, $index ) = @_;
@@ -961,10 +938,10 @@ sub stream_reduction {
   return Dallycot::AST::Apply->new(
     Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#last'),
     [ Dallycot::AST::Apply->new(
-      Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl'),
-      [ $start, $function, $stream],
-      {}
-    ) ],
+        Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl'),
+        [ $start, $function, $stream ], {}
+      )
+    ],
     {}
   );
 }
@@ -975,10 +952,10 @@ sub stream_reduction1 {
   return Dallycot::AST::Apply->new(
     Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#last'),
     [ Dallycot::AST::Apply->new(
-      Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl1'),
-      [ $function, $stream],
-      {}
-    ) ],
+        Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl1'), [ $function, $stream ],
+        {}
+      )
+    ],
     {}
   );
 }
@@ -996,9 +973,9 @@ sub promote_value {
 }
 
 sub resolve_uri {
-  my( undef, $expression ) = @_;
+  my ( undef, $expression ) = @_;
 
-  return bless [ $expression ] => 'Dallycot::AST::Resolve';
+  return bless [$expression] => 'Dallycot::AST::Resolve';
 }
 
 1;

@@ -19,7 +19,7 @@ sub is_defined { return 1 }
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return Dallycot::Value::Numeric -> new( Math::BigRat->binf() );
+  return Dallycot::Value::Numeric->new( Math::BigRat->binf() );
 }
 
 sub head {

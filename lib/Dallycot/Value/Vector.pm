@@ -17,7 +17,7 @@ sub new {
 }
 
 sub is_empty {
-  my($self) = @_;
+  my ($self) = @_;
 
   return @$self == 0;
 }
@@ -25,25 +25,24 @@ sub is_empty {
 sub is_defined { return 1 }
 
 sub as_text {
-  my( $self ) = @_;
+  my ($self) = @_;
 
-  return "< " . join(", ", map {
-    defined($_) ? (
-      ($_ eq $self) ? '(self)' : $_ -> as_text
-    ) : '(undef)'
-  } @$self) . " >";
+  return
+      "< "
+    . join( ", ", map { defined($_) ? ( ( $_ eq $self ) ? '(self)' : $_->as_text ) : '(undef)' } @$self )
+    . " >";
 }
 
 sub prepend {
-  my($self, @things) = @_;
+  my ( $self, @things ) = @_;
 
-  return bless [ @things, @$self ] => __PACKAGE__;  
+  return bless [ @things, @$self ] => __PACKAGE__;
 }
 
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return Dallycot::Value::Numeric -> new( scalar @$self );
+  return Dallycot::Value::Numeric->new( scalar @$self );
 }
 
 sub calculate_reverse {
@@ -61,7 +60,7 @@ sub apply_map {
 
   return collect( map { $transform->apply( $engine, {}, $_ ) } @$self )->then(
     sub {
-      my @values = map { @$_ } @_;
+      my @values = map {@$_} @_;
       bless \@values => __PACKAGE__;
     }
   );
@@ -72,9 +71,9 @@ sub apply_filter {
 
   return collect( map { $filter->apply( $engine, {}, $_ ) } @$self )->then(
     sub {
-      my (@hits) = map { $_->value } map { @$_ } @_;
+      my (@hits) = map { $_->value } map {@$_} @_;
       my @values;
-      for ( my $i = 0 ; $i < @hits ; $i++ ) {
+      for ( my $i = 0; $i < @hits; $i++ ) {
         push @values, $self->[$i] if $hits[$i];
       }
       return bless \@values => __PACKAGE__;

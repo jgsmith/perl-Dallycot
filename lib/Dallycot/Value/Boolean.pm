@@ -22,9 +22,9 @@ sub new {
 }
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
-  if($self->[0]) {
+  if ( $self->[0] ) {
     return 'true';
   }
   else {
@@ -44,7 +44,7 @@ sub id {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return $engine -> ONE;
+  return $engine->ONE;
 }
 
 sub is_equal {

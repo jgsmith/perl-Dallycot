@@ -143,7 +143,7 @@ Returns a list of Perl packages that provide AST nodes.
 
 =cut
 
-sub is_declarative { return }
+sub is_declarative {return}
 
 sub node_types {
   return @NODE_TYPES if @NODE_TYPES;
@@ -154,7 +154,7 @@ sub node_types {
 __PACKAGE__->node_types;
 
 sub new {
-  my($class) = @_;
+  my ($class) = @_;
 
   $class = ref $class || $class;
 
@@ -181,9 +181,9 @@ Returns a list of warnings.
 =cut
 
 sub check_for_common_mistakes {
-  my($self) = @_;
+  my ($self) = @_;
 
-  map { $_ -> check_for_common_mistakes } $self -> child_nodes;
+  map { $_->check_for_common_mistakes } $self->child_nodes;
 }
 
 =method to_json

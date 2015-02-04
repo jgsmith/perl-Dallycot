@@ -42,8 +42,7 @@ my %acceptable_types = (
   'text/plain'            => 0.8
 );
 
-my $accept_headers =
-  join( ",", map { _stringify_acceptable_type($_) } keys %acceptable_types );
+my $accept_headers = join( ",", map { _stringify_acceptable_type($_) } keys %acceptable_types );
 
 sub _stringify_acceptable_type {
   my ($type) = @_;
@@ -97,9 +96,7 @@ sub run {
               return;
             }
           }
-          $deferred->resolve(
-            Dallycot::Value::String->new($res -> content -> build_body)
-          );
+          $deferred->resolve( Dallycot::Value::String->new( $res->content->build_body ) );
         }
         elsif ( $res->code == 303 ) {    # See Other
                                          # look for an 'Alternatives' header
@@ -118,8 +115,7 @@ sub run {
             while ( my ( $path, $val, $type ) = splice( @options, 0, 3 ) ) {
               $types{$type} = [ $val, $path ];
             }
-            my @sorted_types =
-              grep { $acceptable_types{$_} }
+            my @sorted_types = grep { $acceptable_types{$_} }
               sort { $types{$a}->[0] <=> $types{$b}->[0] } keys %types;
 
             # we'll take the first one we get
@@ -136,15 +132,11 @@ sub run {
               url           => $new_uri,
               redirects     => $self->redirects - 1,
               canonical_url => $self->canonical_url
-              )->run->done(
-              sub { $deferred->resolve(@_); },
-              sub { $deferred->reject(@_); }
-              );
+            )->run->done( sub { $deferred->resolve(@_); }, sub { $deferred->reject(@_); } );
           }
           else {
             # we give up... nothing to see here
-            $deferred->reject(
-              "Unable to fetch $url: redirect with no suitable location");
+            $deferred->reject("Unable to fetch $url: redirect with no suitable location");
           }
         }
         else {

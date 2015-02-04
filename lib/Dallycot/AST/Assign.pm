@@ -19,15 +19,15 @@ sub to_string {
 sub is_declarative { return 1 }
 
 sub identifier {
-  my($self) = @_;
+  my ($self) = @_;
 
-  return $self -> [0];
+  return $self->[0];
 }
 
 sub simplify {
-  my($self) = @_;
+  my ($self) = @_;
 
-  return bless [ $self -> [0], $self -> [1] -> simplify ] => __PACKAGE__;
+  return bless [ $self->[0], $self->[1]->simplify ] => __PACKAGE__;
 }
 
 sub execute {
@@ -39,18 +39,18 @@ sub execute {
 
   if ( $registry->has_assignment( '', $self->[0] ) ) {
     $d = $registry->get_assignment( '', $self->[0] );
-    if($d -> is_resolved) {
+    if ( $d->is_resolved ) {
       $d = deferred;
       $d->reject('Core definitions may not be redefined.');
-      return $d -> promise;
+      return $d->promise;
     }
   }
-  elsif( $engine -> has_assignment( $self->[0] ) ) {
-    $d = $engine -> get_assignment( $self -> [0] );
-    if($d -> is_resolved) {
+  elsif ( $engine->has_assignment( $self->[0] ) ) {
+    $d = $engine->get_assignment( $self->[0] );
+    if ( $d->is_resolved ) {
       $d = deferred;
-      $d -> reject('Unable to redefine '.$self->[0]);
-      return $d -> promise;
+      $d->reject( 'Unable to redefine ' . $self->[0] );
+      return $d->promise;
     }
   }
   else {

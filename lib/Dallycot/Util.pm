@@ -9,22 +9,21 @@ our @EXPORT_OK = qw(
   maybe_promise
 );
 
-
 sub maybe_promise {
-  my($p) = @_;
+  my ($p) = @_;
 
-  if(blessed $p) {
-    if($p -> can('promise')) {
-      return $p -> promise;
+  if ( blessed $p) {
+    if ( $p->can('promise') ) {
+      return $p->promise;
     }
-    elsif($p -> can('then')) {
-      return $p
+    elsif ( $p->can('then') ) {
+      return $p;
     }
   }
 
   my $d = deferred;
-  $d -> resolve($p);
-  return $d -> promise;
+  $d->resolve($p);
+  return $d->promise;
 }
 
 1;

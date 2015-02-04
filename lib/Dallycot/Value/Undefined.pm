@@ -22,7 +22,7 @@ sub as_text {
   return "(undef)";
 }
 
-sub is_defined { return }
+sub is_defined {return}
 
 sub is_empty { return 1 }
 

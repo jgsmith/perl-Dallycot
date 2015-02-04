@@ -12,20 +12,20 @@ use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
 
-sub _type { return 'Range'  }
+sub _type { return 'Range' }
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
-  $self -> [0] -> as_text . "..";
+  $self->[0]->as_text . "..";
 }
 
-sub is_empty { return }
+sub is_empty {return}
 
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return Dallycot::Value::Numeric -> new( Math::BigRat->binf() );
+  return Dallycot::Value::Numeric->new( Math::BigRat->binf() );
 }
 
 sub head {
@@ -60,21 +60,25 @@ sub tail {
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 
-  $engine->make_map($transform)->then(sub {
-    my($map_t) = @_;
+  $engine->make_map($transform)->then(
+    sub {
+      my ($map_t) = @_;
 
-    return $map_t -> apply( $engine, {}, $self);
-  });
+      return $map_t->apply( $engine, {}, $self );
+    }
+  );
 }
 
 sub apply_filter {
   my ( $self, $engine, $filter ) = @_;
 
-  $engine->make_filter($filter)->then(sub {
-    my($filter_t) = @_;
+  $engine->make_filter($filter)->then(
+    sub {
+      my ($filter_t) = @_;
 
-    $filter_t -> apply( $engine, {}, $self);
-  });
+      $filter_t->apply( $engine, {}, $self );
+    }
+  );
 }
 
 1;

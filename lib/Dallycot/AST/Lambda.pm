@@ -18,12 +18,12 @@ Readonly my $BINDINGS_WITH_DEFAULTS => 2;
 Readonly my $OPTIONS                => 3;
 
 sub new {
-  my($self, $expr, $bindings, $bindings_with_defaults, $options) = @_;
+  my ( $self, $expr, $bindings, $bindings_with_defaults, $options ) = @_;
 
   my $class = ref $self || $self;
-  $bindings ||= [];
+  $bindings               ||= [];
   $bindings_with_defaults ||= [];
-  $options ||= {};
+  $options                ||= {};
 
   return bless [ $expr, $bindings, $bindings_with_defaults, $options ] => $class;
 }

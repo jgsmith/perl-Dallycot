@@ -13,7 +13,7 @@ sub execute {
 
   return $engine->collect(@$self)->then(
     sub {
-      return Dallycot::Value::Set -> new(@_);
+      return Dallycot::Value::Set->new(@_);
     }
   );
 }

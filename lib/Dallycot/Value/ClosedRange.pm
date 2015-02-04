@@ -19,9 +19,9 @@ Readonly my $LAST      => 1;
 Readonly my $DIRECTION => 2;
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
-  return $self->[$FIRST]->as_text . ".." . $self->[$LAST] -> as_text;
+  return $self->[$FIRST]->as_text . ".." . $self->[$LAST]->as_text;
 }
 
 sub calculate_length {
@@ -29,21 +29,19 @@ sub calculate_length {
 
   my $diff = $self->[$LAST]->value - $self->[$FIRST]->value;
 
-  return Dallycot::Value::Numeric -> new( $diff -> babs + 1  );
+  return Dallycot::Value::Numeric->new( $diff->babs + 1 );
 }
 
 sub is_defined { return 1 }
 
-sub is_empty { return }
+sub is_empty {return}
 
 sub calculate_reverse {
   my ($self) = @_;
 
   my $d = deferred;
 
-  $d->resolve(
-    bless [ $self->[$LAST], $self->[$FIRST], -$self->[$DIRECTION] ] =>
-      __PACKAGE__ );
+  $d->resolve( bless [ $self->[$LAST], $self->[$FIRST], -$self->[$DIRECTION] ] => __PACKAGE__ );
 
   return $d->promise;
 }
@@ -83,9 +81,7 @@ sub tail {
         $next_p->done(
           sub {
             my ($next) = @_;
-            $d->resolve(
-              bless [ $next, $self->[$LAST], $self->[$DIRECTION] ] =>
-                __PACKAGE__ );
+            $d->resolve( bless [ $next, $self->[$LAST], $self->[$DIRECTION] ] => __PACKAGE__ );
           },
           sub {
             $d->reject(@_);
@@ -104,22 +100,25 @@ sub tail {
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 
-  $engine->make_map($transform) -> then(sub {
-    my($map_t) = @_;
+  $engine->make_map($transform)->then(
+    sub {
+      my ($map_t) = @_;
 
-    return $map_t -> apply( $engine, {}, $self );
-  });
+      return $map_t->apply( $engine, {}, $self );
+    }
+  );
 }
 
 sub apply_filter {
-  my( $self, $engine, $filter ) = @_;
+  my ( $self, $engine, $filter ) = @_;
 
-  $engine->make_filter($filter) -> then(sub {
-    my($filter_t) = @_;
+  $engine->make_filter($filter)->then(
+    sub {
+      my ($filter_t) = @_;
 
-    return $filter_t -> apply( $engine, {}, $self);
-  });
+      return $filter_t->apply( $engine, {}, $self );
+    }
+  );
 }
-
 
 1;

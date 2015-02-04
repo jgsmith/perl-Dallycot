@@ -7,17 +7,17 @@ use Moose;
 sub add_cost {
   my ( $self, $delta ) = @_;
 
-  return 0 if $self -> ignore_cost;
+  return 0 if $self->ignore_cost;
 
   return $self->_cost( $self->cost + $delta );
 }
 
 sub DEMOLISH {
-  my($self, $flag) = @_;
+  my ( $self, $flag ) = @_;
 
   return if $flag;
 
-  $self -> parent -> add_cost($self -> cost) if $self -> has_parent;
+  $self->parent->add_cost( $self->cost ) if $self->has_parent;
 }
 
 1;

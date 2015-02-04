@@ -45,17 +45,15 @@ sub new {
 
   if ($engine) {
     $closure_context = $engine->context->make_closure($expression);
-    delete @{ $closure_context->environment }{ @$bindings,
-      map { $_->[0] } @$bindings_with_defaults };
+    delete @{ $closure_context->environment }{ @$bindings, map { $_->[0] } @$bindings_with_defaults };
     $closure_environment   = $closure_context->environment;
     $closure_namespaces    = $closure_context->namespaces;
     $namespace_search_path = $closure_context->namespace_search_path;
   }
 
   return bless [
-    $expression, $bindings,            $bindings_with_defaults,
-    $options,    $closure_environment, $closure_namespaces,
-    $namespace_search_path
+    $expression,          $bindings,           $bindings_with_defaults, $options,
+    $closure_environment, $closure_namespaces, $namespace_search_path
   ] => $class;
 }
 
@@ -66,9 +64,9 @@ sub id {
 }
 
 sub as_text {
-  my($self) = @_;
-  my($min, $max) = $self->arity;
-  if($min < $max) {
+  my ($self) = @_;
+  my ( $min, $max ) = $self->arity;
+  if ( $min < $max ) {
     return "(lambda/$min..$max)";
   }
   else {
@@ -113,10 +111,9 @@ sub _options_are_good {
   my ( $self, $options ) = @_;
 
   if (%$options) {
-    my @bad_options =
-      grep { not exists ${ $self->[$OPTIONS] }{$_} } keys %$options;
+    my @bad_options = grep { not exists ${ $self->[$OPTIONS] }{$_} } keys %$options;
     if ( @bad_options > 1 ) {
-      croak  "Options " . join( ", ", sort(@bad_options) ) . " are not allowed.";
+      croak "Options " . join( ", ", sort(@bad_options) ) . " are not allowed.";
     }
     elsif (@bad_options) {
       croak "Option " . $bad_options[0] . " is not allowed.";
@@ -136,10 +133,7 @@ sub _get_bindings {
   my ( $min_arity, $max_arity ) = $self->arity;
   my $arity = scalar(@bindings);
 
-  my (
-    @new_bindings,    @new_bindings_with_defaults,
-    @filled_bindings, @filled_identifiers
-  );
+  my ( @new_bindings, @new_bindings_with_defaults, @filled_bindings, @filled_identifiers );
 
   foreach my $idx ( 0 .. $min_arity - 1 ) {
     if ( $self->_is_placeholder( $bindings[$idx] ) ) {
@@ -153,31 +147,25 @@ sub _get_bindings {
   if ( $arity > $min_arity ) {
     foreach my $idx ( $min_arity .. $arity - 1 ) {
       if ( $self->_is_placeholder( $bindings[$idx] ) ) {
-        push @new_bindings_with_defaults,
-          $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ];
+        push @new_bindings_with_defaults, $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ];
       }
       else {
-        push @filled_bindings, $bindings[$idx];
-        push @filled_identifiers,
-          $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ]->[0];
+        push @filled_bindings,    $bindings[$idx];
+        push @filled_identifiers, $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ]->[0];
       }
     }
   }
   if ( $max_arity > 0 && $arity < $max_arity ) {
     foreach my $idx ( $arity .. $max_arity - 1 ) {
-      push @filled_bindings,
-        $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ]->[1];
-      push @filled_identifiers,
-        $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ]->[0];
+      push @filled_bindings,    $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ]->[1];
+      push @filled_identifiers, $self->[$BINDINGS_WITH_DEFAULTS][ $idx - $min_arity ]->[0];
     }
   }
 
   my %bindings;
-  @bindings{@filled_identifiers} = map {
-    $engine->execute($_)
-  } @filled_bindings;
+  @bindings{@filled_identifiers} = map { $engine->execute($_) } @filled_bindings;
 
-  return (\%bindings, \@new_bindings, \@new_bindings_with_defaults);
+  return ( \%bindings, \@new_bindings, \@new_bindings_with_defaults );
 }
 
 sub _get_options {
@@ -187,9 +175,7 @@ sub _get_options {
 
   my %ret_options;
 
-  @ret_options{keys %$options} = map {
-    $engine->execute($_)
-  } values %$options;
+  @ret_options{ keys %$options } = map { $engine->execute($_) } values %$options;
 
   return +{ %{ $self->[$OPTIONS] }, %ret_options };
 }
@@ -204,24 +190,23 @@ sub apply {
   my $arity = scalar(@bindings);
 
   $self->_arity_in_range( $arity, $min_arity, $max_arity );
-  $self->_options_are_good( $options );
-  my ( $filled_bindings, $new_bindings, $new_bindings_with_defaults ) = $self -> _get_bindings( $engine, @bindings );
-  my ( $filled_options ) = $self -> _get_options( $engine, $options );
+  $self->_options_are_good($options);
+  my ( $filled_bindings, $new_bindings, $new_bindings_with_defaults )
+    = $self->_get_bindings( $engine, @bindings );
+  my ($filled_options) = $self->_get_options( $engine, $options );
 
-  my %environment =
-    ( %{ $self->[$CLOSURE_ENVIRONMENT] || {} }, %$filled_bindings );
+  my %environment = ( %{ $self->[$CLOSURE_ENVIRONMENT] || {} }, %$filled_bindings );
 
   if ( @$new_bindings || @$new_bindings_with_defaults ) {
     my $promise = deferred;
     $promise->resolve(
       bless [
-        $self->[$EXPRESSION],        $new_bindings,
-        $new_bindings_with_defaults, $filled_options,
-        \%environment,               $self->[$CLOSURE_NAMESPACES],
+        $self->[$EXPRESSION], $new_bindings, $new_bindings_with_defaults,
+        $filled_options,      \%environment, $self->[$CLOSURE_NAMESPACES],
         $self->[$CLOSURE_NAMESPACE_PATH]
       ] => __PACKAGE__
     );
-    return $promise -> promise;
+    return $promise->promise;
   }
   else {
     my $new_engine = $engine->with_new_closure(

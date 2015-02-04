@@ -15,8 +15,8 @@ sub execute {
 
   return $engine->collect(@$self)->then(
     sub {
-      my($root, @things) = @_;
-      $root -> prepend(@things);
+      my ( $root, @things ) = @_;
+      $root->prepend(@things);
     }
   );
 }

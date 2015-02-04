@@ -20,22 +20,22 @@ sub is_declarative { return 1 }
 sub identifier { }
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
-  my($prefix, $uri) = @$self;
+  my ( $prefix, $uri ) = @$self;
 
   "ns:$prefix := <" . $uri->value . ">";
 }
 
-sub prefix { $_[0] -> [0] }
-sub namespace { $_[0] -> [1] -> value }
+sub prefix    { $_[0]->[0] }
+sub namespace { $_[0]->[1]->value }
 
 sub execute {
   my ( $self, $engine ) = @_;
 
   my $d = deferred;
 
-  $engine -> add_namespace($self->[0], $self->[1]->value);
+  $engine->add_namespace( $self->[0], $self->[1]->value );
 
   $d->resolve( $self->[1] );
 

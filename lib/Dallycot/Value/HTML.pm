@@ -15,11 +15,11 @@ sub new {
 
   $class = ref $class || $class;
 
-  if(!blessed($value)) {
-    my $parser = HTML::Parser->new( api_version => 3);
-    $parser -> parse($value);
-    $parser -> eof;
-    $value = HTML::Parser -> new -> parse($value);
+  if ( !blessed($value) ) {
+    my $parser = HTML::Parser->new( api_version => 3 );
+    $parser->parse($value);
+    $parser->eof;
+    $value = HTML::Parser->new->parse($value);
   }
 
   return bless [ $value // '' ] => $class;
@@ -38,7 +38,7 @@ sub calculate_length {
 
   my $d = deferred;
 
-  $d->resolve( Dallycot::Value::Numeric -> new( length $self->[0] ) );
+  $d->resolve( Dallycot::Value::Numeric->new( length $self->[0] ) );
 
   return $d->promise;
 }
@@ -62,12 +62,7 @@ sub take_range {
     $d->resolve( $self->new( '', $self->lang ) );
   }
   else {
-    $d->resolve(
-      $self->new(
-        substr( $self->value, $offset - 1, $length - $offset + 1 ),
-        $self->lang
-      )
-    );
+    $d->resolve( $self->new( substr( $self->value, $offset - 1, $length - $offset + 1 ), $self->lang ) );
   }
 
   return $d->promise;
@@ -97,8 +92,7 @@ sub value_at {
     $d->resolve( $self->new( '', $self->[1] ) );
   }
   else {
-    $d->resolve(
-      $self->new( substr( $self->[0], $index - 1, 1 ), $self->[1] ) );
+    $d->resolve( $self->new( substr( $self->[0], $index - 1, 1 ), $self->[1] ) );
   }
 
   return $d->promise;

@@ -17,11 +17,11 @@ sub new {
 }
 
 sub prepend {
-  my($self, @things) = @_;
+  my ( $self, @things ) = @_;
 
-  my $stream = Dallycot::Value::Stream->new(shift @things);
+  my $stream = Dallycot::Value::Stream->new( shift @things );
   foreach my $thing (@things) {
-    $stream = Dallycot::Value::Stream->new($thing, $stream);
+    $stream = Dallycot::Value::Stream->new( $thing, $stream );
   }
   return $stream;
 }
@@ -37,7 +37,7 @@ sub _type { return 'Stream' }
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return $engine -> ZERO;
+  return $engine->ZERO;
 }
 
 sub calculate_reverse {
@@ -57,7 +57,7 @@ sub apply_map {
 }
 
 sub apply_filter {
-  my( $self, $engine, $transform ) = @_;
+  my ( $self, $engine, $transform ) = @_;
 
   return $self;
 }

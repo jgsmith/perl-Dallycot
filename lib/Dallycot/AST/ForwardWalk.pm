@@ -17,19 +17,21 @@ sub step {
     sub {
       my ($prop_name) = @_;
       my $prop = $prop_name->value;
-      if($prop eq '@type') {
-        return $root -> type;
+      if ( $prop eq '@type' ) {
+        return $root->type;
       }
-      return $root->fetch_property( $engine, $prop ) -> then(sub {
-        my(@results) = @_;
+      return $root->fetch_property( $engine, $prop )->then(
+        sub {
+          my (@results) = @_;
 
-        if(@results != 1) {
-          return Dallycot::Value::Set->new(@results);
+          if ( @results != 1 ) {
+            return Dallycot::Value::Set->new(@results);
+          }
+          else {
+            return @results;
+          }
         }
-        else {
-          return @results;
-        }
-      });
+      );
     }
   );
 }

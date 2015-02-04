@@ -19,7 +19,7 @@ sub new {
 
   $class = ref $class || $class;
 
-  $uri = URI->new($uri) -> canonical;;
+  $uri = URI->new($uri)->canonical;
 
   return bless [$uri] => $class;
 }
@@ -27,7 +27,7 @@ sub new {
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return Dallycot::Value::Numeric -> new( length $self->[0]->as_string );
+  return Dallycot::Value::Numeric->new( length $self->[0]->as_string );
 }
 
 sub value_at {
@@ -36,98 +36,96 @@ sub value_at {
   my $d = deferred;
 
   $d->resolve(
-    bless [ substr( $self->[0]->as_string, $index - 1, 1 ), 'en' ] =>
-      'Dallycot::Value::String'
-  );
+    bless [ substr( $self->[0]->as_string, $index - 1, 1 ), 'en' ] => 'Dallycot::Value::String' );
 
   return $d->promise;
 }
 
-
-
 sub id {
-  my($self) = @_;
+  my ($self) = @_;
 
   return "<" . $self->[0]->as_string . ">";
 }
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
-  $self -> id;
+  $self->id;
 }
 
 sub is_lambda {
-  my( $self ) = @_;
+  my ($self) = @_;
 
-  my($lib, $method) = $self->_get_library_and_method;
+  my ( $lib, $method ) = $self->_get_library_and_method;
 
   return unless defined $lib;
-  $lib -> get_assignment($method) -> then(sub {
-    my($def) = @_;
+  $lib->get_assignment($method)->then(
+    sub {
+      my ($def) = @_;
 
-    return unless blessed($def);
-    return 1 if $def->isa(__PACKAGE__);
-    return $def -> is_lambda;
-  });
+      return unless blessed($def);
+      return 1 if $def->isa(__PACKAGE__);
+      return $def->is_lambda;
+    }
+  );
 }
 
 sub is_defined { return 1 }
 
-sub is_empty { return }
+sub is_empty {return}
 
 sub min_arity {
-  my( $self ) = @_;
+  my ($self) = @_;
 
-  my($lib, $method) = $self->_get_library_and_method;
-  if($lib) {
-    return $lib -> min_arity($method);
+  my ( $lib, $method ) = $self->_get_library_and_method;
+  if ($lib) {
+    return $lib->min_arity($method);
   }
   else {
-    return 0; # TODO: fix once we fetch remote libraries
+    return 0;    # TODO: fix once we fetch remote libraries
   }
 }
 
 my $registry = Dallycot::Registry->instance;
 
 sub _get_library_and_method {
-  my($self) = @_;
+  my ($self) = @_;
 
   my $uri = $self->[0]->as_string;
 
-  my($namespace, $method) = split(/#/, $uri, 2);
-  if(!defined $method) {
-    if($self -> [0] =~ m{^(.*/)(.+?)$}x) {
+  my ( $namespace, $method ) = split( /#/, $uri, 2 );
+  if ( !defined $method ) {
+    if ( $self->[0] =~ m{^(.*/)(.+?)$}x ) {
       $namespace = $1;
-      $method = $2;
+      $method    = $2;
     }
     else {
-      $namespace = $self -> [0];
-      $method = '';
+      $namespace = $self->[0];
+      $method    = '';
     }
   }
   else {
     $namespace .= '#';
   }
 
-  if($registry->has_namespace($namespace)) {
-    return ($registry->namespaces->{$namespace}, $method);
+  if ( $registry->has_namespace($namespace) ) {
+    return ( $registry->namespaces->{$namespace}, $method );
   }
   return;
 }
 
 sub apply {
-  my( $self, $engine, $options, @bindings ) = @_;
+  my ( $self, $engine, $options, @bindings ) = @_;
 
-  my($lib, $method) = $self->_get_library_and_method;
+  my ( $lib, $method ) = $self->_get_library_and_method;
 
-  if($lib) {
-    return $lib -> apply($method, $engine, $options, @bindings);
+  if ($lib) {
+    return $lib->apply( $method, $engine, $options, @bindings );
   }
-  else { # TODO: fetch resource and see if it's a lambda
+  else {    # TODO: fetch resource and see if it's a lambda
     my $d = deferred;
-    $d -> reject($self->[0] . " is not a lambda");
-    return $d -> promise;
+    $d->reject( $self->[0] . " is not a lambda" );
+    return $d->promise;
   }
 }
 

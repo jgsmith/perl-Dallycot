@@ -8,7 +8,7 @@ use warnings;
 use utf8;
 use Dallycot::Library;
 
-use Dallycot::Library::Core ();
+use Dallycot::Library::Core       ();
 use Dallycot::Library::Core::Math ();
 
 use Promises qw(deferred collect);
@@ -17,18 +17,19 @@ use experimental qw(switch);
 
 ns 'http://www.dallycot.net/ns/streams/1.0#';
 
-uses 'http://www.dallycot.net/ns/core/1.0#',
-     'http://www.dallycot.net/ns/math/1.0#';
+uses 'http://www.dallycot.net/ns/core/1.0#', 'http://www.dallycot.net/ns/math/1.0#';
 
-define length => (
-  hold => 0,
-  arity => 1,
+define
+  length => (
+  hold    => 0,
+  arity   => 1,
   options => {},
-), sub {
+  ),
+  sub {
   my ( $engine, $options, $thing ) = @_;
 
   $thing->calculate_length($engine);
-};
+  };
 
 define 'set-first' => '(s, sh) :> [sh, s... ]';
 
@@ -86,8 +87,8 @@ define 'leonardo-sequence' => <<'EOD';
   [ 1, 1, Y((self, a, b) :> [ a + b + 1, self(self, b, a + b + 1) ])(1, 1) ]
 EOD
 
-define prime => '(n) :> primes[n]';
+define prime     => '(n) :> primes[n]';
 define fibonacci => '(n) :> fibonacci-sequence[n]';
-define leonardo => '(n) :> leonardo-sequence[n]';
+define leonardo  => '(n) :> leonardo-sequence[n]';
 
 1;

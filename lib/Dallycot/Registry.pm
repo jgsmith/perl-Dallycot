@@ -29,23 +29,22 @@ has _namespace_promises => (
 );
 
 sub register_used_namespaces {
-  my($self, @uris) = @_;
+  my ( $self, @uris ) = @_;
 
   for my $ns (@uris) {
-    $self -> _namespace_promises -> {$ns} ||= deferred;
+    $self->_namespace_promises->{$ns} ||= deferred;
   }
-  return collect(
-    map { $self -> _namespace_promises -> {$_} -> promise } @uris
-  );
+  return collect( map { $self->_namespace_promises->{$_}->promise } @uris );
 }
 
 sub has_assignment {
   my ( $self, $ns, $symbol ) = @_;
 
-  if(is_ArrayRef($ns)) {
+  if ( is_ArrayRef($ns) ) {
     foreach my $n (@$ns) {
-      return 1 if $self->namespaces->{$n} &&
-        $self->namespaces->{$n}->has_assignment($symbol);
+      return 1
+        if $self->namespaces->{$n}
+        && $self->namespaces->{$n}->has_assignment($symbol);
     }
     return;
   }
@@ -57,10 +56,10 @@ sub has_assignment {
 sub get_assignment {
   my ( $self, $namespace, $symbol ) = @_;
 
-  if(is_ArrayRef($namespace)) {
+  if ( is_ArrayRef($namespace) ) {
     foreach my $n (@$namespace) {
-      if($self -> has_assignment($n, $symbol)) {
-        return $self -> get_assignment($n, $symbol);
+      if ( $self->has_assignment( $n, $symbol ) ) {
+        return $self->get_assignment( $n, $symbol );
       }
     }
     return;
@@ -79,7 +78,7 @@ sub get_assignment {
 sub has_namespace {
   my ( $self, $ns ) = @_;
 
-  return exists $self->namespaces->{$ns} && defined $self -> namespaces -> {$ns};
+  return exists $self->namespaces->{$ns} && defined $self->namespaces->{$ns};
 }
 
 sub register_namespace {
@@ -89,8 +88,8 @@ sub register_namespace {
     $self->namespaces->{$ns} = $context;
   }
 
-  $self -> _namespace_promises -> {$ns} ||= deferred;
-  $self -> _namespace_promises -> {$ns} -> resolve();
+  $self->_namespace_promises->{$ns} ||= deferred;
+  $self->_namespace_promises->{$ns}->resolve();
 
   return;
 }

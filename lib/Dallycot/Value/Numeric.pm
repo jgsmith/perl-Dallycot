@@ -25,10 +25,10 @@ sub id {
 
 sub is_defined { return 1 }
 
-sub is_empty { return }
+sub is_empty {return}
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
   return $self->[0]->bstr;
 }

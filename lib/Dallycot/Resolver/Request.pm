@@ -53,67 +53,55 @@ sub run {
           my $content_type_header = $res->headers->content_type;
           my @bits                = split( /;/, $content_type_header );
           my $content_type        = shift @bits;
-          my %content_params = map { split(/=/, $_, 2) } @bits;
+          my %content_params      = map { split( /=/, $_, 2 ) } @bits;
           $content_params{'charset'} //= 'ISO-8859-1';
-          my $body   = $res->content->build_body;
+          my $body = $res->content->build_body;
+
           #$body = encode('UTF-8', decode(lc($content_params{'charset'}), $body));
 
           my $model;
-          my $parser_class =
-            eval { RDF::Trine::Parser->parser_by_media_type($content_type) };
+          my $parser_class = eval { RDF::Trine::Parser->parser_by_media_type($content_type) };
 
-          if($@ || !defined($parser_class) || $content_type eq 'text/html') {
-            if($content_type eq 'text/html') {
+          if ( $@ || !defined($parser_class) || $content_type eq 'text/html' ) {
+            if ( $content_type eq 'text/html' ) {
               use RDF::RDFa::Parser;
+
               # my $options = RDF::RDFa::Parser::Config->new('xhtml', '1.1');
-              my $rdfa    = RDF::RDFa::Parser->new($body, $url, RDF::RDFa::Parser::Config->tagsoup);
-              $model   = $rdfa->graph;
+              my $rdfa = RDF::RDFa::Parser->new( $body, $url, RDF::RDFa::Parser::Config->tagsoup );
+              $model = $rdfa->graph;
               $deferred->resolve(
                 bless [
-                  $base_uri,
-                  RDF::Trine::Node::Resource->new(
-                    $self->canonical_url || $self->url
-                  ),
-                  $model
+                  $base_uri, RDF::Trine::Node::Resource->new( $self->canonical_url || $self->url ), $model
                 ] => 'Dallycot::Value::TripleStore'
               );
             }
             else {
-              $deferred->reject($@ || 'Unable to process content type "' + $content_type + '"');
+              $deferred->reject( $@ || 'Unable to process content type "' + $content_type + '"' );
             }
           }
           elsif ($parser_class) {
             my $parser = $parser_class->new();
             my $store  = RDF::Trine::Store::Memory->new();
-            $model  = RDF::Trine::Model->new($store);
-            eval {
-              $parser->parse_into_model( $base_uri, $body, $model );
-            };
-            if(!$@) {
+            $model = RDF::Trine::Model->new($store);
+            eval { $parser->parse_into_model( $base_uri, $body, $model ); };
+            if ( !$@ ) {
               $deferred->resolve(
                 bless [
-                  $base_uri,
-                  RDF::Trine::Node::Resource->new(
-                    $self->canonical_url || $self->url
-                  ),
-                  $model
+                  $base_uri, RDF::Trine::Node::Resource->new( $self->canonical_url || $self->url ), $model
                 ] => 'Dallycot::Value::TripleStore'
               );
             }
             else {
-              $deferred->reject(
-                'Unable to process content type "' . $content_type . '": ' . $@
-              );
+              $deferred->reject( 'Unable to process content type "' . $content_type . '": ' . $@ );
             }
           }
           else {
             $deferred->reject(
-              "Unable to parse content from $url: no parser for "
-                . $res->headers->content_type );
+              "Unable to parse content from $url: no parser for " . $res->headers->content_type );
           }
         }
-        elsif ( $res->code == 303 || $res -> code == 302 || $res -> code == 301) {    # See Other
-                                         # look for an 'Alternatives' header
+        elsif ( $res->code == 303 || $res->code == 302 || $res->code == 301 ) {    # See Other
+              # look for an 'Alternatives' header
           my $new_uri;
           if ( 0 >= $self->redirects ) {
             $deferred->reject("Unable to fetch $url: too many redirects");
@@ -129,8 +117,7 @@ sub run {
             while ( my ( $path, $val, $type ) = splice( @options, 0, 3 ) ) {
               $types{$type} = [ $val, $path ];
             }
-            my @sorted_types =
-              grep { RDF::Trine::Parser->parser_by_media_type($_) }
+            my @sorted_types = grep { RDF::Trine::Parser->parser_by_media_type($_) }
               sort { $types{$a}->[0] <=> $types{$b}->[0] } keys %types;
 
             # we'll take the first one we get
@@ -147,16 +134,11 @@ sub run {
               url           => $new_uri,
               redirects     => $self->redirects - 1,
               canonical_url => $self->canonical_url
-              )->run->done(
-              sub { $deferred->resolve(@_); },
-              sub { $deferred->reject(@_); }
-              );
+            )->run->done( sub { $deferred->resolve(@_); }, sub { $deferred->reject(@_); } );
           }
           else {
             # we give up... nothing to see here
-            $deferred->reject(
-              "Unable to fetch $url: redirect with no suitable location"
-            );
+            $deferred->reject("Unable to fetch $url: redirect with no suitable location");
           }
         }
         else {

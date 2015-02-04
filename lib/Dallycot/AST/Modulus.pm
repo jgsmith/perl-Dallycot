@@ -38,18 +38,15 @@ sub execute {
 
 sub process_loop {
   my ( $self, $engine, $d, %state ) = @_;
-  my ( $left_value, $right_expr, @expressions ) =
-    ( $state{base}, @{ $state{expressions} || [] } );
+  my ( $left_value, $right_expr, @expressions )
+    = ( $state{base}, @{ $state{expressions} || [] } );
 
   if ( !@expressions ) {
     $engine->execute( $right_expr, ['Numeric'] )->done(
       sub {
         my ($right_value) = @_;
         $d->resolve(
-          Dallycot::Value::Numeric->new(
-            $left_value->value->copy->bmod( $right_value->value )
-          )
-        );
+          Dallycot::Value::Numeric->new( $left_value->value->copy->bmod( $right_value->value ) ) );
       },
       sub {
         $d->reject(@_);
@@ -62,7 +59,7 @@ sub process_loop {
         my ($right_value) = @_;
         $left_value = $left_value->copy->bmod( $right_value->value );
         if ( $left_value->is_zero ) {
-          $d->resolve( Dallycot::Value::Numeric -> new($left_value) );
+          $d->resolve( Dallycot::Value::Numeric->new($left_value) );
         }
         else {
           $self->process_loop(
