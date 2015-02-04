@@ -34,6 +34,11 @@ sub as_text {
   } @$self) . " >";
 }
 
+sub prepend {
+  my($self, @things) = @_;
+
+  return bless [ @things, @$self ] => __PACKAGE__;  
+}
 
 sub calculate_length {
   my ( $self, $engine ) = @_;

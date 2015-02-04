@@ -68,6 +68,7 @@ our @EXPORT = qw(
   range
   Defined
   nsdef
+  set
 );
 
 sub test_parses {
@@ -295,6 +296,15 @@ sub vectorLit {
 
 sub vector {
   bless \@_ => 'Dallycot::AST::BuildVector'
+}
+
+sub set {
+  if(@_) {
+    bless \@_ => 'Dallycot::AST::BuildSet';
+  }
+  else {
+    bless [] => 'Dallycot::Value::Set';
+  }
 }
 
 sub index_ {

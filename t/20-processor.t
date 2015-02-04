@@ -35,6 +35,10 @@ sub String {
   Dallycot::Value::String->new(@_);
 }
 
+sub Set {
+  bless \@_ => 'Dallycot::Value::Set'
+}
+
 sub Stream {
   my(@things) = @_;
 
@@ -370,6 +374,29 @@ $result = run(q{"abc" ::> "123" ::> ""});
 
 is_deeply $result, String("abc123");
 
+$result = run(q{even? % <| 1 | 2 | 3 | 5 | 8 | 13 | 21 | 34 |>});
+
+is_deeply [
+  sort { $a <=> $b } map { $_ -> value } @$result
+], [
+  sort { $a <=> $b } map { $_ -> value} @{
+    Set(Numeric(2), Numeric(8), Numeric(34))
+  }
+];
+
+$result = run(q{1 ::> <| 2 |>});
+
+is_deeply [
+  sort { $a <=> $b } map { $_ -> value } @$result
+], [
+  sort { $a <=> $b } map { $_ -> value} @{
+    Set(Numeric(1), Numeric(2))
+  }
+];
+
+$result = run(q{1 ::> <| 1 |>});
+
+is_deeply $result, Set(Numeric(1));
 
 $processor -> context -> add_namespace(rdfs => 'http://www.w3.org/2000/01/rdf-schema#');
 

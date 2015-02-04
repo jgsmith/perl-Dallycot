@@ -45,9 +45,9 @@ sub type {
       $self -> _fetch_property(
         'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
       );
-    return Dallycot::Value::Vector->new(@types);
+    return Dallycot::Value::Set->new(@types);
   };
-  return Dallycot::Value::Vector->new;
+  return Dallycot::Value::Set->new;
 }
 
 sub _fetch_property {

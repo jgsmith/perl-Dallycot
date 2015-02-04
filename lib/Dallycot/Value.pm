@@ -41,7 +41,7 @@ sub as_text {
 sub type {
   my ($self) = @_;
 
-  return  Dallycot::Value::Vector->new(
+  return  Dallycot::Value::Set->new(
     Dallycot::Value::URI->new('http://www.dallycot.net/ns/types/1.0/' . $self -> _type)
   );
 }

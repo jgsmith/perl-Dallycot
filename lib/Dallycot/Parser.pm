@@ -827,6 +827,25 @@ sub vector_constant {
   return bless $constants => 'Dallycot::Value::Vector';
 }
 
+sub empty_set {
+  return bless [] => 'Dallycot::Value::Set';
+}
+
+sub build_set {
+  my ( undef, $expressions ) = @_;
+
+  my @expressions = map {
+    if($_ -> isa('Dallycot::AST::Union')) {
+      @$_;
+    }
+    else {
+      $_
+    }
+  } @$expressions;
+
+  return bless \@expressions => 'Dallycot::AST::BuildSet';
+}
+
 sub stream_constant {
   my ( undef, $constants ) = @_;
 
@@ -842,11 +861,11 @@ sub stream_constant {
   }
 }
 
-sub zip {
-  my ( undef, $left_value, $right_value ) = @_;
+sub _flatten_binary {
+  my( undef, $class, $left_value, $right_value ) = @_;
 
-  if ( ref $left_value eq 'Dallycot::AST::Zip' ) {
-    if ( $right_value eq 'Dallycot::AST::Zip' ) {
+  if ( ref $left_value eq $class ) {
+    if ( $right_value eq $class ) {
       push @{$left_value}, @{$right_value};
       return $left_value;
     }
@@ -855,14 +874,33 @@ sub zip {
       return $left_value;
     }
   }
-  elsif ( ref $right_value eq 'Dallycot::AST::Zip' ) {
+  elsif ( ref $right_value eq $class ) {
     unshift @$right_value, $left_value;
     return $right_value;
   }
   else {
-    return bless [ $left_value, $right_value ] => 'Dallycot::AST::Zip';
+    return bless [ $left_value, $right_value ] => $class;
   }
 }
+
+sub zip {
+  my ( undef, $left_value, $right_value ) = @_;
+
+  return _flatten_binary(undef, 'Dallycot::AST::Zip', $left_value, $right_value);
+}
+
+sub set_union {
+  my( undef, $left_value, $right_value ) = @_;
+
+  return _flatten_binary(undef, 'Dallycot::AST::Union', $left_value, $right_value);
+}
+
+sub set_intersection {
+  my( undef, $left_value, $right_value ) = @_;
+
+  return _flatten_binary(undef, 'Dallycot::AST::Intersection', $left_value, $right_value);
+}
+
 
 sub vector_index {
   my ( undef, $vector, $index ) = @_;
@@ -985,6 +1023,8 @@ TypeName ::= Name
 
 ExpressionList ::= Expression+ separator => COMMA action => list
 
+SetExpressionList ::= Expression+ separator => PIPE action => list
+
 DiscreteBindings ::= Binding* separator => COMMA action => list
 
 Bindings ::= DiscreteBindings
@@ -1032,9 +1072,9 @@ Expression ::=
     | (LT) ExpressionList (GT) action => build_vector
     | (LT) (GT) action => empty_vector
     | ('<>') action => empty_vector
-    # | (LP_LC) ExpressionList (RC_RP) assoc => group action => build_set
-    # | (LP_LC) (LC_LP) action => empty_set
-    # | ('({})') action => empty_set
+    | (SET_START) SetExpressionList (SET_END) assoc => group action => build_set
+    | (SET_START) (SET_END) action => empty_set
+    | ('<||>') action => empty_set
    || Apply
    || Expression QUOTE assoc => left action => head
     | Expression DOT_DOT_DOT assoc => left action => tail
@@ -1056,8 +1096,8 @@ Expression ::=
    || Expression (MOD) Expression action => modulus assoc => right
    || Expression (PLUS) Expression action => sum
     | Expression (MINUS) Expression action => subtract
-  #  || Expression (PIPE) Expression action => set_union
-  #  || Expression (AMP) Expression action => set_intersection
+   || Expression (PIPE) Expression action => set_union
+   || Expression (AMP) Expression action => set_intersection
    || Expression (COLON_COLON_GT) Expression action => cons assoc => right
    || Expression (LT_COLON_COLON) Expression action => vector_push assoc => left
    || Expression Inequality Expression action => inequality
@@ -1194,6 +1234,7 @@ Uri ~ uri
 
 LambdaArg ~ HASH | HASH positiveInteger
 
+AMP ~ '&'
 AND ~ 'and'
 COLON ~ ':'
 #COLON_COLON ~ '::'
@@ -1214,6 +1255,7 @@ GT ~ '>'
 GT_GT ~ '>>'
 LB ~ '['
 LC ~ '{'
+SET_START ~ '<|'
 LEFT_ARROW ~ '<-'
 LP ~ '('
 LP_STAR ~ '(*'
@@ -1230,6 +1272,7 @@ QUOTE ~ [']
 # '
 RB ~ ']'
 RC ~ '}'
+SET_END ~ '|>'
 RIGHT_ARROW ~ '->'
 RP ~ ')'
 SLASH ~ '/'

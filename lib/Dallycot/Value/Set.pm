@@ -12,10 +12,22 @@ use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred collect);
 
+sub new {
+  my($class, @values) = @_;
+
+  @values = values %{
+    +{
+      map { $_ -> id => $_ } @values
+    }
+  };
+
+  return bless \@values => __PACKAGE__;
+}
+
 sub as_text {
   my($self) = @_;
 
-  "[" . join(", ", map { $_ -> as_text } @$self) . "]";
+  "<|" . join(" | ", map { $_ -> as_text } @$self) . "|>";
 }
 
 sub is_defined { return 1 }
@@ -67,10 +79,10 @@ sub apply_map {
 
   return collect( map { $transform->apply( $engine, {}, $_ ) } @$self )->then(
   sub {
-    my @values = map { @$_ } @_;
-    bless \@values => __PACKAGE__;
-  },
-  );
+    return $self->new(
+      map { @$_ } @_
+    );
+  });
 }
 
 sub apply_filter {
@@ -86,6 +98,61 @@ sub apply_filter {
     bless \@values => __PACKAGE__;
   }
   );
+}
+
+sub prepend {
+  my($self, @things) = @_;
+
+  return $self -> new(
+    @things, @$self
+  );
+}
+
+sub union {
+  my($self, $other) = @_;
+
+  return Dallycot::Processor->UNDEFINED unless $other->isa(__PACKAGE__);
+
+  return $self -> new(
+    @{$self},
+    @{$other}
+  );
+}
+
+sub intersection {
+  my($self, $other) = @_;
+
+  return Dallycot::Processor->UNDEFINED unless $other->isa(__PACKAGE__);
+
+  my $own_values = {
+    map { $_ -> id => $_ } @$self
+  };
+
+  my $other_values = {
+    map { $_ -> id => $_ } @$other
+  };
+
+  my @new_values;
+
+  @new_values = @{$own_values}{
+    grep { $other_values->{$_} } keys %$own_values
+  };
+
+  return bless \@new_values => __PACKAGE__;
+}
+
+sub fetch_property {
+  my ( $self, $engine, $prop ) = @_;
+
+  collect(
+    map { $_ -> fetch_property($engine, $prop) } @$self
+  )->then(sub {
+    my(@values) = map { @$_ } @_;
+
+    return $self -> new(
+      grep { blessed($_) && !$_->isa('Dallycot::Value::Undefined') } @values
+    );
+  });
 }
 
 1;
