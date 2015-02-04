@@ -96,7 +96,7 @@ sub channel_send {
 
   if ( $self->has_channels && exists( $self->channels->{$channel} ) ) {
     if ( $self->channels->{$channel} ) {
-      $self->channels->{$channel}->send(@items);
+      $self->channels->{$channel}->send_data(@items);
     }
   }
   elsif ( $self->has_parent ) {
@@ -110,7 +110,7 @@ sub channel_read {
 
   if ( $self->has_channels && exists( $self->channels->{$channel} ) ) {
     if ( $self->channels->{$channel} ) {
-      return $self->channels->{$channel}->receive(%options);
+      return $self->channels->{$channel}->receive_data(%options);
     }
   }
   elsif ( $self->has_parent ) {

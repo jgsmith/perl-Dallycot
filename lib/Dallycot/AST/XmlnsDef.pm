@@ -24,11 +24,20 @@ sub as_text {
 
   my ( $prefix, $uri ) = @$self;
 
-  "ns:$prefix := <" . $uri->value . ">";
+  return "ns:$prefix := <" . $uri->value . ">";
 }
 
-sub prefix    { $_[0]->[0] }
-sub namespace { $_[0]->[1]->value }
+sub prefix {
+  my ($self) = @_;
+
+  return $self->[0];
+}
+
+sub namespace {
+  my ($self) = @_;
+
+  return $self->[1]->value;
+}
 
 sub execute {
   my ( $self, $engine ) = @_;

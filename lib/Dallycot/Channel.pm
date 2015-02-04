@@ -5,10 +5,10 @@ package Dallycot::Channel;
 use Moose;
 use Carp qw(croak);
 
-sub can_send    {0}
-sub can_receive {0}
+sub can_send    {return}
+sub can_receive {return}
 
-sub send {
+sub send_data {
   my ( $self, @content ) = @_;
 
   # This needs to be written for an output channel
@@ -16,7 +16,7 @@ sub send {
   croak "send() is not implemented for $class";
 }
 
-sub receive {
+sub receive_data {
   my ($self) = @_;
 
   # This also needs to be written for an input channel

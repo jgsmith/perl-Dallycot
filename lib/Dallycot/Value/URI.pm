@@ -50,7 +50,7 @@ sub id {
 sub as_text {
   my ($self) = @_;
 
-  $self->id;
+  return $self->id;
 }
 
 sub is_lambda {
@@ -59,7 +59,7 @@ sub is_lambda {
   my ( $lib, $method ) = $self->_get_library_and_method;
 
   return unless defined $lib;
-  $lib->get_assignment($method)->then(
+  return $lib->get_assignment($method)->then(
     sub {
       my ($def) = @_;
 

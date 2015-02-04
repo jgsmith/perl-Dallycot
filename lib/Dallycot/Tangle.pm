@@ -109,36 +109,41 @@ sub handle_event {
   if ( $method = $self->can( $event->event_name ) ) {
     $self->$method( $event->kv_pairs_for_attributes() );
   }
+  return;
 }
 
 sub start_header {
   my ( $self, %info ) = @_;
   $self->in_header( $info{level} );
+  return;
 }
 
 sub end_header {
   my ( $self, %info ) = @_;
   $self->in_header(0);
+  return;
 }
 
 sub start_link {
   my ( $self, %info ) = @_;
   $self->in_link( \%info );
+  return;
 }
 
 sub end_link {
   my ( $self, %info ) = @_;
   $self->in_link(0);
+  return;
 }
 
 sub text {
   my ( $self, %info ) = @_;
 
   if ( $self->in_header ) {
-    $self->header( %info, level => $self->in_header );
+    return $self->header( %info, level => $self->in_header );
   }
   elsif ( $self->in_link ) {
-    $self->link( %{ $self->in_link }, %info );
+    return $self->save_link( %{ $self->in_link }, %info );
   }
 }
 
@@ -154,7 +159,7 @@ sub code_block {
     $name .= ":" . $self->code_link_name;
   }
   $self->code_blocks->{$name} //= "";
-  $self->code_blocks->{$name} .= "\n" . $info{code};
+  return $self->code_blocks->{$name} .= "\n" . $info{code};
 }
 
 sub _normalize_name {
@@ -168,17 +173,17 @@ sub _normalize_name {
   return lc($name);
 }
 
-sub link {
+sub save_link {
   my ( $self, %info ) = @_;
 
   use Data::Dumper;
   if ( $info{uri} eq '#' || $info{uri} eq '' ) {
     my $name = $self->_normalize_name( $info{text} );
     return if $name eq '';
-    $self->code_link_name($name);
+    return $self->code_link_name($name);
   }
   elsif ( $info{uri} =~ m{^#(.*)$} && $info{title} eq 'start:' ) {
-    $self->start_with( $self->_normalize_name($1) );
+    return $self->start_with( $self->_normalize_name($1) );
   }
 }
 
@@ -194,7 +199,7 @@ sub header {
 
   my $name = $self->_normalize_name( $info{text} );
   return if $name eq '';
-  $self->section_name($name);
+  return $self->section_name($name);
 }
 
 1;

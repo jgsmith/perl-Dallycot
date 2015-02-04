@@ -109,6 +109,7 @@ sub _get_valid_input {
       _get_valid_input( $engine, $d, $channel, %options );
     }
   );
+  return;
 }
 
 1;

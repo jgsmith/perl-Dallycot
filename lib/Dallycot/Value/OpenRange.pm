@@ -17,7 +17,7 @@ sub _type { return 'Range' }
 sub as_text {
   my ($self) = @_;
 
-  $self->[0]->as_text . "..";
+  return $self->[0]->as_text . "..";
 }
 
 sub is_empty {return}
@@ -41,26 +41,19 @@ sub head {
 sub tail {
   my ($self) = @_;
 
-  my $d = deferred;
-
-  $self->[0]->successor->done(
+  return $self->[0]->successor->then(
     sub {
       my ($next) = @_;
 
-      $d->resolve( bless [$next] => __PACKAGE__ );
-    },
-    sub {
-      $d->reject(@_);
+      bless [$next] => __PACKAGE__;
     }
   );
-
-  return $d->promise;
 }
 
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 
-  $engine->make_map($transform)->then(
+  return $engine->make_map($transform)->then(
     sub {
       my ($map_t) = @_;
 
@@ -72,7 +65,7 @@ sub apply_map {
 sub apply_filter {
   my ( $self, $engine, $filter ) = @_;
 
-  $engine->make_filter($filter)->then(
+  return $engine->make_filter($filter)->then(
     sub {
       my ($filter_t) = @_;
 

@@ -27,9 +27,9 @@ sub can_receive {
   return defined( $self->term->IN );
 }
 
-sub has_history {1}
+sub has_history { return 1 }
 
-sub send {
+sub send_data {
   my ( $self, @stuff ) = @_;
 
   # For now, this is synchronous
@@ -42,7 +42,7 @@ sub send {
   return;
 }
 
-sub receive {
+sub receive_data {
   my ( $self, %options ) = @_;
 
   my $d = deferred;

@@ -183,7 +183,7 @@ Returns a list of warnings.
 sub check_for_common_mistakes {
   my ($self) = @_;
 
-  map { $_->check_for_common_mistakes } $self->child_nodes;
+  return map { $_->check_for_common_mistakes } $self->child_nodes;
 }
 
 =method to_json

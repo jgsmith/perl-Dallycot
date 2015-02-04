@@ -10,5 +10,11 @@ See [Dallycot::Manual](./lib/Dallycot/Manual.pod) for more information.
 ## PerlTidy Options
 
 ```
-perltidy -b -bext=/ -i=2 -l=108 -conv `find lib -name *.pm`
+perltidy -b -bext=/ -pbp -i=2 -ci=2 -l=108 -nst -nse -conv `find lib -name *.pm`
+```
+
+## PerlCritic Options
+
+```
+perlcritic -4 `find lib -name *.pm`
 ```

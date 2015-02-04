@@ -91,7 +91,7 @@ sub identifiers {
 
   my @identifiers = map { $_->identifiers } $self->child_nodes;
   my %assignments = map { $_ => 1 } @{ $self->[2] };
-  grep { !$assignments{$_} } @identifiers;
+  return grep { !$assignments{$_} } @identifiers;
 }
 
 sub child_nodes {

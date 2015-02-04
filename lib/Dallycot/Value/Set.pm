@@ -23,7 +23,7 @@ sub new {
 sub as_text {
   my ($self) = @_;
 
-  "<|" . join( " | ", map { $_->as_text } @$self ) . "|>";
+  return "<|" . join( " | ", map { $_->as_text } @$self ) . "|>";
 }
 
 sub is_defined { return 1 }
@@ -128,7 +128,7 @@ sub intersection {
 sub fetch_property {
   my ( $self, $engine, $prop ) = @_;
 
-  collect( map { $_->fetch_property( $engine, $prop ) } @$self )->then(
+  return collect( map { $_->fetch_property( $engine, $prop ) } @$self )->then(
     sub {
       my (@values) = map {@$_} @_;
 

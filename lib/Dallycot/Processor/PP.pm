@@ -18,6 +18,7 @@ sub DEMOLISH {
   return if $flag;
 
   $self->parent->add_cost( $self->cost ) if $self->has_parent;
+  return;
 }
 
 1;

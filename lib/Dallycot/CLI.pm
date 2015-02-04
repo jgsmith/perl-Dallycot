@@ -176,6 +176,7 @@ sub print_banner {
     "Please contribute if you find this software useful.\n",
     "For more information, visit http://www.dallycot.net/get-involved/.\n"
   );
+  return;
 }
 
 sub print_library_namespaces {
@@ -199,6 +200,7 @@ sub print_library_namespaces {
   foreach my $ns ( sort keys %namespaces ) {
     $out->send("  $ns\n");
   }
+  return;
 }
 
 sub run_files {
@@ -227,6 +229,7 @@ sub _run_files {
       $d->reject(@_);
     }
   );
+  return;
 }
 
 sub primary_prompt {
@@ -257,6 +260,7 @@ sub primary_prompt {
       $app->done->resolve(undef);
     }
     );
+  return;
 }
 
 sub check_parse {
@@ -271,6 +275,7 @@ sub check_parse {
   else {
     $app->process_line( $line, $parse );
   }
+  return;
 }
 
 sub secondary_prompt {
@@ -288,6 +293,7 @@ sub secondary_prompt {
       }
     }
   );
+  return;
 }
 
 sub add_history {
@@ -336,6 +342,7 @@ sub process_line {
     $app->channel->send("\n");
     $app->primary_prompt;
   }
+  return;
 }
 
 sub run_file {
