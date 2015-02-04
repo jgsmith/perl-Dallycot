@@ -22,6 +22,8 @@ sub as_text {
   return "uses <" . $self->[0]->value . ">";
 }
 
+sub namespace { $_[0] -> [0] -> value }
+
 sub execute {
   my ( $self, $engine ) = @_;
 

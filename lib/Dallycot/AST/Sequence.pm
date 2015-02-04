@@ -21,14 +21,34 @@ sub new {
 
   my @assignment_names = grep { defined } map { $_ -> identifier } @declarations;
 
+  my %namespace_prefixes = map {
+    $_->prefix => $_->namespace
+  } grep {
+    $_ -> isa('Dallycot::AST::XmlnsDef')
+  } @declarations;
+
+  @declarations = grep { !$_ -> isa('Dallycot::AST::XmlnsDef') } @declarations;
+
+  my @namespace_searches = map {
+    $_->namespace
+  } grep {
+    $_ -> isa('Dallycot::AST::Uses')
+  } @declarations;
+
+  @declarations = grep { !$_ -> isa('Dallycot::AST::Uses') } @declarations;
+
   $class = ref $class || $class;
 
-  return bless [ \@declarations, \@statements, \@assignment_names ] => $class;
+  return bless [ \@declarations, \@statements, \@assignment_names, \%namespace_prefixes, \@namespace_searches ] => $class;
 }
 
 sub to_string {
   my ($self) = @_;
-  return join( "; ", map { $_->to_string } @{$self->[0]}, @{$self -> [1]} );
+  return join( "; ",
+    (map { 'uses "' . $_ . '"' } @{$self->[4]}),
+    (map { "ns:$_ := \"" . $self->[3]->{$_} . "\"" } keys %{$self->[3]}),
+    map { $_->to_string } @{$self->[0]}, @{$self -> [1]}
+  );
 }
 
 sub simplify {
@@ -60,6 +80,12 @@ sub execute {
 
   foreach my $ident (@{$self -> [2]}) {
     $child_scope -> add_assignment( $ident );
+  }
+
+  $child_scope -> append_namespace_search_path(@{$self -> [4]});
+
+  for my $ns (keys %{$self->[3]}) {
+    $engine -> add_namespace($ns, $self->[3]->{$ns});
   }
 
   $child_scope->collect(@{$self->[0]})->done(sub{});

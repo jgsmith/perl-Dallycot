@@ -27,6 +27,9 @@ sub as_text {
   "ns:$prefix := <" . $uri->value . ">";
 }
 
+sub prefix { $_[0] -> [0] }
+sub namespace { $_[0] -> [1] -> value }
+
 sub execute {
   my ( $self, $engine ) = @_;
 

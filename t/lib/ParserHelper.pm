@@ -105,7 +105,7 @@ sub sequence {
   my @statements = grep { blessed($_) && !$_ -> isa('Dallycot::AST::Assign') } @things;
   my @identifiers = map { $_ -> identifier } @assignments;
 
-  bless [ \@assignments, \@statements, \@identifiers ] => 'Dallycot::AST::Sequence';
+  bless [ \@assignments, \@statements, \@identifiers, {}, [] ] => 'Dallycot::AST::Sequence';
 }
 
 sub placeholder {
