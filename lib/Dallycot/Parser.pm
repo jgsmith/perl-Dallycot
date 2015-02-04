@@ -431,7 +431,7 @@ sub build_string_vector {
   $lit =~ s/^<<//;
   $lit =~ s/>>$//;
   my @matches = map { unbackslash($_) }
-    map { s/\\ / /g; $_ }
+    map { my $a = $_; $a =~ s/\\ / /g; $a }
     split( /(?<!\\)\s+/, $lit );
 
   return

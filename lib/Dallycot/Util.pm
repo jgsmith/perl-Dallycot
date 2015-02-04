@@ -1,5 +1,8 @@
 package Dallycot::Util;
 
+use strict;
+use warnings;
+
 use Exporter 'import';
 
 use Promises qw(deferred);

@@ -57,15 +57,14 @@ sub libraries {
 
 my %engines;
 
+my %namespaces;
+
 sub ns {
   my ( $meta, $uri ) = @_;
 
   Dallycot::Registry->instance->register_namespace( $uri, $meta->{'package'} );
 
-  no strict 'refs';
-
-  ${ $meta->{'package'} . '::NAMESPACE' } = $uri;
-  ${ $meta->{'package'} . '::NAMESPACE' } = $uri;
+  $namespaces{ $meta->{'package'} } = $uri;
 
   my $engine = $engines{ $meta->{'package'} } ||= Dallycot::Processor->new;
   uses( $meta, $uri );
@@ -77,10 +76,11 @@ sub namespace {
 
   $class = ref($class) || $class;
 
-  no strict 'refs';
-
-  return ${ $class . "::NAMESPACE" };
+  return $namespaces{$class};
 }
+
+my %definitions;
+my %uses_promises;
 
 sub define {
   my ( $meta, $name, @options ) = @_;
@@ -88,10 +88,7 @@ sub define {
   my $body    = pop @options;
   my %options = @options;
 
-  no strict 'refs';
-
-  my $definitions = \%{ $meta->{'package'} . '::DEFINITIONS' };
-  $definitions = \%{ $meta->{'package'} . '::DEFINITIONS' };
+  my $definitions = $definitions{ $meta->{'package'} } ||= {};
 
   if ( is_CodeRef($body) ) {
 
@@ -115,7 +112,7 @@ sub define {
       croak "Unable to parse Dallycot source for $name";
     }
 
-    ${ $meta->{'package'} . '::USES_PROMISE' }->done(
+    $uses_promises{ $meta->{'package'} }->done(
       sub {
         $definitions->{$name} = {
           %options,
@@ -145,16 +142,14 @@ sub uses {
     }
   );
 
-  no strict 'refs';
-
-  my $prior_promise = ${ $meta->{'package'} . '::USES_PROMISE' };
+  my $prior_promise = $uses_promises{ $meta->{'package'} };
   if ($prior_promise) {
     $prior_promise = $prior_promise->then( sub {$promise} );
   }
   else {
     $prior_promise = $promise;
   }
-  ${ $meta->{'package'} . '::USES_PROMISE' } = $prior_promise;
+  $uses_promises{ $meta->{'package'} } = $prior_promise;
 
   return;
 }
@@ -210,9 +205,7 @@ sub get_definition {
 
   $class = ref($class) || $class;
 
-  no strict 'refs';
-
-  my $definitions = \%{ $class . "::DEFINITIONS" };
+  my $definitions = $definitions{$class};
 
   if ( exists $definitions->{$name} && defined $definitions->{$name} ) {
     return $definitions->{$name};
