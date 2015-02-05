@@ -167,7 +167,7 @@ sub make_closure {
   return $self->new(
     namespaces            => \%namespaces,
     environment           => \%environment,
-    namespace_search_path => $self->namespace_search_path
+    namespace_search_path => [@{$self->namespace_search_path}]
   );
 }
 

@@ -57,14 +57,12 @@ When in doubt, use a namespace prefix.
 Just to make our life easier when we have a lot to print, we define a function that will take a stream or vector of strings and print them out, one at a time, using the command line output routine.
 
 ```
-print-lines := Y(
-  (self, stream) :> (
-    (?stream) : (
-      cli:print(stream');
-      self(self, stream...);
-    )
-    (       ) : ( )
+print-lines(stream) :> (
+  (?stream) : (
+    cli:print(stream');
+    print-lines(stream...);
   )
+  (       ) : ( )
 );
 ```
 
@@ -126,22 +124,19 @@ We need to get information from the player at two different points in the game:
 We need to know the elevation of the gun in degrees between 1 and 89 inclusive. Zero degrees will fall immediately to the ground, and 90 degrees will hit us on the head.
 
 ```
-get-elevation := Y(
-  (self) :> (
+get-elevation() :> (
+  elevation := cli:input("\nElevation: ");
 
-    elevation := cli:input("\nElevation: ");
-
-    (
-      (elevation > 89) : (
-        print-lines(["Maximum elevation is 89 degrees",""]);
-        self(self)
-      )
-      (elevation < 1) : (
-        print-lines(["Minimum elevation is one degree",""]);
-        self(self, reader)
-      )
-      ( ) : elevation
+  (
+    (elevation > 89) : (
+      print-lines(["Maximum elevation is 89 degrees",""]);
+      get-elevation();
     )
+    (elevation < 1) : (
+      print-lines(["Minimum elevation is one degree",""]);
+      get-elevation();
+    )
+    ( ) : elevation
   )
 );
 ```
@@ -151,16 +146,14 @@ get-elevation := Y(
 After the player has either hit the target or gotten hit by the enemy, the round is over and we need to know if they would like to go another round. The response has to be either `y` or `n`. Anything else repeats the prompt.
 
 ```
-try-again? := Y(
-  (self) :> (
-    input := cli:input-string("Try again (y or n)? ");
-    (
-      (input = "Y" or input = "y") : true
-      (input = "N" or input = "n") : false
-      ( ) : (
-        cli:print("I didn't catch that.");
-        self(self)
-      )
+try-again?() :> (
+  input := cli:input-string("Try again (y or n)? ");
+  (
+    (input = "Y" or input = "y") : true
+    (input = "N" or input = "n") : false
+    ( ) : (
+      cli:print("I didn't catch that.");
+      try-again?()
     )
   )
 );
@@ -211,7 +204,7 @@ destroy-target(tries) :> (
 If the player fires and the shell lands short of the target, we let the player know how short they were and give them another attack.
 
 ```
-under-shoot(gun, target, distance, tries, attack-target) :> (
+under-shoot(gun, target, distance, tries) :> (
   print-lines(<
     "Short of target by " ::> strings:number-string(distance) ::> " yards."
   >);
@@ -225,7 +218,7 @@ under-shoot(gun, target, distance, tries, attack-target) :> (
 If the player fires and the shell lands beyond the target, we let the player know how far they were and give them another attack.
 
 ```
-over-shoot(gun, target, distance, tries, attack-target) :> (
+over-shoot(gun, target, distance, tries) :> (
   print-lines(<
     "Over target by " ::> strings:number-string(distance) ::> " yards."
   >);
@@ -241,17 +234,15 @@ An attack consists of getting an elevation from the player and then firing the g
 
 Given a gun, a target, and an elevation, we see how close the player gets to the target with a shell. This function passes `tries` through to the result functions since that determines how many shells are left or were used to hit the target.
 
-We pass the `attack-target` function in because we haven't defined it yet, and a closure would force it to remain undefined even though it gets defined later.
-
 ```
-fire-gun(gun, target, elevation, tries, attack-target) :> (
+fire-gun(gun, target, elevation, tries) :> (
   distance := math:ceil(target-distance(target) - hit-at);
   hit-at := gun-range(gun) * math:sin(elevation);
-  
+
   (
     (math:abs(distance) < 100) : destroy-target(tries)
-    (         distance  < 100) : under-shoot(gun, target, -distance, tries, attack-target)
-    (                        ) :  over-shoot(gun, target,  distance, tries, attack-target)
+    (         distance  < 100) : under-shoot(gun, target, -distance, tries)
+    (                        ) :  over-shoot(gun, target,  distance, tries)
   )
 );
 ```
@@ -263,14 +254,12 @@ Here, we simply manage the prompt and response cycle of the main part of the gam
 We track the number of tries with a range of integers. If we can move another position in the chain of integers, we fire the gun. Otherwise, we're done. This is a natural way to build loops in Dallycot that mimic for-loops in other languages.
 
 ```
-attack-target := Y(
-  (self, gun, target, tries) :> (
-    elevation := get-elevation();
+attack-target(gun, target, tries) :> (
+  elevation := get-elevation();
 
-    (
-      (?(tries...))  : fire-gun(gun, target, elevation, tries, Y(self))
-      (           )  : go-boom(tries)
-    )
+  (
+    (?(tries...))  : fire-gun(gun, target, elevation, tries)
+    (           )  : go-boom(tries)
   )
 );
 ```
@@ -313,23 +302,21 @@ Once the banner is printed, we start running the game, which consists of a numbe
 We use `stats` as a kind of game status indicator. It's a vector with the form `<total-shells, continue?>`. We don't get here until the end of the first round, so it's acting as a `do ... while(...)` loop construct.
 
 ```
-run-game := Y(
-  (self, stats) :> (
-    (stats[1] < 18 and stats[2]) : self(self, game-round(0, stats[1]))
-    (stats[1] >= 18) : (
-      print-lines([
-        "Total rounds expended were: " ::> strings:number-string(stats[1]),
-        "Better go back to Fort Sill for refresher training!",
-        ""
-      ])
-    )
-    (     ) : (
-      print-lines([
-        "Total rounds expended were: " ::> strings:number-string(stats[1]),
-        "",
-        "Return to base camp."
-      ]);
-    )
+run-game(stats) :> (
+  (stats[1] < 18 and stats[2]) : run-game(game-round(0, stats[1]))
+  (stats[1] >= 18) : (
+    print-lines([
+      "Total rounds expended were: " ::> strings:number-string(stats[1]),
+      "Better go back to Fort Sill for refresher training!",
+      ""
+    ])
+  )
+  (     ) : (
+    print-lines([
+      "Total rounds expended were: " ::> strings:number-string(stats[1]),
+      "",
+      "Return to base camp."
+    ]);
   )
 );
 ```

@@ -162,7 +162,7 @@ $result = run("
   evens := Y((f, s) :> (
     (even?(s')) : [ s', f(f, s...) ]
     (         ) :       f(f, s...)
-  ))
+  ));
 ");
 
 isa_ok $result, 'Dallycot::Value::Lambda';
@@ -218,7 +218,7 @@ EOF
 # # use Data::Dumper;
 # # print STDERR Data::Dumper->Dump([$processor -> context -> get_assignment("filter")]);
 
-is_deeply $result, get_resolution($processor -> context -> get_assignment('map')), "Returns the last statement (map)";
+is_deeply $result, get_resolution($processor -> get_assignment('map')), "Returns the last statement (map)";
 
 $result = run("quintuple(x) :> 5 * x; map(quintuple, upfrom(1))'");
 
@@ -431,9 +431,6 @@ sub run {
     my $parse = $parser -> parse($stmt);
     if(!$parse) {
       print STDERR "unable to parse: $stmt\n";
-    }
-    if('HASH' eq ref $parse) {
-      $parse = [ $parse ];
     }
     # if(!blessed($parse->[0])) {
     #   print STDERR Data::Dumper->Dump([$parse]);

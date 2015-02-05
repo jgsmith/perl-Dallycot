@@ -90,11 +90,8 @@ sub parse {
   }
   my $parse = $re->value;
   my $result;
-  if ( $parse && $$parse && $$parse->isa('Dallycot::AST::Sequence') ) {
-    $result = $$parse;
-    $result = [ @{ $result->[0] }, @{ $result->[1] } ];
-  }
-  elsif ($parse) {
+  
+  if ($parse) {
     $result = [$$parse];
   }
   else {

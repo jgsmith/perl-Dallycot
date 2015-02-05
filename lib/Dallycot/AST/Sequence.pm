@@ -70,20 +70,38 @@ sub execute {
   my ( $self, $engine ) = @_;
 
   my $child_scope = $engine->with_child_scope();
+  my $var_scope = $engine->has_parent ? $child_scope : $engine;
 
   foreach my $ident ( @{ $self->[2] } ) {
-    $child_scope->add_assignment($ident);
+    $var_scope->add_assignment($ident);
   }
 
-  $child_scope->append_namespace_search_path( @{ $self->[4] } );
+  # wait for namespaces to load
+  Dallycot::Registry->instance->register_used_namespaces( @{$self->[4]} )->then(sub {
+    $var_scope->append_namespace_search_path( @{ $self->[4] } );
 
-  for my $ns ( keys %{ $self->[3] } ) {
-    $engine->add_namespace( $ns, $self->[3]->{$ns} );
-  }
+    for my $ns ( keys %{ $self->[3] } ) {
+      $var_scope->add_namespace( $ns, $self->[3]->{$ns} );
+    }
 
-  $child_scope->collect( @{ $self->[0] } )->done( sub { } );
+    my $assignments = $var_scope->collect( @{ $self->[0] } );
 
-  return $child_scope->execute( @{ $self->[1] } );
+    if(@{$self->[1]}) {
+      $assignments->done(sub{});
+      return $child_scope->execute( @{ $self->[1] } );
+    }
+    else {
+      return $assignments->then(sub {
+        my($last) = pop @_;
+        if($last) {
+          return $last;
+        }
+        else {
+          return $engine -> UNDEFINED;
+        }
+      });
+    }
+  });
 }
 
 sub identifiers {

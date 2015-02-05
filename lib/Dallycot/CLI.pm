@@ -14,6 +14,7 @@ use Dallycot;
 use Dallycot::Parser;
 use Dallycot::Processor;
 use Dallycot::Channel::Terminal;
+use MooseX::Types::Moose qw(ArrayRef);
 
 my $has_tangle = eval {
   require Dallycot::Tangle;
@@ -145,7 +146,7 @@ sub run {
     sub {
       my ( $in, $out );
 
-      $app->engine->append_namespace_search_path($Dallycot::Library::CLI::NAMESPACE);
+      $app->engine->append_namespace_search_path(Dallycot::Library::CLI->namespace);
 
       $app->engine->add_assignment( 'in', $app->in );
 
@@ -167,7 +168,7 @@ sub print_banner {
   my $out = $app->channel;
 
   $Dallycot::VERSION //= 'm.xxyyyz';
-  $out->send(
+  $out->send_data(
     "Dallycot, version $Dallycot::VERSION.\n",
     "Copyright (C) 2014 James Smith.\n",
     "This is free software licensed under the same terms as Perl 5.\n",
@@ -192,14 +193,14 @@ sub print_library_namespaces {
   my $out = $app->channel;
 
   if ( keys %namespaces ) {
-    $out->send("The following namespaces are installed:\n");
+    $out->send_data("The following namespaces are installed:\n");
   }
   else {
-    $out->send("No namespaces are installed\n");
+    $out->send_data("No namespaces are installed\n");
   }
 
   foreach my $ns ( sort keys %namespaces ) {
-    $out->send("  $ns\n");
+    $out->send_data("  $ns\n");
   }
   return;
 }
@@ -236,7 +237,7 @@ sub _run_files {
 sub primary_prompt {
   my ($app) = @_;
 
-  $app->channel->receive(
+  $app->channel->receive_data(
     prompt => Dallycot::Value::String->new( sprintf( "\n" . $app->prompt, $app->statement_counter ) ) )
     ->done(
     sub {
@@ -251,13 +252,13 @@ sub primary_prompt {
         }
       }
       else {
-        $app->channel->send("\n");
+        $app->channel->send_data("\n");
         $app->done->resolve(undef);
       }
     },
     sub {
       my ($err) = @_;
-      $app->channel->send("*** $err\n");
+      $app->channel->send_data("*** $err\n");
       $app->done->resolve(undef);
     }
     );
@@ -282,7 +283,7 @@ sub check_parse {
 sub secondary_prompt {
   my ( $app, $line ) = @_;
 
-  $app->channel->receive( prompt => Dallycot::Value::String->new( $app->deep_prompt ) )->done(
+  $app->channel->receive_data( prompt => Dallycot::Value::String->new( $app->deep_prompt ) )->done(
     sub {
       my ($next_line) = @_;
       if ( $next_line->is_defined ) {
@@ -315,7 +316,7 @@ sub process_line {
   my $stmt_counter = $app->add_history($line);
 
   if ( $app->parser->error ) {
-    $app->channel->send( $app->parser->error );
+    $app->channel->send_data( $app->parser->error );
     $app->primary_prompt;
   }
   elsif ( defined $parse ) {
@@ -323,24 +324,24 @@ sub process_line {
       sub {
         my ($ret) = @_;
         if ( defined $ret ) {
-          $app->channel->send( "\nout[$stmt_counter] := ", $ret->as_text );
+          $app->channel->send_data( "\nout[$stmt_counter] := ", $ret->as_text );
           my $out = $app->out;
           ${$out}[ $stmt_counter - 1 ] = $ret;
         }
       },
       sub {
         my ($error) = @_;
-        $app->channel->send("*** $error\n");
+        $app->channel->send_data("*** $error\n");
       }
       )->finally(
       sub {
-        $app->channel->send("\n");
+        $app->channel->send_data("\n");
         $app->primary_prompt;
       }
       )->done( sub { } );
   }
   else {
-    $app->channel->send("\n");
+    $app->channel->send_data("\n");
     $app->primary_prompt;
   }
   return;
@@ -381,7 +382,7 @@ sub run_file {
     }
     my $parse = $app->parser->parse($source);
     if ( $app->parser->warnings ) {
-      $app->channel->send( "Warnings:\n  " . join( "\n  ", $app->parser->warnings ) . "\n" );
+      $app->channel->send_data( "Warnings:\n  " . join( "\n  ", $app->parser->warnings ) . "\n" );
     }
     if ( !$parse ) {
       my $err = $app->parser->error;
@@ -419,7 +420,7 @@ sub execute {
   my ( $app, $parse ) = @_;
 
   my $d = eval {
-    if ( 'HASH' eq $parse ) {
+    if ( !is_ArrayRef($parse) ) {
       $parse = [$parse];
     }
     $app->engine->add_cost( -$app->engine->cost );
@@ -431,7 +432,7 @@ sub execute {
           # noop
         }
 
-        $app->channel->send( '*** ' . $err . "\n" );
+        $app->channel->send_data( '*** ' . $err . "\n" );
       }
     );
   };
@@ -445,10 +446,10 @@ sub execute {
       # noop
     }
 
-    $app->channel->send( '*** ' . $err . "\n" );
+    $app->channel->send_data( '*** ' . $err . "\n" );
   }
   else {
-    $app->channel->send('*** Unable to execute\n');
+    $app->channel->send_data('*** Unable to execute\n');
   }
   $d = deferred;
   $d->resolve();

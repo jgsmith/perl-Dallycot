@@ -31,19 +31,28 @@ has _namespace_promises => (
 sub register_used_namespaces {
   my ( $self, @uris ) = @_;
 
-  for my $ns (@uris) {
-    $self->_namespace_promises->{$ns} ||= deferred;
+  if(@uris) {
+    for my $ns (@uris) {
+      $self->_namespace_promises->{$ns} ||= deferred;
+    }
+
+    return collect( map { $self->_namespace_promises->{$_}->promise } @uris );
   }
-  return collect( map { $self->_namespace_promises->{$_}->promise } @uris );
+  else {
+    my $d = deferred;
+    $d -> resolve;
+    return $d -> promise;
+  }
 }
 
 sub has_assignment {
   my ( $self, $ns, $symbol ) = @_;
 
   if ( is_ArrayRef($ns) ) {
-    foreach my $n (@$ns) {
+    for my $n (@$ns) {
       return 1
-        if $self->namespaces->{$n}
+        if defined($n)
+        && $self->namespaces->{$n}
         && $self->namespaces->{$n}->has_assignment($symbol);
     }
     return;

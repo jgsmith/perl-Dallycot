@@ -260,6 +260,12 @@ sub _execute {
 sub execute {
   my ( $self, $ast, @ast ) = @_;
 
+  if(!defined $ast) {
+    my $d = deferred;
+    $d -> resolve(UNDEFINED);
+    return $d -> promise;
+  }
+
   if ( !blessed $ast) {
     print STDERR "$ast not blessed at ", join( " ", caller ), "\n";
   }
