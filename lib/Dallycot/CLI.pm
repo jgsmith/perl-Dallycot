@@ -170,7 +170,7 @@ sub print_banner {
   $Dallycot::VERSION //= 'm.xxyyyz';
   $out->send_data(
     "Dallycot, version $Dallycot::VERSION.\n",
-    "Copyright (C) 2014 James Smith.\n",
+    "Copyright (C) 2014-2015 James Smith.\n",
     "This is free software licensed under the same terms as Perl 5.\n",
     "There is ABSOLUTELY NO WARRANTY; not even for MERCHANTABILITY or\n",
     "FITNESS FOR A PARTICULAR PURPOSE.\n\n",
@@ -338,10 +338,12 @@ sub process_line {
         $app->channel->send_data("\n");
         $app->primary_prompt;
       }
-      )->done( sub { } );
+      )->catch( sub {
+        print STDERR "Uh oh: @_\n";
+      } )->done( sub { } );
   }
   else {
-    $app->channel->send_data("\n");
+    $app->channel->send_data("*** Unable to parse\n");
     $app->primary_prompt;
   }
   return;

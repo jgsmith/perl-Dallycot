@@ -38,17 +38,21 @@ define
   my ( $engine, $options, $string ) = @_;
 
   if ( !$string ) {
-    my $d = deferred;
-    $d->resolve( Dallycot::Value::EmptyStream->new );
-    return $d->promise;
+    return Dallycot::Value::EmptyStream->new;
   }
+  my @bits = map {
+    Dallycot::Value::String->new($_, $string->lang)
+  } split( /\s+/, $string -> value );
 
-  my @bits = split( /\s+/, $string );
-
-  my $d = deferred;
-  $d->resolve( Dallycot::Value::Vector->new(@bits) );
-  return $d->promise;
+  return Dallycot::Value::Vector->new(@bits);
   };
+
+# define 'lines-to-words' => <<'EOD';
+#   lines-to-words(lines) :> (
+#     (?lines) : words(lines')^^Stream ::: lines-to-words(lines...)
+#     (      ) : [ ]
+#   )
+# EOD
 
 # define characters => (
 #   hold => 0,

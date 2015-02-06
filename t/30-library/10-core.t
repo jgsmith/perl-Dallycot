@@ -23,4 +23,12 @@ isa_ok $result, 'Dallycot::Value::Lambda';
 
 is $result->arity, 0, "Y((self) :> ...) takes no arguments";
 
+$result = run('length("foo")');
+
+is_deeply $result, Numeric(3), "The length of 'foo' is 3";
+
+$result = run("length([1,2,3])");
+
+is_deeply $result, Numeric(3), "[1,2,3] has three elements";
+
 done_testing();

@@ -90,7 +90,7 @@ sub parse {
   }
   my $parse = $re->value;
   my $result;
-  
+
   if ($parse) {
     $result = [$$parse];
   }
@@ -1273,7 +1273,7 @@ STMT_SEP ~ ';'
 
 boolean ~ 'true' | 'false'
 
-digits ~ [\d] | digits [\d]
+digits ~ [_\d] | digits [_\d]
 
 identifier ~ <identifier bit> | identifier '-' <identifier bit>
 
@@ -1297,7 +1297,7 @@ negativeFloat ~ '-' positiveFloat
 
 <positiveFloat fractional part> ~ digits
 
-<positiveFloat exponent> ~ [eE] [-+] digits
+<positiveFloat exponent> ~ [eE] [-+] <integer>
 
 positiveFloatSansExponent ~ <positiveFloat integer part> '.' zero
                           | <positiveFloat integer part> '.' <positiveFloat fractional part>
@@ -1305,6 +1305,7 @@ positiveFloatSansExponent ~ <positiveFloat integer part> '.' zero
 
 positiveFloat ~ positiveFloatSansExponent
               | positiveFloatSansExponent <positiveFloat exponent>
+              | <positiveFloat integer part> <positiveFloat exponent>
 
 qcname ~ identifier ':' identifier
 

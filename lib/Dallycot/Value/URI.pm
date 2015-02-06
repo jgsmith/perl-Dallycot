@@ -35,9 +35,14 @@ sub value_at {
 
   my $d = deferred;
 
-  $d->resolve(
-    bless [ substr( $self->[0]->as_string, $index - 1, 1 ), 'en' ] => 'Dallycot::Value::String' );
-
+  if($index > length($self -> [0] -> as_string)) {
+    $d -> resolve($engine -> UNDEFINED);
+  }
+  else {
+    $d->resolve(
+      bless [ substr( $self->[0]->as_string, $index - 1, 1 ), 'en' ] => 'Dallycot::Value::String' );
+  }
+  
   return $d->promise;
 }
 

@@ -80,4 +80,16 @@ Y(
 )
 EOD
 
+define
+  length => (
+  hold    => 0,
+  arity   => 1,
+  options => {},
+  ),
+  sub {
+  my ( $engine, $options, $thing ) = @_;
+
+  $thing->calculate_length($engine);
+  };
+
 1;

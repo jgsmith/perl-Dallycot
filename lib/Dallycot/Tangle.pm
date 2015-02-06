@@ -183,7 +183,7 @@ sub save_link {
     return if $name eq '';
     return $self->code_link_name($name);
   }
-  elsif ( $info{uri} =~ m{^#(.*)$}x && $info{title} eq 'start:' ) {
+  elsif ( $info{uri} =~ m{^#(.*)$}x && $info{title} && $info{title} eq 'start:' ) {
     return $self->start_with( $self->_normalize_name($1) );
   }
 }

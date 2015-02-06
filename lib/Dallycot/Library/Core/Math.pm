@@ -318,6 +318,13 @@ define
   return _simple_trig( 'cos', 'bcos', $engine, $options, $arg );
   };
 
+define tan => <<'EOD';
+  (angle, units -> "degrees", accuracy -> 40) :> (
+    sin(angle, units -> units, accuracy -> accuracy) div
+    cos(angle, units -> units, accuracy -> accuracy)
+  )
+EOD
+
 define
   'arc-tan' => (
   hold    => 0,
@@ -539,5 +546,36 @@ define differences => <<'EOD';
   ), d)(stream)
 )
 EOD
+
+define 'make-evens' => '() :> ({ # * 2 } @ 1..)';
+
+define 'make-odds' => '() :> ({ # * 2 + 1 } @ 0..)';
+
+define evens => 'make-evens()';
+
+define odds => 'make-odds()';
+
+define primes => <<'EOD';
+  sieve := Y( (self, s) :> [ s', self(self, ~divisible-by?(_, s') % s...) ] );
+  [ 1, 2, sieve(make-odds()...) ]
+EOD
+
+define 'prime-pairs' => 'primes Z primes...';
+
+define 'twin-primes' => '{ #[2] - #[1] = 2 } % prime-pairs';
+
+define factorials => 'factorial @ 1..';
+
+define 'fibonacci-sequence' => <<'EOD';
+  [ 1, 1, Y((self, a, b) :> [ a + b, self(self, b, a+b) ])(1, 1) ]
+EOD
+
+define 'leonardo-sequence' => <<'EOD';
+  [ 1, 1, Y((self, a, b) :> [ a + b + 1, self(self, b, a + b + 1) ])(1, 1) ]
+EOD
+
+define prime     => '(n) :> primes[n]';
+define fibonacci => '(n) :> fibonacci-sequence[n]';
+define leonardo  => '(n) :> leonardo-sequence[n]';
 
 1;

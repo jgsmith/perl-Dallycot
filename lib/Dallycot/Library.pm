@@ -322,7 +322,7 @@ sub apply {
     }
     else {
       my $engine = $parent_engine->with_child_scope;
-      return collect( $engine->collect(@bindings), $engine->collect( values %$options ), )->then(
+      return collect( $engine->collect(@bindings), $engine->collect( values %$options ) )->then(
         sub {
           my ( $collected_bindings, $new_values ) = @_;
 
