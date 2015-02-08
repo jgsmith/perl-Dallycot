@@ -23,6 +23,8 @@ test_parses(
 
   'g -> @type' => [prop_walk(fetch('g'), walk_forward(propLit('@type')))],
 
+  'g -> @type -> @type' => [prop_walk(fetch('g'), walk_forward(propLit('@type')), walk_forward(propLit('@type')))],
+
   "<http://dbpedia.org/resource/Semantic_Web> -> :rdfs:label" => [
     prop_walk(
       uriLit('http://dbpedia.org/resource/Semantic_Web'),

@@ -47,7 +47,7 @@ sub process_loop {
     sub {
       my (@results) = map {@$_} @_;
       if (@steps) {
-        $self->_loop( $engine, $d, root => \@results, steps => \@steps );
+        $self->process_loop( $engine, $d, root => \@results, steps => \@steps );
       }
       elsif ( @results > 1 ) {
         $d->resolve( bless \@results => "Dallycot::Value::Set" );

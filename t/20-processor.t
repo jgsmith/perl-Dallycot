@@ -39,6 +39,10 @@ sub Set {
   bless \@_ => 'Dallycot::Value::Set'
 }
 
+sub Uri {
+  return Dallycot::Value::URI -> new(@_);
+}
+
 sub Stream {
   my(@things) = @_;
 
@@ -397,6 +401,14 @@ is_deeply [
 $result = run(q{1 ::> <| 1 |>});
 
 is_deeply $result, Set(Numeric(1));
+
+$result = run('1 -> @type');
+
+is_deeply $result, Set(Uri('http://www.dallycot.net/ns/types/1.0/Numeric'));
+
+$result = run('1 -> @type -> @type');
+
+is_deeply $result, Set(Uri('http://www.dallycot.net/ns/types/1.0/Set'));
 
 $processor -> context -> add_namespace(rdfs => 'http://www.w3.org/2000/01/rdf-schema#');
 

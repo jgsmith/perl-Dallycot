@@ -132,7 +132,7 @@ sub fetch_property {
     sub {
       my (@values) = map {@$_} @_;
 
-      return $self->new( grep { blessed($_) && !$_->isa('Dallycot::Value::Undefined') } @values );
+      return grep { blessed($_) && !$_->isa('Dallycot::Value::Undefined') } @values;
     }
   );
 }
