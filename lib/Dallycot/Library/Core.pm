@@ -80,6 +80,15 @@ Y(
 )
 EOD
 
+define 'list-cons' => <<'EOD';
+Y(
+  (self, first, second) :> (
+    (?first) : [ first', self(self, first..., second)]
+    (      ) : second
+  )
+)
+EOD
+
 define
   length => (
   hold    => 0,

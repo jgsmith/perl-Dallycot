@@ -50,6 +50,32 @@ sub tail {
   );
 }
 
+sub _walk_tail {
+  my ( $self, $engine, $d, $count ) = @_;
+
+  if ( $count > 0 ) {
+    $self->tail($engine)->done(
+      sub {
+        my ($tail) = @_;
+        $tail->_walk_tail( $engine, $d, $count - 1 );
+      },
+      sub {
+        $d->reject(@_);
+      }
+    );
+  }
+  else {
+    $self->head($engine)->done(
+      sub {
+        $d -> resolve(@_);
+      },
+      sub {
+        $d -> reject(@_);
+      }
+    );
+  }
+}
+
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 

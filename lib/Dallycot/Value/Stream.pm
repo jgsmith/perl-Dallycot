@@ -157,43 +157,20 @@ sub value_at {
   }
   else {
     # we want to keep resolving tails until we get somewhere
-    $self->_walk_tail( $engine, $index - 1 )->done(
-      sub {
-        $_[0]->head->done(
-          sub {
-            $d->resolve(@_);
-          },
-          sub {
-            $d->reject(@_);
-          }
-        );
-      },
-      sub {
-        $d->reject(@_);
-      }
-    );
+    $self->_walk_tail( $engine, $d, $index - 1 );
   }
 
   return $d->promise;
 }
 
 sub _walk_tail {
-  my ( $self, $engine, $count ) = @_;
-
-  my $d = deferred;
+  my ( $self, $engine, $d, $count ) = @_;
 
   if ( $count > 0 ) {
     $self->tail($engine)->done(
       sub {
         my ($tail) = @_;
-        $tail->_walk_tail( $engine, $count - 1 )->done(
-          sub {
-            $d->resolve(@_);
-          },
-          sub {
-            $d->reject(@_);
-          }
-        );
+        $tail->_walk_tail( $engine, $d, $count - 1 );
       },
       sub {
         $d->reject(@_);
@@ -201,10 +178,15 @@ sub _walk_tail {
     );
   }
   else {
-    $d->resolve($self);
+    $self->head($engine)->done(
+      sub {
+        $d -> resolve(@_);
+      },
+      sub {
+        $d -> reject(@_);
+      }
+    );
   }
-
-  return $d->promise;
 }
 
 sub head {

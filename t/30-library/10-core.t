@@ -31,4 +31,8 @@ $result = run("length([1,2,3])");
 
 is_deeply $result, Numeric(3), "[1,2,3] has three elements";
 
+$result = run("([1,2] ::: 3..5)[4]");
+
+is_deeply $result, Numeric(4);
+
 done_testing();

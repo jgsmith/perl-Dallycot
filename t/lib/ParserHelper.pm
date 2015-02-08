@@ -23,6 +23,7 @@ our @EXPORT = qw(
   fetch
   list
   cons
+  listCons
   sum
   negation
   modulus
@@ -139,6 +140,10 @@ sub list {
 
 sub cons {
   bless \@_ => 'Dallycot::AST::Cons';
+}
+
+sub listCons {
+  bless \@_ => 'Dallycot::AST::ListCons';
 }
 
 sub sum {

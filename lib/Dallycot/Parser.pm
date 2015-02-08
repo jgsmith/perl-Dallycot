@@ -590,6 +590,27 @@ sub cons {
   }
 }
 
+sub list_cons {
+  my ( undef, $first_stream, $second_stream ) = @_;
+
+  if( ref $first_stream eq 'Dallycot::AST::ListCons' ) {
+    if( ref $second_stream eq 'Dallycot::AST::ListCons' ) {
+      push @$first_stream, @$second_stream;
+    }
+    else {
+      push @$first_stream, $second_stream;
+    }
+    return $first_stream;
+  }
+  elsif( ref $second_stream eq 'Dallycot::AST::ListCons' ) {
+    unshift @$second_stream, $first_stream;
+    return $second_stream;
+  }
+  else {
+    return bless [ $first_stream, $second_stream ] => 'Dallycot::AST::ListCons';
+  }
+}
+
 sub stream_vectors {
   my ( undef, @vectors ) = @_;
 
@@ -1084,6 +1105,7 @@ Expression ::=
    || Expression (AMP) Expression action => set_intersection
    || Expression (COLON_COLON_GT) Expression action => cons assoc => right
    || Expression (LT_COLON_COLON) Expression action => vector_push assoc => left
+   || Expression (COLON_COLON_COLON) Expression action => list_cons assoc => right
    || Expression Inequality Expression action => inequality
    || Expression (AND) Expression action => all
    || Expression (OR) Expression action => any
@@ -1223,7 +1245,7 @@ AND ~ 'and'
 COLON ~ ':'
 #COLON_COLON ~ '::'
 COLON_COLON_GT ~ '::>'
-#COLON_COLON_COLON ~ ':::'
+COLON_COLON_COLON ~ ':::'
 COLON_EQUAL ~ ':='
 COLON_GT ~ ':>'
 COMMA ~ ','

@@ -34,6 +34,6 @@ eval {
 
 ok $@, "Abstract AST can't convert to string";
 
-is scalar(Dallycot::AST -> node_types), 46, "We have the right number of node classes";
+is scalar(Dallycot::AST -> node_types), 47, "We have the right number of node classes";
 
 done_testing();

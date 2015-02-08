@@ -11,6 +11,7 @@ use parent 'Dallycot::Value::Any';
 use Dallycot::Registry;
 use Promises qw(deferred);
 use Scalar::Util qw(blessed);
+use URI;
 
 use experimental qw(switch);
 
@@ -42,7 +43,7 @@ sub value_at {
     $d->resolve(
       bless [ substr( $self->[0]->as_string, $index - 1, 1 ), 'en' ] => 'Dallycot::Value::String' );
   }
-  
+
   return $d->promise;
 }
 
