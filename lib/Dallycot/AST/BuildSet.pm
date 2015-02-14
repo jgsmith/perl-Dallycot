@@ -1,6 +1,6 @@
-package Dallycot::AST::Cons;
+package Dallycot::AST::BuildSet;
 
-# ABSTRACT: Compose lambdas into a new lambda
+# ABSTRACT: Create set value
 
 use strict;
 use warnings;
@@ -8,15 +8,12 @@ use warnings;
 use utf8;
 use parent 'Dallycot::AST';
 
-use Promises qw(deferred);
-
 sub execute {
   my ( $self, $engine ) = @_;
 
   return $engine->collect(@$self)->then(
     sub {
-      my ( $root, @things ) = @_;
-      $root->prepend(@things);
+      return Dallycot::Value::Set->new(@_);
     }
   );
 }

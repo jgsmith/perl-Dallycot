@@ -15,17 +15,19 @@ use Scalar::Util qw(blessed);
 use String::Escape qw(unbackslash unquote);
 
 use Dallycot::AST::Sequence;
+use Dallycot::AST::Apply;
+use Dallycot::Value::URI;
 
-my $grammar =
-    Marpa::R2::Scanless::G->new( {
-      action_object  => __PACKAGE__,
-      bless_package  => 'Dallycot::AST',
-      default_action => 'copy_arg0',
-      source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
-    });
+my $grammar = Marpa::R2::Scanless::G->new(
+  { action_object  => __PACKAGE__,
+    bless_package  => 'Dallycot::AST',
+    default_action => 'copy_arg0',
+    source         => do { local ($/) = undef; my $s = <DATA>; \$s; }
+  }
+);
 
 sub new {
-  my($class) = @_;
+  my ($class) = @_;
 
   $class = ref($class) || $class;
   return bless {} => $class;
@@ -34,34 +36,34 @@ sub new {
 sub grammar { return $grammar; }
 
 sub wants_more {
-  my($self, $val) = @_;
+  my ( $self, $val ) = @_;
 
-  if(@_ == 2) {
+  if ( @_ == 2 ) {
     $self->{wants_more} = $val;
   }
   return $self->{wants_more};
 }
 
 sub error {
-  my($self, $val) = @_;
+  my ( $self, $val ) = @_;
 
-  if(@_ == 2) {
+  if ( @_ == 2 ) {
     $self->{error} = $val;
   }
   return $self->{error};
 }
 
 sub warnings {
-  my($self, $warnings) = @_;
+  my ( $self, $warnings ) = @_;
 
-  if(@_ == 2) {
+  if ( @_ == 2 ) {
     $self->{warnings} = $warnings;
   }
-  if(wantarray) {
-    return @{$self->{warnings}};
+  if (wantarray) {
+    return @{ $self->{warnings} };
   }
   else {
-    return @{$self->{warnings}} != 0;
+    return @{ $self->{warnings} } != 0;
   }
 }
 
@@ -71,7 +73,7 @@ sub parse {
   my $re = Marpa::R2::Scanless::R->new( { grammar => $self->grammar } );
 
   $self->error(undef);
-  $self->warnings([]);
+  $self->warnings( [] );
 
   my $worked = eval {
     $re->read( \$input );
@@ -88,11 +90,8 @@ sub parse {
   }
   my $parse = $re->value;
   my $result;
-  if ( $parse && $$parse && $$parse->isa('Dallycot::AST::Sequence') ) {
-     $result = $$parse;
-     $result = [ @{$result->[0]}, @{$result->[1]} ];
-  }
-  elsif ($parse) {
+
+  if ($parse) {
     $result = [$$parse];
   }
   else {
@@ -123,7 +122,7 @@ sub block {
   my ( undef, @statements ) = @_;
 
   if ( @statements > 1 ) {
-    return Dallycot::AST::Sequence -> new(@statements);
+    return Dallycot::AST::Sequence->new(@statements);
   }
   else {
     return $statements[0];
@@ -141,7 +140,7 @@ sub ns_def {
 sub add_uses {
   my ( undef, $ns ) = @_;
 
-  return bless [ $ns ] => 'Dallycot::AST::Uses';
+  return bless [$ns] => 'Dallycot::AST::Uses';
 }
 
 sub lambda {
@@ -152,8 +151,7 @@ sub lambda {
   return bless [
     $expression,
 
-    (
-        $arity == 0 ? []
+    (   $arity == 0 ? []
       : $arity == 1 ? ['#']
       :               [ map { '#' . $_ } 1 .. $arity ]
     ),
@@ -165,7 +163,7 @@ sub lambda {
 sub negate {
   my ( undef, $expression ) = @_;
 
-  given (blessed $expression) {
+  given ( blessed $expression) {
     when ('Dallycot::AST::Negation') {
       return $expression->[0];
     }
@@ -178,7 +176,7 @@ sub negate {
 sub invert {
   my ( undef, $expression ) = @_;
 
-  given (blessed $expression) {
+  given ( blessed $expression) {
     when ('Dallycot::AST::Invert') {
       return $expression->[0];
     }
@@ -276,8 +274,7 @@ sub build_sum_product {
       push @sums, bless [ $differences[0] ] => $negation_class
     }
     default {
-      push @sums,
-        bless [ bless [@differences] => $sum_class ] => $negation_class;
+      push @sums, bless [ bless [@differences] => $sum_class ] => $negation_class;
     }
   }
 
@@ -294,14 +291,13 @@ sub product {
 sub divide {
   my ( undef, $numerator, $dividend ) = @_;
 
-  return product( undef, $numerator,
-    ( bless [$dividend] => 'Dallycot::AST::Reciprocal' ) );
+  return product( undef, $numerator, ( bless [$dividend] => 'Dallycot::AST::Reciprocal' ) );
 }
 
 sub modulus {
   my ( undef, $expr, $mod ) = @_;
 
-  given (blessed $expr) {
+  given ( blessed $expr) {
     when ('Dallycot::AST::Modulus') {
       push @{$expr}, $mod;
       return $expr;
@@ -322,8 +318,7 @@ sub sum {
 sub subtract {
   my ( undef, $left_value, $right_value ) = @_;
 
-  return sum( undef, $left_value,
-    bless [$right_value] => 'Dallycot::AST::Negation' );
+  return sum( undef, $left_value, bless [$right_value] => 'Dallycot::AST::Negation' );
 }
 
 my %ops = qw(
@@ -393,25 +388,25 @@ sub compose {
   my ( undef, @functions ) = @_;
 
   return
-    bless [ map { ( blessed $_ eq 'Dallycot::AST::Compose' ) ? @{$_} : $_ }
-      @functions ] => 'Dallycot::AST::Compose';
+    bless [ map { ( blessed $_ eq 'Dallycot::AST::Compose' ) ? @{$_} : $_ } @functions ] =>
+    'Dallycot::AST::Compose';
 }
 
 sub compose_map {
-  my ( undef, $left, $right ) = @_;
+  my ( undef, $left_term, $right_term ) = @_;
 
-  if($right -> isa('Dallycot::AST::BuildMap')) {
-    if($left -> isa('Dallycot::AST::BuildMap')) {
-      push @$left, @$right;
-      return $left;
+  if ( $right_term->isa('Dallycot::AST::BuildMap') ) {
+    if ( $left_term->isa('Dallycot::AST::BuildMap') ) {
+      push @$left_term, @$right_term;
+      return $left_term;
     }
     else {
-      unshift @$right, $left;
-      return $right;
+      unshift @$right_term, $left_term;
+      return $right_term;
     }
   }
   else {
-    return bless [ $left, $right ] => 'Dallycot::AST::BuildMap';
+    return bless [ $left_term, $right_term ] => 'Dallycot::AST::BuildMap';
   }
 }
 
@@ -433,12 +428,18 @@ sub build_string_vector {
   $lit =~ s/^<<//;
   $lit =~ s/>>$//;
   my @matches = map { unbackslash($_) }
-                map { s/\\ / /g; $_ }
-                split(/(?<!\\)\s+/, $lit);
+    map { unbackslash_spaces($_) }
+    split( m{(?<!\\)\s+}x, $lit );
 
   return
-    bless [ map { bless [ $_, $lang ] => 'Dallycot::Value::String'; }
-      @matches ] => 'Dallycot::Value::Vector';
+    bless [ map { bless [ $_, $lang ] => 'Dallycot::Value::String'; } @matches ] =>
+    'Dallycot::Value::Vector';
+}
+
+sub unbackslash_spaces {
+  my ($text) = @_;
+  $text =~ s/\\ / /g;
+  return $text;
 }
 
 sub integer_literal {
@@ -452,8 +453,7 @@ sub rational_literal {
 
   return bless [
     do {
-      my $rat =
-        Math::BigRat->new( Math::BigInt->new($num), Math::BigInt->new($den) );
+      my $rat = Math::BigRat->new( Math::BigInt->new($num), Math::BigInt->new($den) );
       $rat->bnorm();
       $rat;
       }
@@ -474,23 +474,20 @@ sub string_literal {
     $lang = $1;
   }
 
-  $lit = unbackslash(unquote($lit));
+  $lit = unbackslash( unquote($lit) );
 
-  return
-    bless [ $lit, $lang ] =>
-    'Dallycot::Value::String';
+  return bless [ $lit, $lang ] => 'Dallycot::Value::String';
 }
 
 sub bool_literal {
-  my (undef, $val) = @_;
+  my ( undef, $val ) = @_;
 
-  return Dallycot::Value::Boolean -> new($val eq 'true');
+  return Dallycot::Value::Boolean->new( $val eq 'true' );
 }
 
 sub uri_literal {
   my ( undef, $lit ) = @_;
-  return
-    bless [ substr( $lit, 1, length($lit) - 2 ) ] => 'Dallycot::Value::URI';
+  return bless [ substr( $lit, 1, length($lit) - 2 ) ] => 'Dallycot::Value::URI';
 }
 
 sub uri_expression {
@@ -513,14 +510,14 @@ sub combine_identifiers_options {
     return +{
       bindings               => $bindings->{'bindings'},
       bindings_with_defaults => $bindings->{'bindings_with_defaults'},
-      options                => { map { @$_ } @$options }
+      options                => { map {@$_} @$options }
     };
   }
   else {
     return +{
       bindings               => $bindings,
       bindings_with_defaults => [],
-      options                => { map { @$_ } @$options }
+      options                => { map {@$_} @$options }
     };
   }
 }
@@ -529,14 +526,14 @@ sub relay_options {
   my ( undef, $options ) = @_;
   return +{
     bindings => [],
-    options  => { map { @$_ } @$options }
+    options  => { map {@$_} @$options }
   };
 }
 
 sub fetch {
   my ( undef, $ident ) = @_;
 
-  my @bits = split(/:/, $ident);
+  my @bits = split( /:/, $ident );
 
   return bless \@bits => 'Dallycot::AST::Fetch';
 }
@@ -550,9 +547,7 @@ sub assign {
 sub apply {
   my ( undef, $function, $bindings ) = @_;
 
-  return
-    bless [ $function, $bindings->{bindings}, $bindings->{options} ] =>
-      'Dallycot::AST::Apply';
+  return bless [ $function, $bindings->{bindings}, $bindings->{options} ] => 'Dallycot::AST::Apply';
 }
 
 sub apply_sans_params {
@@ -586,12 +581,33 @@ sub cons {
     push @{$stream}, $scalar;
     return $stream;
   }
-  elsif ( ref $scalar eq 'Dallycot::AST::Cons') {
+  elsif ( ref $scalar eq 'Dallycot::AST::Cons' ) {
     unshift @{$scalar}, $stream;
     return $scalar;
   }
   else {
     return bless [ $stream, $scalar ] => 'Dallycot::AST::Cons';
+  }
+}
+
+sub list_cons {
+  my ( undef, $first_stream, $second_stream ) = @_;
+
+  if( ref $first_stream eq 'Dallycot::AST::ListCons' ) {
+    if( ref $second_stream eq 'Dallycot::AST::ListCons' ) {
+      push @$first_stream, @$second_stream;
+    }
+    else {
+      push @$first_stream, $second_stream;
+    }
+    return $first_stream;
+  }
+  elsif( ref $second_stream eq 'Dallycot::AST::ListCons' ) {
+    unshift @$second_stream, $first_stream;
+    return $second_stream;
+  }
+  else {
+    return bless [ $first_stream, $second_stream ] => 'Dallycot::AST::ListCons';
   }
 }
 
@@ -602,12 +618,11 @@ sub stream_vectors {
 }
 
 sub lambda_definition_sans_args {
-  my( undef, $expression ) = @_;
+  my ( undef, $expression ) = @_;
 
   return lambda_definition(
     undef,
-    {
-      bindings               => [],
+    { bindings               => [],
       bindings_with_defaults => []
     },
     $expression
@@ -620,8 +635,7 @@ sub function_definition_sans_args {
   return function_definition(
     undef,
     $identifier,
-    {
-      bindings               => [],
+    { bindings               => [],
       bindings_with_defaults => []
     },
     $expression
@@ -632,22 +646,16 @@ sub function_definition {
   my ( undef, $identifier, $args, $expression ) = @_;
 
   if ( ref $args ) {
-    return bless [
-      $identifier,
-      bless [
-        $expression,                     $args->{bindings},
-        $args->{bindings_with_defaults}, $args->{options}
-      ] => 'Dallycot::AST::Lambda'
-    ] => 'Dallycot::AST::Assign';
+    return bless [ $identifier,
+      bless [ $expression, $args->{bindings}, $args->{bindings_with_defaults}, $args->{options} ] =>
+        'Dallycot::AST::Lambda' ] => 'Dallycot::AST::Assign';
   }
   else {
     return bless [
       $identifier,
       bless [
         $expression,
-        [
-          (
-              $args == 0 ? []
+        [ (   $args == 0 ? []
             : $args == 1 ? ['#']
             :              [ map { '#' . $_ } 1 .. $args ]
           ),
@@ -660,20 +668,17 @@ sub function_definition {
 }
 
 sub lambda_definition {
-  my( undef, $args, $expression ) = @_;
+  my ( undef, $args, $expression ) = @_;
 
   if ( ref $args ) {
-    return bless [
-      $expression,                     $args->{bindings},
-      $args->{bindings_with_defaults}, $args->{options}
-    ] => 'Dallycot::AST::Lambda';
+    return
+      bless [ $expression, $args->{bindings}, $args->{bindings_with_defaults}, $args->{options} ] =>
+      'Dallycot::AST::Lambda';
   }
   else {
     return bless [
       $expression,
-      [
-        (
-            $args == 0 ? []
+      [ (   $args == 0 ? []
           : $args == 1 ? ['#']
           :              [ map { '#' . $_ } 1 .. $args ]
         ),
@@ -721,7 +726,7 @@ sub placeholder {
 }
 
 sub append_remainder_placeholder {
-  my( undef, $bindings ) = @_;
+  my ( undef, $bindings ) = @_;
   push @{$bindings}, bless [] => 'Dallycot::AST::FullPlaceholder';
   return $bindings;
 }
@@ -730,8 +735,7 @@ sub condition_list {
   my ( undef, $conditions, $otherwise ) = @_;
 
   return
-    bless [ @$conditions,
-    ( defined($otherwise) ? ( [ undef, $otherwise ] ) : () ) ] =>
+    bless [ @$conditions, ( defined($otherwise) ? ( [ undef, $otherwise ] ) : () ) ] =>
     'Dallycot::AST::Condition';
 }
 
@@ -825,6 +829,29 @@ sub vector_constant {
   return bless $constants => 'Dallycot::Value::Vector';
 }
 
+sub empty_set {
+  return bless [] => 'Dallycot::Value::Set';
+}
+
+sub build_set {
+  my ( undef, $expressions ) = @_;
+
+  my @expressions = map { flatten_union($_) } @$expressions;
+
+  return bless \@expressions => 'Dallycot::AST::BuildSet';
+}
+
+sub flatten_union {
+  my ($thing) = @_;
+
+  if ( $thing->isa('Dallycot::AST::Union') ) {
+    return @$thing;
+  }
+  else {
+    return $thing;
+  }
+}
+
 sub stream_constant {
   my ( undef, $constants ) = @_;
 
@@ -840,11 +867,11 @@ sub stream_constant {
   }
 }
 
-sub zip {
-  my ( undef, $left_value, $right_value ) = @_;
+sub _flatten_binary {
+  my ( undef, $class, $left_value, $right_value ) = @_;
 
-  if ( ref $left_value eq 'Dallycot::AST::Zip' ) {
-    if ( $right_value eq 'Dallycot::AST::Zip' ) {
+  if ( ref $left_value eq $class ) {
+    if ( $right_value eq $class ) {
       push @{$left_value}, @{$right_value};
       return $left_value;
     }
@@ -853,13 +880,31 @@ sub zip {
       return $left_value;
     }
   }
-  elsif ( ref $right_value eq 'Dallycot::AST::Zip' ) {
+  elsif ( ref $right_value eq $class ) {
     unshift @$right_value, $left_value;
     return $right_value;
   }
   else {
-    return bless [ $left_value, $right_value ] => 'Dallycot::AST::Zip';
+    return bless [ $left_value, $right_value ] => $class;
   }
+}
+
+sub zip {
+  my ( undef, $left_value, $right_value ) = @_;
+
+  return _flatten_binary( undef, 'Dallycot::AST::Zip', $left_value, $right_value );
+}
+
+sub set_union {
+  my ( undef, $left_value, $right_value ) = @_;
+
+  return _flatten_binary( undef, 'Dallycot::AST::Union', $left_value, $right_value );
+}
+
+sub set_intersection {
+  my ( undef, $left_value, $right_value ) = @_;
+
+  return _flatten_binary( undef, 'Dallycot::AST::Intersection', $left_value, $right_value );
 }
 
 sub vector_index {
@@ -918,7 +963,29 @@ sub closed_range {
 sub stream_reduction {
   my ( undef, $start, $function, $stream ) = @_;
 
-  return bless [ $start, $function, $stream ] => 'Dallycot::AST::Reduce';
+  return Dallycot::AST::Apply->new(
+    Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#last'),
+    [ Dallycot::AST::Apply->new(
+        Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl'),
+        [ $start, $function, $stream ], {}
+      )
+    ],
+    {}
+  );
+}
+
+sub stream_reduction1 {
+  my ( undef, $function, $stream ) = @_;
+
+  return Dallycot::AST::Apply->new(
+    Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#last'),
+    [ Dallycot::AST::Apply->new(
+        Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#foldl1'), [ $function, $stream ],
+        {}
+      )
+    ],
+    {}
+  );
 }
 
 sub promote_value {
@@ -934,16 +1001,10 @@ sub promote_value {
 }
 
 sub resolve_uri {
-  my( undef, $expression ) = @_;
+  my ( undef, $expression ) = @_;
 
-  return bless [ $expression ] => 'Dallycot::AST::Resolve';
+  return bless [$expression] => 'Dallycot::AST::Resolve';
 }
-
-#sub y_combinator {
-#  my( undef, $expression ) = @_;
-#
-#  return bless [ $expression ] => 'Dallycot::AST::YCombinator';
-#}
 
 1;
 
@@ -953,22 +1014,10 @@ __DATA__
 
 Block ::= Statement+ separator => STMT_SEP action => block
 
-Statement ::=
-              NSDef
+Statement ::= NSDef
             | Uses action => add_uses
             | Expression
 
-Expression ::= ConditionList
-             | Function
-             | Scalar
-             | Vector
-             | Stream
-             | Node
-             | Assign
-             | FuncDef
-             | TypePromotion
-
-TypePromotion ::= Expression ('^^') TypeSpec action => promote_value
 
 TypeSpec ::= TypeName
            | TypeSpec PIPE TypeName
@@ -978,6 +1027,8 @@ TypeName ::= Name
 
 
 ExpressionList ::= Expression+ separator => COMMA action => list
+
+SetExpressionList ::= Expression+ separator => PIPE action => list
 
 DiscreteBindings ::= Binding* separator => COMMA action => list
 
@@ -1006,7 +1057,7 @@ ConstantVector ::= (LT) ConstantValues (GT)
 
 ConstantValues ::= ConstantValue+ separator => COMMA action => list
 
-Scalar ::=
+Expression ::=
       Integer action => integer_literal
     | Float action => float_literal
     | String action => string_literal
@@ -1014,85 +1065,60 @@ Scalar ::=
     | Identifier action => fetch
     | QCName action => fetch
     | LambdaArg action => fetch
-    | Stream QUOTE action => head
+    | Node
+    | Lambda
     | (LP) (RP) action => undef_literal
-    | Scalar PropRequest action => prop_request
-    | Node PropRequest action => prop_request
-    | Vector PropRequest action => prop_request
-    | Stream PropRequest action => prop_request
-    | Apply
-    | Vector (LB) Scalar (RB) action => vector_index
-    | Scalar (LB) Scalar (RB) action => vector_index
-    | (MINUS) Scalar action => negate
-    | ('?') Scalar action => defined_q
-    | ('?') (LP) Expression (RP) action => defined_q
-   || (LP) Block (RP) assoc => group
-   #|| Expression (LT_LT) Function (LT_LT) Stream action => stream_reduction
-   || Scalar (STAR) Scalar action => product
-    | Scalar (DIV) Scalar action => divide
-   || Scalar (MOD) Scalar action => modulus
-   || Scalar (PLUS) Scalar action => sum
-    | Scalar (MINUS) Scalar action => subtract
-   || Scalar (COLON_COLON_GT) Scalar action => cons assoc => right
-   || Scalar Inequality Scalar action => inequality
-   || Scalar (AND) Scalar action => all
-   || Scalar (OR) Scalar action => any
+    | Expression (LB) Expression (RB) action => vector_index
+    | ConditionList
+    | (LP) Block (RP) assoc => group
+    | (LB) ExpressionList (RB) assoc => group action => stream
+    | (LB) (RB) action => empty_stream
+    | StringVector action => build_string_vector
+    | (LT) ExpressionList (GT) action => build_vector
+    | (LT) (GT) action => empty_vector
+    | ('<>') action => empty_vector
+    | (SET_START) SetExpressionList (SET_END) assoc => group action => build_set
+    | (SET_START) (SET_END) action => empty_set
+    | ('<||>') action => empty_set
+   || Apply
+   || Expression QUOTE assoc => left action => head
+    | Expression DOT_DOT_DOT assoc => left action => tail
+    | Expression ('^^') TypeSpec action => promote_value
+   || Expression PropRequest assoc => left action => prop_request
+   || ('?') Expression assoc => right action => defined_q
+    | (MINUS) Expression assoc => right action => negate
+    | (TILDE) Expression assoc => right action => invert
+    | Expression (DOT_DOT) Expression action => closed_range
+    | Expression (DOT_DOT) action => semi_range
+   || Expression (Z) Expression action => zip assoc => right
+   || Expression (MAP) Expression action => compose_map assoc => right
+    | Expression (FILTER) Expression action => compose_filter assoc => right
+   || Expression ('<<') Expression ('<<') Expression action => stream_reduction
+   || Expression ('<<') Expression action => stream_reduction1 assoc => right
+   || Expression (DOT) Expression action => compose
+   || Expression (STAR) Expression action => product
+    | Expression (DIV) Expression action => divide
+   || Expression (MOD) Expression action => modulus assoc => right
+   || Expression (PLUS) Expression action => sum
+    | Expression (MINUS) Expression action => subtract
+   || Expression (PIPE) Expression action => set_union
+   || Expression (AMP) Expression action => set_intersection
+   || Expression (COLON_COLON_GT) Expression action => cons assoc => right
+   || Expression (LT_COLON_COLON) Expression action => vector_push assoc => left
+   || Expression (COLON_COLON_COLON) Expression action => list_cons assoc => right
+   || Expression Inequality Expression action => inequality
+   || Expression (AND) Expression action => all
+   || Expression (OR) Expression action => any
+   || Identifier (COLON_EQUAL) Expression action => assign assoc => right
+    | Identifier (LP) FunctionParameters (RP) (COLON_GT) Expression action => function_definition assoc => right
+    | Identifier (LP) (RP) (COLON_GT) Expression action => function_definition_sans_args assoc => right
+    | Identifier (SLASH) PositiveInteger (COLON_GT) Expression action => function_definition assoc => right
 
 Node ::=
       NodeDef
     | Graph (MOD) UriLit action => modulus
-    | Identifier action => fetch
     | UriLit
     | ('<(') Expression (')>') action => uri_expression
-    | Node PropRequest action => prop_request
-    | Apply
-
-Stream ::=
-      Identifier action => fetch
-    | LambdaArg action => fetch
-    | Apply
-    | Stream PropRequest action => prop_request
-    | (LB) ExpressionList (RB) assoc => group action => stream
-    | (LB) (RB) action => empty_stream
-   || (LP) Block (RP) assoc => group
-    | Scalar (DOT_DOT) Scalar action => closed_range
-    | Scalar (DOT_DOT) action => semi_range
-   || Stream (DOT_DOT_DOT) action => tail
-   || Stream (Z) Vector action => zip assoc => right
-    | Stream (Z) Stream action => zip
-    | Vector (Z) Vector action => zip assoc => right
-   || FunctionOrFetched (MAP) Stream action => compose_map assoc => right
-    | FunctionOrFetched (FILTER) Stream action => compose_filter assoc => right
-   || Scalar (COLON_COLON_GT) Stream action => cons assoc => right
-
-Vector ::=
-      Identifier action => fetch
-    | LambdaArg action => fetch
-    | StringVector action => build_string_vector
-    | Apply
-    | (LT) ExpressionList (GT) action => build_vector
-    | (LT) (GT) action => empty_vector
-    | ('<>') action => empty_vector
-   || FunctionOrFetched (MAP) Vector action => compose_map assoc => right
-   || FunctionOrFetched (FILTER) Vector action => compose_filter assoc => right
-   || Vector (DOT_DOT_DOT) action => tail
-   || Scalar (COLON_COLON_GT) Vector action => cons assoc => right
-   || Vector (LT_COLON_COLON) Scalar action => vector_push
-
-
-
-# Set ::=
-#       Identifier action => fetch
-#     | LambdaArg action => fetch
-#     | Apply
-#     | (LP_LC) ExpressionList (RC_RP) action => build_set
-#     | (LP_LC) (RC_RP) action => empty_set
-#     | Set (PIPE) Set action => set_union
-#     | Set (AMP) Set action => set_intersection
-#    || Function (MAP) Set action => compose_map assoc => right
-#    || Function (FILTER) Set action => compose_map assoc => right
-#    || Scalar (COLON_COLON_GT) Set action => set_add assoc => right
-#    || Set (LT_COLON_COLON) Scalar action => set_add
 
 Graph ::= NodeDef
         | NodeDef (COLON_COLON_GT) Graph action => cons assoc => right
@@ -1118,17 +1144,6 @@ PropIdentifier ::= (COLON) Identifier action => prop_literal
                  | ATIdentifier action => prop_literal
                  | (COLON) QCName action => prop_literal
                  | Expression
-
-Function ::=
-      Lambda
-    | Apply
-    | (MINUS) Function action => negate
-    | (TILDE) Function action => invert
-    | (LP) Block (RP) assoc => group
-   || FunctionOrFetched (DOT) FunctionOrFetched action => compose
-
-FunctionOrFetched ::= Function
-                    | Fetched
 
 Fetched ::=
       Identifier action => fetch
@@ -1161,12 +1176,6 @@ Conditions ::= Condition+ action => list
 Condition ::= (LP) Expression (RP) (COLON) Expression action => condition
 
 Otherwise ::= (LP) (RP) (COLON) Expression
-
-Assign ::= Identifier (COLON_EQUAL) Expression action => assign
-
-FuncDef ::= Identifier (LP) FunctionParameters (RP) (COLON_GT) Expression action => function_definition
-          | Identifier (LP) (RP) (COLON_GT) Expression action => function_definition_sans_args
-          | Identifier (SLASH) PositiveInteger (COLON_GT) Expression action => function_definition
 
 FunctionParameters ::= IdentifiersWithPossibleDefaults action => combine_identifiers_options
           | OptionDefinitions action => relay_options
@@ -1231,11 +1240,12 @@ Uri ~ uri
 
 LambdaArg ~ HASH | HASH positiveInteger
 
+AMP ~ '&'
 AND ~ 'and'
 COLON ~ ':'
 #COLON_COLON ~ '::'
 COLON_COLON_GT ~ '::>'
-#COLON_COLON_COLON ~ ':::'
+COLON_COLON_COLON ~ ':::'
 COLON_EQUAL ~ ':='
 COLON_GT ~ ':>'
 COMMA ~ ','
@@ -1251,6 +1261,7 @@ GT ~ '>'
 GT_GT ~ '>>'
 LB ~ '['
 LC ~ '{'
+SET_START ~ '<|'
 LEFT_ARROW ~ '<-'
 LP ~ '('
 LP_STAR ~ '(*'
@@ -1267,6 +1278,7 @@ QUOTE ~ [']
 # '
 RB ~ ']'
 RC ~ '}'
+SET_END ~ '|>'
 RIGHT_ARROW ~ '->'
 RP ~ ')'
 SLASH ~ '/'
@@ -1283,7 +1295,7 @@ STMT_SEP ~ ';'
 
 boolean ~ 'true' | 'false'
 
-digits ~ [\d] | digits [\d]
+digits ~ [_\d] | digits [_\d]
 
 identifier ~ <identifier bit> | identifier '-' <identifier bit>
 
@@ -1307,7 +1319,7 @@ negativeFloat ~ '-' positiveFloat
 
 <positiveFloat fractional part> ~ digits
 
-<positiveFloat exponent> ~ [eE] [-+] digits
+<positiveFloat exponent> ~ [eE] [-+] <integer>
 
 positiveFloatSansExponent ~ <positiveFloat integer part> '.' zero
                           | <positiveFloat integer part> '.' <positiveFloat fractional part>
@@ -1315,6 +1327,7 @@ positiveFloatSansExponent ~ <positiveFloat integer part> '.' zero
 
 positiveFloat ~ positiveFloatSansExponent
               | positiveFloatSansExponent <positiveFloat exponent>
+              | <positiveFloat integer part> <positiveFloat exponent>
 
 qcname ~ identifier ':' identifier
 

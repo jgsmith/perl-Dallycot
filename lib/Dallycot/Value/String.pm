@@ -33,53 +33,49 @@ sub fetch_property {
 
   my $d = deferred;
 
-  given($prop) {
-    when('@lang') {
-      $d -> resolve(Dallycot::Value::String->new($self -> lang, ''));
+  given ($prop) {
+    when ('@lang') {
+      $d->resolve( Dallycot::Value::String->new( $self->lang, '' ) );
     }
     default {
-      $d -> resolve(Dallycot::Value::Undefined -> new);
+      $d->resolve( Dallycot::Value::Undefined->new );
     }
   }
 
-  return $d -> promise;
+  return $d->promise;
 }
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
-  my $val = $self -> value;
+  my $val = $self->value;
   $val =~ s{\\}{\\\\}g;
   $val =~ s{\n}{\\n}g;
   $val =~ s{"}{\\"}g;
-  if($self->[1] eq 'en') {
+  if ( $self->[1] eq 'en' ) {
     return qq{"$val"};
   }
   else {
-    return qq{"$val"\@}.$self->[1];
+    return qq{"$val"\@} . $self->[1];
   }
 }
 
 sub is_defined {
-  my($self) = @_;
+  my ($self) = @_;
 
-  return length($self->value) != 0;
+  return length( $self->value ) != 0;
 }
 
 sub prepend {
-  my($self, @things) = @_;
+  my ( $self, @things ) = @_;
 
-  return __PACKAGE__ -> new(
-    join("", (map {
-      $_ -> value
-    } reverse @things), $self -> value)
-  );
+  return __PACKAGE__->new( join( "", ( map { $_->value } reverse @things ), $self->value ) );
 }
 
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return Dallycot::Value::Numeric -> new( length $self->[0] );
+  return Dallycot::Value::Numeric->new( length $self->[0] );
 }
 
 sub calculate_reverse {
@@ -101,12 +97,7 @@ sub take_range {
     $d->resolve( $self->new( '', $self->lang ) );
   }
   else {
-    $d->resolve(
-      $self->new(
-        substr( $self->value, $offset - 1, $length - $offset + 1 ),
-        $self->lang
-      )
-    );
+    $d->resolve( $self->new( substr( $self->value, $offset - 1, $length - $offset + 1 ), $self->lang ) );
   }
 
   return $d->promise;
@@ -136,8 +127,7 @@ sub value_at {
     $d->resolve( $self->new( '', $self->[1] ) );
   }
   else {
-    $d->resolve(
-      $self->new( substr( $self->[0], $index - 1, 1 ), $self->[1] ) );
+    $d->resolve( $self->new( substr( $self->[0], $index - 1, 1 ), $self->[1] ) );
   }
 
   return $d->promise;

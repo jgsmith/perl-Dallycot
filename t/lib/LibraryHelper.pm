@@ -9,6 +9,7 @@ use Promises backend => ['AnyEvent'];
 
 use Dallycot::Processor;
 use Dallycot::Parser;
+use Dallycot::Registry;
 
 use Exporter 'import';
 
@@ -32,7 +33,14 @@ my $parser = Dallycot::Parser -> new;
 sub uses {
   my(@urls) = @_;
 
-  $processor -> append_namespace_search_path(@urls);
+  my $cv = AnyEvent -> condvar;
+  Dallycot::Registry->instance->register_used_namespaces(@urls)->done(sub {
+    $processor -> append_namespace_search_path(@urls);
+    $cv -> send();
+  }, sub {
+    $cv -> croak(@_);
+  });
+  $cv -> recv;
   return;
 }
 

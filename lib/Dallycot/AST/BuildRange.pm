@@ -27,8 +27,7 @@ sub execute {
           sub {
             my ($f) = @_;
 
-            bless [ $left_value, $right_value, $f ? 1 : -1 ] =>
-              'Dallycot::Value::ClosedRange';
+            bless [ $left_value, $right_value, $f ? 1 : -1 ] => 'Dallycot::Value::ClosedRange';
           }
         );
       }

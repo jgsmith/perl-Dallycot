@@ -11,7 +11,7 @@ use parent 'Dallycot::AST::LoopBase';
 sub child_nodes {
   my ($self) = @_;
 
-  return grep { defined } map { @{$_} } @{$self};
+  return grep {defined} map { @{$_} } @{$self};
 }
 
 sub process_loop {

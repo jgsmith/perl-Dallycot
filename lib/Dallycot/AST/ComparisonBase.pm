@@ -39,15 +39,13 @@ sub process_loop {
     $engine->execute( shift @expressions )->done(
       sub {
         my ($right_value) = @_;
-        $engine->coerce( $left_value, $right_value,
-          [ $left_value->type, $right_value->type ] )->done(
+        $engine->coerce( $left_value, $right_value, [ $left_value->type, $right_value->type ] )->done(
           sub {
             my ( $cleft, $cright ) = @_;
             $self->compare( $engine, $cleft, $cright )->done(
               sub {
                 if ( $_[0] ) {
-                  $self->process_loop( $engine, $d, $right_value,
-                    @expressions );
+                  $self->process_loop( $engine, $d, $right_value, @expressions );
                 }
                 else {
                   $d->resolve( $engine->FALSE );
@@ -61,7 +59,7 @@ sub process_loop {
           sub {
             $d->reject(@_);
           }
-          );
+        );
       },
       sub {
         $d->reject(@_);

@@ -25,8 +25,7 @@ sub execute {
 
   my ( $parsing_library, $fname, $bindings, $options ) = @$self;
 
-  return $parsing_library->instance->call_function( $fname, $engine, $options,
-    @{$bindings} );
+  return $parsing_library->instance->call_function( $fname, $engine, $options, @{$bindings} );
 }
 
 sub child_nodes {

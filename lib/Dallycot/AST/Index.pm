@@ -41,8 +41,8 @@ sub execute {
 
 sub _do_next_index {
   my ( $self, $engine, $d, %state ) = @_;
-  my ( $root, $index_expr, @indices ) =
-    ( $state{root}, @{ $state{indices} || [] } );
+  my ( $root, $index_expr, @indices )
+    = ( $state{root}, @{ $state{indices} || [] } );
 
   if ($index_expr) {
     $engine->execute($index_expr)->done(

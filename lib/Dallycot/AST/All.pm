@@ -16,9 +16,9 @@ sub new {
 }
 
 sub simplify {
-  my($self) = @_;
+  my ($self) = @_;
 
-  return bless [ map { $_ -> simplify } @$self ] => __PACKAGE__;
+  return bless [ map { $_->simplify } @$self ] => __PACKAGE__;
 }
 
 sub process_loop {

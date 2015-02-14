@@ -23,7 +23,7 @@ sub execute {
 
   return $engine->execute( $self->[0], $NUMERIC )->then(
     sub {
-      Dallycot::Value::Numeric -> new( 1 / ( $_[0]->value ) );
+      Dallycot::Value::Numeric->new( 1 / ( $_[0]->value ) );
     }
   );
 }

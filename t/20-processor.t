@@ -35,6 +35,14 @@ sub String {
   Dallycot::Value::String->new(@_);
 }
 
+sub Set {
+  bless \@_ => 'Dallycot::Value::Set'
+}
+
+sub Uri {
+  return Dallycot::Value::URI -> new(@_);
+}
+
 sub Stream {
   my(@things) = @_;
 
@@ -158,7 +166,7 @@ $result = run("
   evens := Y((f, s) :> (
     (even?(s')) : [ s', f(f, s...) ]
     (         ) :       f(f, s...)
-  ))
+  ));
 ");
 
 isa_ok $result, 'Dallycot::Value::Lambda';
@@ -214,7 +222,7 @@ EOF
 # # use Data::Dumper;
 # # print STDERR Data::Dumper->Dump([$processor -> context -> get_assignment("filter")]);
 
-is_deeply $result, get_resolution($processor -> context -> get_assignment('map')), "Returns the last statement (map)";
+is_deeply $result, get_resolution($processor -> get_assignment('map')), "Returns the last statement (map)";
 
 $result = run("quintuple(x) :> 5 * x; map(quintuple, upfrom(1))'");
 
@@ -354,9 +362,13 @@ $result = run("(sine-wave(<<the big red fox>>) @ 1..)...'");
 
 is_deeply $result, String("  big");
 
-#$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
+$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
 
-#is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
+is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
+
+$result = run("((a,b) :> (a + b)) << (1..5)");
+
+is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
 
 $result = run("1 ::> 2 ::> []");
 
@@ -366,6 +378,37 @@ $result = run(q{"abc" ::> "123" ::> ""});
 
 is_deeply $result, String("abc123");
 
+$result = run(q{even? % <| 1 | 2 | 3 | 5 | 8 | 13 | 21 | 34 |>});
+
+is_deeply [
+  sort { $a <=> $b } map { $_ -> value } @$result
+], [
+  sort { $a <=> $b } map { $_ -> value} @{
+    Set(Numeric(2), Numeric(8), Numeric(34))
+  }
+];
+
+$result = run(q{1 ::> <| 2 |>});
+
+is_deeply [
+  sort { $a <=> $b } map { $_ -> value } @$result
+], [
+  sort { $a <=> $b } map { $_ -> value} @{
+    Set(Numeric(1), Numeric(2))
+  }
+];
+
+$result = run(q{1 ::> <| 1 |>});
+
+is_deeply $result, Set(Numeric(1));
+
+$result = run('1 -> @type');
+
+is_deeply $result, Set(Uri('http://www.dallycot.net/ns/types/1.0/Numeric'));
+
+$result = run('1 -> @type -> @type');
+
+is_deeply $result, Set(Uri('http://www.dallycot.net/ns/types/1.0/Set'));
 
 $processor -> context -> add_namespace(rdfs => 'http://www.w3.org/2000/01/rdf-schema#');
 
@@ -398,8 +441,8 @@ sub run {
 
   eval {
     my $parse = $parser -> parse($stmt);
-    if('HASH' eq ref $parse) {
-      $parse = [ $parse ];
+    if(!$parse) {
+      print STDERR "unable to parse: $stmt\n";
     }
     # if(!blessed($parse->[0])) {
     #   print STDERR Data::Dumper->Dump([$parse]);

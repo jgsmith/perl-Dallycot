@@ -12,20 +12,20 @@ use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred);
 
-sub _type { return 'Range'  }
+sub _type { return 'Range' }
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
-  $self -> [0] -> as_text . "..";
+  return $self->[0]->as_text . "..";
 }
 
-sub is_empty { return }
+sub is_empty {return}
 
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
-  return Dallycot::Value::Numeric -> new( Math::BigRat->binf() );
+  return Dallycot::Value::Numeric->new( Math::BigRat->binf() );
 }
 
 sub head {
@@ -41,49 +41,63 @@ sub head {
 sub tail {
   my ($self) = @_;
 
-  my $d = deferred;
-
-  $self->[0]->successor->done(
+  return $self->[0]->successor->then(
     sub {
       my ($next) = @_;
 
-      $d->resolve( bless [$next] => __PACKAGE__ );
-    },
-    sub {
-      $d->reject(@_);
+      bless [$next] => __PACKAGE__;
     }
   );
+}
 
-  return $d->promise;
+sub _walk_tail {
+  my ( $self, $engine, $d, $count ) = @_;
+
+  if ( $count > 0 ) {
+    $self->tail($engine)->done(
+      sub {
+        my ($tail) = @_;
+        $tail->_walk_tail( $engine, $d, $count - 1 );
+      },
+      sub {
+        $d->reject(@_);
+      }
+    );
+  }
+  else {
+    $self->head($engine)->done(
+      sub {
+        $d -> resolve(@_);
+      },
+      sub {
+        $d -> reject(@_);
+      }
+    );
+  }
 }
 
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 
-  my $map_t = $engine->make_map($transform);
+  return $engine->make_map($transform)->then(
+    sub {
+      my ($map_t) = @_;
 
-  return $map_t->apply( $engine, {}, $self );
+      return $map_t->apply( $engine, {}, $self );
+    }
+  );
 }
 
 sub apply_filter {
   my ( $self, $engine, $filter ) = @_;
 
-  my $filter_t = $engine->make_filter($filter);
+  return $engine->make_filter($filter)->then(
+    sub {
+      my ($filter_t) = @_;
 
-  return $filter_t->apply( $engine, {}, $self );
-}
-
-sub reduce {
-  my ( $self, $engine, $start, $lambda ) = @_;
-
-  # since we're open ended, we know we can't reduce
-  # might want a 'reduce until...', though we can do this
-  # with filters on a sequence
-  my $promise = deferred;
-
-  $promise->reject("An open-ended Range can not be reduced.");
-
-  return $promise->promise;
+      $filter_t->apply( $engine, {}, $self );
+    }
+  );
 }
 
 1;

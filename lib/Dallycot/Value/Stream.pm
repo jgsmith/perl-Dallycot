@@ -27,33 +27,33 @@ sub new {
 
 sub is_defined { return 1 }
 
-sub is_empty { return }
+sub is_empty {return}
 
 sub prepend {
-  my($self, @things) = @_;
+  my ( $self, @things ) = @_;
 
   my $stream = $self;
 
   foreach my $thing (@things) {
-    $stream = __PACKAGE__ -> new($thing, $stream);
+    $stream = __PACKAGE__->new( $thing, $stream );
   }
   return $stream;
 }
 
 sub as_text {
-  my ( $self ) = @_;
+  my ($self) = @_;
 
-  my $text = "[ ";
+  my $text  = "[ ";
   my $point = $self;
   $text .= $point->[$HEAD]->as_text;
-  while(defined $point -> [$TAIL]) {
+  while ( defined $point->[$TAIL] ) {
     $point = $point->[$TAIL];
-    if(defined $point->[$HEAD]) {
+    if ( defined $point->[$HEAD] ) {
       $text .= ", ";
       $text .= $point->[$HEAD]->as_text;
     }
   }
-  if(defined $point->[$TAIL_PROMISE]) {
+  if ( defined $point->[$TAIL_PROMISE] ) {
     $text .= ", ...";
   }
   return $text . " ]";
@@ -69,15 +69,15 @@ sub calculate_length {
   my $count = 1;
 
   while ( $ptr->[$TAIL] ) {
-    $count ++;
+    $count++;
     $ptr = $ptr->[$TAIL];
   }
 
   if ( $ptr->[$TAIL_PROMISE] ) {
-    $d->resolve( Dallycot::Value::Numeric -> new( Math::BigRat->binf() ) );
+    $d->resolve( Dallycot::Value::Numeric->new( Math::BigRat->binf() ) );
   }
   else {
-    $d->resolve( Dallycot::Value::Numeric -> new($count) );
+    $d->resolve( Dallycot::Value::Numeric->new($count) );
   }
 
   return $d->promise;
@@ -116,17 +116,25 @@ sub _resolve_tail_promise {
 sub apply_map {
   my ( $self, $engine, $transform ) = @_;
 
-  my $map_t = $engine->make_map($transform);
+  return $engine->make_map($transform)->then(
+    sub {
+      my ($map_t) = @_;
 
-  return $map_t->apply( $engine, {}, $self );
+      $map_t->apply( $engine, {}, $self );
+    }
+  );
 }
 
 sub apply_filter {
   my ( $self, $engine, $filter ) = @_;
 
-  my $filter_t = $engine->make_filter($filter);
+  return $engine->make_filter($filter)->then(
+    sub {
+      my ($filter_t) = @_;
 
-  return $filter_t->apply( $engine, {}, $self );
+      $filter_t->apply( $engine, {}, $self );
+    }
+  );
 }
 
 sub drop {
@@ -149,43 +157,20 @@ sub value_at {
   }
   else {
     # we want to keep resolving tails until we get somewhere
-    $self->_walk_tail( $engine, $index - 1 )->done(
-      sub {
-        $_[0]->head->done(
-          sub {
-            $d->resolve(@_);
-          },
-          sub {
-            $d->reject(@_);
-          }
-        );
-      },
-      sub {
-        $d->reject(@_);
-      }
-    );
+    $self->_walk_tail( $engine, $d, $index - 1 );
   }
 
   return $d->promise;
 }
 
 sub _walk_tail {
-  my ( $self, $engine, $count ) = @_;
-
-  my $d = deferred;
+  my ( $self, $engine, $d, $count ) = @_;
 
   if ( $count > 0 ) {
     $self->tail($engine)->done(
       sub {
         my ($tail) = @_;
-        $tail->_walk_tail( $engine, $count - 1 )->done(
-          sub {
-            $d->resolve(@_);
-          },
-          sub {
-            $d->reject(@_);
-          }
-        );
+        $tail->_walk_tail( $engine, $d, $count - 1 );
       },
       sub {
         $d->reject(@_);
@@ -193,10 +178,15 @@ sub _walk_tail {
     );
   }
   else {
-    $d->resolve($self);
+    $self->head($engine)->done(
+      sub {
+        $d -> resolve(@_);
+      },
+      sub {
+        $d -> reject(@_);
+      }
+    );
   }
-
-  return $d->promise;
 }
 
 sub head {
@@ -242,67 +232,6 @@ sub tail {
   }
 
   return $p->promise;
-}
-
-sub reduce {
-  my ( $self, $engine, $start, $lambda ) = @_;
-
-  my $promise = deferred;
-
-  $self->_reduce_loop(
-    $engine, $promise,
-    start  => $start,
-    lambda => $lambda,
-    stream => $self
-  );
-
-  return $promise->promise;
-}
-
-sub _reduce_loop {
-  my ( $self, $engine, $promise, %params ) = @_;
-
-  my ( $start, $lambda, $stream ) = @params{qw(start lambda stream)};
-
-  if ( $stream->is_defined ) {
-    $stream->head->done(
-      sub {
-        my ($head) = @_;
-
-        $stream->tail->done(
-          sub {
-            my ($tail) = @_;
-
-            $lambda->apply( $engine, {}, $start, $head )->done(
-              sub {
-                my ($next_start) = @_;
-                $self->_reduce_loop(
-                  $engine, $promise,
-                  start  => $next_start,
-                  lambda => $lambda,
-                  stream => $tail
-                );
-              },
-              sub {
-                $promise->reject(@_);
-              }
-            );
-          },
-          sub {
-            $promise->reject(@_);
-          }
-        );
-      },
-      sub {
-        $promise->reject(@_);
-      }
-    );
-  }
-  else {
-    $promise->resolve($start);
-  }
-
-  return;
 }
 
 1;

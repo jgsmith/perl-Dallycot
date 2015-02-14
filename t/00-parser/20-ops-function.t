@@ -195,6 +195,7 @@ test_parses(
 
   "upfrom_f(yf, n) :> [ n, yf(yf, n+1)];
    upfrom := upfrom_f(upfrom_f, _)" => [
+   sequence(
     assignment(
       upfrom_f => lambda(
         [qw(yf n)],
@@ -218,6 +219,7 @@ test_parses(
         fetch('upfrom_f'),
         placeholder()
       )
+    )
     )
   ],
 

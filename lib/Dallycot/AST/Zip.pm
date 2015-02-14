@@ -53,7 +53,7 @@ sub execute {
     my @sources = map { \{ $_->value } } @$self;
     my $length = max( map { length $$_ } @sources );
     my @results;
-    for ( my $idx = 0 ; $idx < $length ; $idx++ ) {
+    for ( my $idx = 0; $idx < $length; $idx++ ) {
       my $s = join( "", map { substr( $$_, $idx, 1 ) } @sources );
       push @results, Dallycot::Value::String->new($s);
     }
@@ -68,10 +68,10 @@ sub execute {
 
     collect( map { $_->head($engine) } @$self )->done(
       sub {
-        my (@heads) = map { @$_ } @_;
+        my (@heads) = map {@$_} @_;
         collect( map { $_->tail($engine) } @$self )->done(
           sub {
-            my (@tails) = map { @$_ } @_;
+            my (@tails) = map {@$_} @_;
             my $r;
             $d->resolve(
               $r = bless [

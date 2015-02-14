@@ -13,6 +13,6 @@ use Dallycot;
 
 require XSLoader;
 
-XSLoader::load(__PACKAGE__, $Dallycot::VERSION);
+XSLoader::load( __PACKAGE__, $Dallycot::VERSION );
 
 1;

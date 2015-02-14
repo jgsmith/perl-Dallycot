@@ -23,9 +23,9 @@ sub types {
 
 __PACKAGE__->types;
 
-sub is_lambda { return }
+sub is_lambda {return}
 
-sub is_defined { return }
+sub is_defined {return}
 
 sub is_empty { return 1 }
 
@@ -34,20 +34,19 @@ sub check_for_common_mistakes {
 }
 
 sub as_text {
-  my($self) = @_;
-  return $self -> to_string;
+  my ($self) = @_;
+  return $self->to_string;
 }
 
 sub type {
   my ($self) = @_;
 
-  return  Dallycot::Value::Vector->new(
-    Dallycot::Value::URI->new('http://www.dallycot.net/ns/types/1.0/' . $self -> _type)
-  );
+  return Dallycot::Value::Set->new(
+    Dallycot::Value::URI->new( 'http://www.dallycot.net/ns/types/1.0/' . $self->_type ) );
 }
 
 sub _type {
-  my($class) = @_;
+  my ($class) = @_;
 
   $class = ref $class || $class;
 

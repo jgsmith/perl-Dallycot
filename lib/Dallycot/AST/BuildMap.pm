@@ -8,10 +8,10 @@ use warnings;
 use utf8;
 use parent 'Dallycot::AST';
 
-use Carp           qw(croak);
+use Carp qw(croak);
 use Dallycot::Util qw(maybe_promise);
-use List::Util     qw(all any);
-use Promises       qw(deferred collect);
+use List::Util qw(all any);
+use Promises qw(deferred collect);
 
 sub execute {
   my ( $self, $engine ) = @_;
@@ -20,46 +20,50 @@ sub execute {
     sub {
       my (@functions) = @_;
       my $stream = pop @functions;
-      return collect(
-        map { maybe_promise($_ -> is_lambda) } @functions
-      ) -> then( sub {
-        my @flags = map { @$_ } @_;
-        if(any { !$_ } @flags) {
-          croak "All but the last term in a mapping must be lambdas.";
+      return collect( map { maybe_promise( $_->is_lambda ) } @functions )->then(
+        sub {
+          my @flags = map {@$_} @_;
+          if ( any { !$_ } @flags ) {
+            croak "All but the last term in a mapping must be lambdas.";
+          }
+          return ( \@functions, $stream );
         }
-        return (\@functions, $stream);
-      });
+      );
     }
-  ) -> then(sub {
-    my($functions, $stream) = @_;
+    )->then(
+    sub {
+      my ( $functions, $stream ) = @_;
 
-    return collect(
-      map { maybe_promise($_ -> min_arity) } @$functions
-    ) -> then(sub {
-      my(@arities) = map { @$_ } @_;
-      if(any { 1 != $_ } @arities) {
-        croak "All lambdas in a mapping must have arity 1.";
-      }
-      return ($functions, $stream);
-    });
-  }) -> then(sub {
-    my($functions, $stream) = @_;
+      return collect( map { maybe_promise( $_->min_arity ) } @$functions )->then(
+        sub {
+          my (@arities) = map {@$_} @_;
+          if ( any { 1 != $_ } @arities ) {
+            croak "All lambdas in a mapping must have arity 1.";
+          }
+          return ( $functions, $stream );
+        }
+      );
+    }
+    )->then(
+    sub {
+      my ( $functions, $stream ) = @_;
 
-    return maybe_promise($stream -> is_lambda) -> then(sub {
-      my($flag) = @_;
+      return maybe_promise( $stream->is_lambda )->then(
+        sub {
+          my ($flag) = @_;
 
-      if($flag) {
-        return $engine -> make_map(
-          $engine -> compose_lambdas(@$functions, $stream)
-        );
-      }
-      else {
-        my $transform = $engine->compose_lambdas(@$functions);
+          if ($flag) {
+            return $engine->make_map( $engine->compose_lambdas( @$functions, $stream ) );
+          }
+          else {
+            my $transform = $engine->compose_lambdas(@$functions);
 
-        return $stream->apply_map( $engine, $transform );
-      }
-    });
-  });
+            return $stream->apply_map( $engine, $transform );
+          }
+        }
+      );
+    }
+    );
 }
 
 1;

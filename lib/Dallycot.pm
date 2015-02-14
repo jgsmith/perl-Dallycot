@@ -1,4 +1,6 @@
-package Dallycot; use strict; use warnings;
+package Dallycot;
+use strict;
+use warnings;
 
 # ABSTRACT: A linked open code language and processor
 

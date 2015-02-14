@@ -23,6 +23,7 @@ our @EXPORT = qw(
   fetch
   list
   cons
+  listCons
   sum
   negation
   modulus
@@ -68,6 +69,7 @@ our @EXPORT = qw(
   range
   Defined
   nsdef
+  set
 );
 
 sub test_parses {
@@ -104,7 +106,7 @@ sub sequence {
   my @statements = grep { blessed($_) && !$_ -> isa('Dallycot::AST::Assign') } @things;
   my @identifiers = map { $_ -> identifier } @assignments;
 
-  bless [ \@assignments, \@statements, \@identifiers ] => 'Dallycot::AST::Sequence';
+  bless [ \@assignments, \@statements, \@identifiers, {}, [] ] => 'Dallycot::AST::Sequence';
 }
 
 sub placeholder {
@@ -138,6 +140,10 @@ sub list {
 
 sub cons {
   bless \@_ => 'Dallycot::AST::Cons';
+}
+
+sub listCons {
+  bless \@_ => 'Dallycot::AST::ListCons';
 }
 
 sub sum {
@@ -297,12 +303,27 @@ sub vector {
   bless \@_ => 'Dallycot::AST::BuildVector'
 }
 
+sub set {
+  if(@_) {
+    bless \@_ => 'Dallycot::AST::BuildSet';
+  }
+  else {
+    bless [] => 'Dallycot::Value::Set';
+  }
+}
+
 sub index_ {
   bless \@_ => 'Dallycot::AST::Index'
 }
 
 sub reduce {
-  bless \@_ => 'Dallycot::AST::Reduce'
+  apply(
+    uriLit('http://www.dallycot.net/ns/core/1.0#last'),
+    apply(
+      uriLit('http://www.dallycot.net/ns/core/1.0#foldl'),
+      @_
+    )
+  );
 }
 
 sub type_promotion {

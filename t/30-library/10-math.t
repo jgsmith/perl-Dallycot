@@ -7,14 +7,18 @@ use Test::More;
 
 use LibraryHelper;
 
+require Dallycot::Library::Core;
 require Dallycot::Library::Core::Streams;
 
 uses 'http://www.dallycot.net/ns/math/1.0#',
-     'http://www.dallycot.net/ns/streams/1.0#';
+     'http://www.dallycot.net/ns/streams/1.0#',
+     'http://www.dallycot.net/ns/core/1.0#';
 
 BEGIN { require_ok 'Dallycot::Library::Core::Math' };
 
 isa_ok(Dallycot::Library::Core::Math->instance, 'Dallycot::Library');
+
+ok(Dallycot::Registry->instance->has_namespace('http://www.dallycot.net/ns/core/1.0#'), 'Core namespace is registered');
 
 my $result;
 
@@ -101,5 +105,97 @@ is_deeply $result, Numeric(45), "atan(1,1) = 45";
 $result = run("arc-tan(-1,-1)");
 
 is_deeply $result, Numeric(45-180), "atan(-1,-1) = -135";
+
+$result = run("tan(45)");
+
+is_deeply $result, Numeric(1), "tan(45) = 1";
+
+$result = run("odds...'");
+
+is_deeply $result, Numeric(3), "Second odd is 3";
+
+$result = run("odds...'");
+
+is_deeply $result, Numeric(3), "Second odd is 3 with semi-range";
+
+$result = run("primes'");
+
+is_deeply $result, Numeric(1), "1 is the first prime";
+
+$result = run("primes...'");
+
+is_deeply $result, Numeric(2), "2 is the second prime";
+
+$result = run("primes......'");
+
+is_deeply $result, Numeric(3), "3 is the third prime";
+
+$result = run("primes.........");
+
+isa_ok $result, 'Dallycot::Value::Stream';
+
+$result = run("primes.........'");
+
+is_deeply $result, Numeric(5), "5 is the 4th prime";
+
+$result = run("primes............");
+
+isa_ok $result, 'Dallycot::Value::Stream';
+
+$result = run("primes............'");
+
+is_deeply $result, Numeric(7), "7 is the 5th prime";
+
+$result = run("primes... ... ... ... ... ... ...'");
+
+is_deeply $result, Numeric(17), "17 is the 8th prime";
+
+$result = run("fibonacci-sequence... ... ... ... ...'");
+
+is_deeply $result, Numeric(8), "6th Fibonacci is 8";
+
+$result = run("fibonacci-sequence[8]");
+
+is_deeply $result, Numeric(21), "8th Fibonacci is 21";
+
+$result = run("fibonacci(8)");
+
+is_deeply $result, Numeric(21), "8th Fibonacci is 21";
+
+$result = run("factorials[2]");
+
+is_deeply $result, Numeric(2), "2! is 2";
+
+$result = run("factorials[4]");
+
+is_deeply $result, Numeric(24), "4! is 24";
+
+$result = run("prime-pairs");
+
+isa_ok $result, "Dallycot::Value::Stream";
+
+$result = run("prime-pairs[1]");
+
+is_deeply $result, Vector(Numeric(1), Numeric(2)), "First two primes are 1,2";
+
+$result = run("prime-pairs[4]");
+
+is_deeply $result, Vector(Numeric(5), Numeric(7)), "Fourth two primes are 5,7";
+
+$result = run("twin-primes");
+
+isa_ok $result, "Dallycot::Value::Stream";
+
+$result = run("twin-primes[1]");
+
+is_deeply $result, Vector(Numeric(3), Numeric(5)), "First twin primes are 3, 5";
+
+# # 1 2 3 5 7 11 13 17 19 23 29 31
+# #     .....  ...   ...      ...
+# #      1 2    3     4        5
+
+$result = run("twin-primes[5]");
+
+is_deeply $result, Vector(Numeric(29), Numeric(31)), "Fifth pair is <29,31>";
 
 done_testing();

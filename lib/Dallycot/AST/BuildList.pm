@@ -45,8 +45,7 @@ sub execute {
       $engine->collect(@expressions)->done(
         sub {
           my (@items) = @_;
-          my $result =
-            Dallycot::Value::Stream->new( ( pop @items ), undef, $promise );
+          my $result = Dallycot::Value::Stream->new( ( pop @items ), undef, $promise );
           while (@items) {
             $result = Dallycot::Value::Stream->new( ( pop @items ), $result );
           }

@@ -31,7 +31,7 @@ sub execute {
         $acc += ( pop @values );
       }
 
-      return Dallycot::Value::Numeric -> new($acc);
+      return Dallycot::Value::Numeric->new($acc);
     }
   );
 }

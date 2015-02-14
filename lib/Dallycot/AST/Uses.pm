@@ -17,9 +17,15 @@ sub is_declarative { return 1 }
 sub identifier { }
 
 sub as_text {
-  my($self) = @_;
+  my ($self) = @_;
 
   return "uses <" . $self->[0]->value . ">";
+}
+
+sub namespace {
+  my ($self) = @_;
+
+  return $self->[0]->value;
 }
 
 sub execute {
@@ -27,7 +33,7 @@ sub execute {
 
   my $d = deferred;
 
-  $engine -> append_namespace_search_path($self->[0]->value);
+  $engine->append_namespace_search_path( $self->[0]->value );
 
   $d->resolve( $self->[0] );
 

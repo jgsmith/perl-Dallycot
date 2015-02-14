@@ -34,8 +34,7 @@ has environment => ( is => 'ro', isa => 'HashRef', default => sub { +{} }, lazy 
 
 has namespace_search_path => ( is => 'ro', isa => 'ArrayRef', default => sub { [] }, lazy => 1 );
 
-has parent =>
-  ( is => 'ro', isa => 'Dallycot::Context', predicate => 'has_parent' );
+has parent => ( is => 'ro', isa => 'Dallycot::Context', predicate => 'has_parent' );
 
 has is_closure => ( is => 'ro', isa => 'Bool', default => 0 );
 
@@ -45,8 +44,7 @@ sub add_namespace {
   if ( ( $self->is_closure || $self->has_parent )
     && defined( $self->namespaces->{$ns} ) )
   {
-    croak
-"Namespaces may not be defined multiple times in a sub-context or closure";
+    croak "Namespaces may not be defined multiple times in a sub-context or closure";
   }
   $self->namespaces->{$ns} = $href;
 
@@ -75,18 +73,18 @@ sub add_assignment {
   my ( $self, $identifier, $expr ) = @_;
 
   if ( ( $self->is_closure || $self->has_parent ) ) {
-    my $d = $self -> environment -> {$identifier};
-    if($d && $d -> is_resolved) {
+    my $d = $self->environment->{$identifier};
+    if ( $d && $d->is_resolved ) {
       croak "Identifiers may not be redefined in a sub-context or closure";
     }
   }
-  if(defined $expr) {
-    if($expr -> can('resolve')) {
+  if ( defined $expr ) {
+    if ( $expr->can('resolve') ) {
       return $self->environment->{$identifier} = $expr;
     }
     else {
       my $d = deferred;
-      $d -> resolve($expr);
+      $d->resolve($expr);
       return $self->environment->{$identifier} = $d;
     }
   }
@@ -114,15 +112,15 @@ sub has_assignment {
 }
 
 sub get_namespace_search_path {
-  my ( $self ) = @_;
+  my ($self) = @_;
 
-  return $self -> namespace_search_path;
+  return $self->namespace_search_path;
 }
 
 sub append_namespace_search_path {
   my ( $self, @paths ) = @_;
 
-  return push @{$self -> namespace_search_path}, @paths;
+  return push @{ $self->namespace_search_path }, @paths;
 }
 
 sub make_closure {
@@ -156,24 +154,23 @@ sub make_closure {
   for my $identifier (@identifiers) {
     if ( is_ArrayRef($identifier) ) {
       if ( !defined( $namespaces{ $identifier->[0] } ) ) {
-        $namespaces{ $identifier->[0] } =
-          $self->get_namespace( $identifier->[0] );
+        $namespaces{ $identifier->[0] } = $self->get_namespace( $identifier->[0] );
       }
     }
-    elsif ( substr($identifier, 0, 1) ne '#' && !defined( $environment{$identifier} ) ) {
+    elsif ( substr( $identifier, 0, 1 ) ne '#' && !defined( $environment{$identifier} ) ) {
       my $value = $self->get_assignment($identifier);
       $environment{$identifier} = $value if blessed $value;
     }
   }
 
-# making the closure a child/parent allows setting overrides once in the closure code
+  # making the closure a child/parent allows setting overrides once in the closure code
   return $self->new(
-    namespaces  => \%namespaces,
-    environment => \%environment,
-    namespace_search_path => $self -> namespace_search_path
+    namespaces            => \%namespaces,
+    environment           => \%environment,
+    namespace_search_path => [@{$self->namespace_search_path}]
   );
 }
 
-__PACKAGE__ -> meta -> make_immutable;
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -20,7 +20,7 @@ sub execute {
 
   return $engine->collect(@$self)->then(
     sub {
-      my (@values) = map { @$_ } @_;
+      my (@values) = map {@$_} @_;
 
       my @types = map { $_->type } @values;
       return $engine->coerce( @values, \@types )->then(

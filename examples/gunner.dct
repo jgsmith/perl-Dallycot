@@ -11,7 +11,7 @@ ns:cli := "http://www.dallycot.net/ns/cli/1.0#";
 ns:math := "http://www.dallycot.net/ns/math/1.0#";
 ns:strings := "http://www.dallycot.net/ns/strings/1.0#";
 
-uses "http://www.dallycot.net/ns/functions/1.0#";
+uses "http://www.dallycot.net/ns/core/1.0#";
 
 print-lines := Y(
   (self, stream) :> (
@@ -140,6 +140,11 @@ game-round(round, total-shells) :> (
   gun    := make-gun();
   target := make-target(gun);
 
+  update-stats() :> (
+    stats := attack-target(gun, target, 1..6);
+    < (stats[1] + total-shells), stats[2] >
+  );
+
   print-lines(<
     "Maximum range of your gun is " ::> strings:number-string(gun-range(gun)) ::> " yards.",
     ""
@@ -153,8 +158,7 @@ game-round(round, total-shells) :> (
     ""
   >);
 
-  stats := attack-target(gun, target, 1..6);
-  < (stats[1] + total-shells), stats[2] >
+  update-stats();
 );
 
 run-game-rounds := Y(

@@ -28,7 +28,7 @@ has ua => (
   is      => 'ro',
   default => sub {
     my $ua = Mojo::UserAgent->new;
-    $ua -> connect_timeout(30);
+    $ua->connect_timeout(30);
     return $ua;
   }
 );
@@ -63,7 +63,7 @@ sub get {
   return $deferred->promise;
 }
 
-__PACKAGE__ -> meta -> make_immutable;
+__PACKAGE__->meta->make_immutable;
 
 1;
 
