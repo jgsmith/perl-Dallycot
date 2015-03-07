@@ -487,7 +487,9 @@ sub bool_literal {
 
 sub uri_literal {
   my ( undef, $lit ) = @_;
-  return bless [ substr( $lit, 1, length($lit) - 2 ) ] => 'Dallycot::Value::URI';
+  return Dallycot::Value::URI -> new(
+    substr( $lit, 1, length($lit) - 2 )
+  );
 }
 
 sub uri_expression {
