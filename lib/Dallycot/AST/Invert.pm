@@ -15,6 +15,17 @@ sub new {
   return bless [$expr] => $class;
 }
 
+
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> apply(
+    $model -> meta_uri('loc:invert'),
+    [ $self->[0] ],
+    {}
+  );
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

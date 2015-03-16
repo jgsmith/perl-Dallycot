@@ -27,15 +27,25 @@ sub identifier {
 sub simplify {
   my ($self) = @_;
 
-  return bless [ $self->[0], $self->[1]->simplify ] => __PACKAGE__;
+  return bless [ $self -> [0], $self -> [1] -> simplify ] => __PACKAGE__;
+}
+
+sub to_rdf {
+  my($self, $model) = @_;
+
+  my $bnode = $self->[1]->to_rdf($model);
+
+  $model -> add_symbol($self->[0], $bnode);
+
+  return $bnode;
 }
 
 sub execute {
   my ( $self, $engine ) = @_;
 
-  my $registry = Dallycot::Registry->instance;
+  my $d = deferred;
 
-  my $d;
+  my $registry = Dallycot::Registry->instance;
 
   if ( $registry->has_assignment( '', $self->[0] ) ) {
     $d = $registry->get_assignment( '', $self->[0] );
@@ -60,7 +70,19 @@ sub execute {
   $engine->execute( $self->[1] )->done(
     sub {
       my ($result) = @_;
-      $d->resolve(@_);
+      my $worked = eval {
+        $engine->add_assignment( $self->[0], $result );
+        1;
+      };
+      if ($@) {
+        $d->reject($@);
+      }
+      elsif ( !$worked ) {
+        $d->reject( "Unable to assign to " . $self->[0] );
+      }
+      else {
+        $d->resolve($result);
+      }
     },
     sub {
       $d->reject(@_);

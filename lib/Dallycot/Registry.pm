@@ -84,6 +84,28 @@ sub get_assignment {
   return;
 }
 
+sub get_assignment_uri {
+  my( $self, $namespace, $symbol ) = @_;
+
+  if ( is_ArrayRef($namespace) ) {
+    foreach my $n (@$namespace) {
+      if ( $self->has_assignment( $n, $symbol ) ) {
+        return "$n$symbol";
+      }
+    }
+    return;
+  }
+
+  if ( $self->namespaces->{$namespace} ) {
+    my $ns = $self->namespaces->{$namespace};
+    if ( $ns->has_assignment($symbol) ) {
+      return "$ns$symbol";
+    }
+  }
+
+  return;
+}
+
 sub has_namespace {
   my ( $self, $ns ) = @_;
 
@@ -114,5 +136,7 @@ sub initialize {
 
   return $self;
 }
+
+__PACKAGE__ -> meta -> make_immutable;
 
 1;

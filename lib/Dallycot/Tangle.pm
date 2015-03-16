@@ -203,4 +203,6 @@ sub header {
   return $self->section_name($name);
 }
 
+__PACKAGE__ -> meta -> make_immutable;
+
 1;

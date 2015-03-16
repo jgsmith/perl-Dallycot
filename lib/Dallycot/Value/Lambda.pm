@@ -63,6 +63,31 @@ sub id {
   return '^^Lambda';
 }
 
+sub to_rdf {
+  my( $self, $parent_model ) = @_;
+
+  my $model = $parent_model -> child_model(
+    namespace_search_path => [ @{$self -> [$CLOSURE_NAMESPACE_PATH]} ],
+    prefixes => RDF::Trine::NamespaceMap->new($self -> [$CLOSURE_NAMESPACES]),
+  );
+
+  my $bnode = $model -> bnode;
+  $model -> add_type($bnode, 'loc:Algorithm');
+  $model -> add_expression($bnode, $self -> [$EXPRESSION]);
+  $model -> add_list(
+    $bnode, 'loc:bindings',
+    (map { $self -> _binding_rdf($model, $_) } @{$self->[$BINDINGS]}),
+    (map { $self -> _binding_rdf($model, @$_) } @{$self->[$BINDINGS_WITH_DEFAULTS]})
+  );
+  foreach my $opt(keys %{$self->[$OPTIONS]}) {
+    $model -> add_option(
+      $bnode,
+      $opt,
+      $self->[$OPTIONS]->{$opt}->to_rdf($model)
+    );
+  }
+}
+
 sub as_text {
   my ($self) = @_;
   my ( $min, $max ) = $self->arity;

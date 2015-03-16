@@ -15,4 +15,6 @@ require XSLoader;
 
 XSLoader::load( __PACKAGE__, $Dallycot::VERSION );
 
+__PACKAGE__ -> meta -> make_immutable;
+
 1;

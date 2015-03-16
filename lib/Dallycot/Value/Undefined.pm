@@ -22,6 +22,12 @@ sub as_text {
   return "(undef)";
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> meta_uri('rdf:nil');
+}
+
 sub is_defined {return}
 
 sub is_empty { return 1 }

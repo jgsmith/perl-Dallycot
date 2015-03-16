@@ -25,6 +25,12 @@ sub new {
   return bless [$uri] => $class;
 }
 
+sub to_rdf {
+  my( $self, $model ) = @_;
+
+  return RDF::Trine::Node::Resource->new($self->[0]->as_string);
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 

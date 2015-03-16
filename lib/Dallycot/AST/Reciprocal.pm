@@ -18,6 +18,20 @@ sub to_string {
   return "1/(" . $self->[0]->to_string . ")";
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> apply(
+    $model -> meta_uri('loc:reciprocal'),
+    [ $self->[0] ],
+    {}
+  );
+  # my $bnode = $model -> bnode;
+  # $model -> add_type($bnode, 'loc:Reciprocal');
+  # $model -> add_expression($self -> [0]);
+  # return $bnode;
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

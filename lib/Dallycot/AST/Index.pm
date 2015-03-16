@@ -10,6 +10,28 @@ use parent 'Dallycot::AST';
 
 use Promises qw(deferred);
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  my @exprs = @$self;
+
+  my $node = $model -> apply(
+    $model -> meta_uri('loc:index'),
+    [ $exprs[0], $exprs[1] ]
+  );
+
+  shift @exprs; shift @exprs;
+
+  while(@exprs) {
+    $node = $model -> apply(
+      $model -> meta_uri('loc:index'),
+      [ $node, shift @exprs ]
+    );
+  }
+  
+  return $node;
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

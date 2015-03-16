@@ -13,6 +13,16 @@ use Dallycot::Util qw(maybe_promise);
 use List::Util qw(all any);
 use Promises qw(deferred collect);
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> apply(
+    $model -> meta_uri('loc:build-map'),
+    [ @$self ],
+    {}
+  );
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

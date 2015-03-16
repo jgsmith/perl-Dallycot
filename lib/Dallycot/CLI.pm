@@ -11,6 +11,7 @@ use AnyEvent;
 use Promises qw(deferred), backend => ['AnyEvent'];
 
 use Dallycot;
+use Dallycot::Compiler;
 use Dallycot::Parser;
 use Dallycot::Processor;
 use Dallycot::Channel::Terminal;
@@ -33,6 +34,18 @@ has 'c' => (
   isa           => 'Bool',
   documentation => 'check syntax only (parses but does not execute)',
 );
+
+has 'o' => (
+  is => 'ro',
+  isa => 'Str',
+  documentation => 'output RDF/XML to provided file (does not execute)',
+);
+
+#has 'O' => (
+#  is => 'ro',
+#  isa => 'Str',
+#  documentation => 'output result of execution as RDF/XML to provided file'
+#);
 
 has 'S' => (
   is            => 'ro',
@@ -402,6 +415,32 @@ sub run_file {
       $d->resolve();
       return $d->promise;
     }
+    elsif ( $app->o ) {
+      my $model = Dallycot::Compiler -> new;
+      my $root = $model -> compile(@$parse);
+      my $xml;
+      if($app->o =~ /\.ttl$/) {
+        $xml = $model -> as_turtle;
+      }
+      elsif($app->o =~ /\.n3/) {
+        $xml = $model -> as_ntriples;
+      }
+      elsif($app->o =~ /\.tsv/) {
+        $xml = $model -> as_tsv;
+      }
+      elsif($app->o =~ /\.dot/) {
+        $xml = $model -> as_dot;
+      }
+      else {
+        $xml = $model -> as_xml;
+      }
+      open my $fh, ">", $app->o or die "Unable to open " . $app->o . " for writing\n";
+      print $fh $xml;
+      close $fh;
+      my $d = deferred;
+      $d -> resolve;
+      return $d -> promise;
+    }
     else {
       return $app->execute($parse);
     }
@@ -457,5 +496,7 @@ sub execute {
   $d->resolve();
   return $d->promise;
 }
+
+__PACKAGE__ -> meta -> make_immutable;
 
 1;

@@ -15,6 +15,18 @@ sub to_string {
   return join( " <> ", map { $_->to_string } @{$self} );
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  #
+  # node -> expression_set -> [ ... ]
+  #
+  return $model -> apply(
+    $model -> meta_uri('loc:all-unique'),
+    [ @$self ]
+  );
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

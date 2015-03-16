@@ -10,8 +10,27 @@ use parent 'Dallycot::AST';
 
 use Carp qw(croak);
 use Dallycot::Util qw(maybe_promise);
-use List::Util qw(all any);
-use Promises qw(deferred collect);
+
+use List::Util     qw(all any);
+use Promises       qw(deferred collect);
+
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> apply(
+    $model -> meta_uri('loc:build-filter'),
+    [ @$self ],
+    {}
+  );
+
+  # my $bnode = $model -> bnode;
+  # $model -> add_type($bnode, 'loc:Filter');
+  # $model -> add_list($bnode, 'loc:expressions',
+  #   map { $_ -> to_rdf($model) } @{$self}
+  # );
+  #
+  # return $bnode;
+}
 
 sub execute {
   my ( $self, $engine ) = @_;

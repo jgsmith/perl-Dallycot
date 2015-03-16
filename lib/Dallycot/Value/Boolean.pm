@@ -21,6 +21,16 @@ sub new {
   return $f ? $TRUE : $FALSE;
 }
 
+sub to_rdf {
+  my( $self, $model ) = @_;
+
+  return RDF::Trine::Node::Literal->new(
+    $self->[0] ? 'true' : 'false',
+    '',
+    $model -> meta_uri('xsd:boolean')
+  );
+}
+
 sub as_text {
   my ($self) = @_;
 

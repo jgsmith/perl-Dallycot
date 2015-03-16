@@ -36,6 +36,59 @@ sub new {
     \@namespace_searches ] => $class;
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  my $bnode = $model -> bnode;
+  my $child_model = $model -> child_model;
+
+  while(my($ns, $href) = each %{$self->[3]||{}}) {
+    $child_model -> add_namespace_mapping(
+      $ns => (blessed $href ? $href -> value : $href)
+    );
+  }
+
+  my @uses = @{$self -> [4]||[]};
+  $child_model -> add_search_path(@uses);
+
+  foreach my $decl (@{$self->[0]}) {
+    $decl -> to_rdf($child_model)
+  }
+
+  # actually, we need to build out a lambda for each one and discard
+  # its argument, something like:
+  # { expression[n] }( { expression[n-1] }( { expression[n-2] }( ... ) ) )
+  #
+  # run( a, b ) => b
+  # run( run( expression[1] ), expression[0] )
+  # run( run( expression[2] ), expression[1] ), expression[0] )
+  #
+  # last({ (#2)() }/2 << [ sequence of expressions ])
+  #
+  # applying <last> to <foldl> applied to a list of expressions
+  # with each expression being a closure over what's declared in this scope
+  #   and parent scopes
+  #
+  my @expressions = @{$self->[1]};
+
+  return $bnode unless @expressions;
+
+  if(@expressions == 1) {
+    return $expressions[0] -> to_rdf($child_model);
+  }
+
+  my $expression_list = $child_model -> model -> add_list(
+    map { $_ -> to_rdf($child_model) } @expressions
+  );
+
+  $child_model -> apply(
+    $child_model -> meta_uri('loc:execute-list'),
+    [ $expression_list ]
+  );
+
+  return $bnode;
+}
+
 sub to_string {
   my ($self) = @_;
   return join( "; ",
