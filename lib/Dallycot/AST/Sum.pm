@@ -18,6 +18,26 @@ sub to_string {
   return "(" . join( "+", map { $_->to_string } @{$self} ) . ")";
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  #
+  # node -> expression_set -> [ ... ]
+  #
+  return $model -> apply(
+    $model -> meta_uri('loc:sum'),
+    [ @$self ],
+    {}
+  );
+  # my $bnode = $model->bnode;
+  # $model -> add_type($bnode, 'loc:Sum');
+  #
+  # foreach my $expr (@$self) {
+  #   $model -> add_expression($bnode, $expr);
+  # }
+  # return $bnode;
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

@@ -16,6 +16,15 @@ sub to_string {
   return $self->[0]->to_string . "'";
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  my $bnode = $model -> bnode;
+  $model -> add_type($bnode, 'loc:Head');
+  $model -> add_expression($bnode, $self -> [0]);
+  return $bnode;
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

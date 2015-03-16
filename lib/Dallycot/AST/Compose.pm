@@ -10,6 +10,23 @@ use parent 'Dallycot::AST';
 
 use Promises qw(deferred);
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> apply(
+    $model -> meta_uri('loc:compose'),
+    [ @$self ],
+    {}
+  );
+  # my $bnode = $model -> bnode;
+  # $model -> add_type($bnode, 'loc:Composition');
+  # $model -> add_list($bnode, 'loc:expressions',
+  #   map { $_ -> to_rdf($model) } @{$self}
+  # );
+  #
+  # return $bnode;
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

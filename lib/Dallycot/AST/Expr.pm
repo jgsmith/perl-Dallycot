@@ -16,6 +16,10 @@ sub to_json {
 
 sub to_string { return "" }
 
+sub to_rdf {
+
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

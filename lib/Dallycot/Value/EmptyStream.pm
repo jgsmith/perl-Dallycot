@@ -16,6 +16,12 @@ sub new {
   return $INSTANCE ||= bless [] => __PACKAGE__;
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> add_list;
+}
+
 sub prepend {
   my ( $self, @things ) = @_;
 

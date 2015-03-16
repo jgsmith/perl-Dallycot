@@ -22,6 +22,12 @@ sub as_text {
   return "Graph($subject in $base_url with $size triples)";
 }
 
+sub to_rdf {
+  my( $self, $model ) = @_;
+
+  return RDF::Trine::Node::Resource->new($self->[1]->as_string);
+}
+
 sub is_defined { return 1 }
 
 sub is_empty {

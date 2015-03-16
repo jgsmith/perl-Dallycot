@@ -9,7 +9,9 @@ use utf8;
 use parent 'Dallycot::AST';
 
 use Dallycot::Util qw(maybe_promise);
-use Promises qw(deferred);
+
+use Promises       qw(deferred);
+use Scalar::Util   qw(blessed);
 
 sub new {
   my ( $class, $identifier ) = @_;
@@ -17,6 +19,29 @@ sub new {
   $class = ref $class || $class;
 
   return bless [$identifier] => $class;
+}
+
+sub to_rdf {
+  my($self, $model) = @_;
+
+  my $label;
+
+  if(@$self > 1) {
+    # need namespace resolution
+    my $uri = $model -> uri(join(":", @$self));
+    return $uri if blessed $uri;
+  }
+  else {
+    $label = $self->[0];
+  }
+  my $val = $model -> fetch_symbol($label);
+
+  return $val if blessed $val;
+
+  my $bnode = $model -> bnode;
+  $model -> add_type($bnode, 'loc:BindingReference');
+  $model -> add_label($bnode, $label);
+  return $bnode;
 }
 
 sub identifiers {

@@ -25,6 +25,19 @@ sub new {
   return bless [ $expression, $bindings, $options ] => $class;
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  #
+  # node -> expression_set -> [ ... ]
+  #
+  return $model -> apply(
+    $self -> [0],
+    $self -> [1],
+    $self -> [2]
+  )
+}
+
 sub simplify {
   my ($self) = @_;
 

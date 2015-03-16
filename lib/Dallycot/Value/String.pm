@@ -20,6 +20,12 @@ sub new {
   return bless [ $value // '', $lang // 'en' ] => $class;
 }
 
+sub to_rdf {
+  my ( $self, $model ) = @_;
+
+  return $model -> string( $self -> value, $self -> lang );
+}
+
 sub lang { return shift->[1] }
 
 sub id {

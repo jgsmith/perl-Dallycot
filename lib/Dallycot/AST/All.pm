@@ -15,6 +15,19 @@ sub new {
   return bless \@exprs => $class;
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  #
+  # node -> expression_set -> [ ... ]
+  #
+  return $model -> apply(
+    $model -> meta_uri('loc:all-true'),
+    [ @$self ],
+    {}
+  );
+}
+
 sub simplify {
   my ($self) = @_;
 

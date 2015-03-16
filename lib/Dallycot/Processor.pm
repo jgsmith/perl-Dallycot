@@ -338,7 +338,7 @@ sub make_map {
 
   return $self->execute(
     Dallycot::AST::Apply->new(
-      Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#map'),
+      Dallycot::Value::URI->new('http://www.dallycot.net/ns/loc/1.0#map'),
       [ $transform, Dallycot::AST::Placeholder->new ], {}
     )
   );
@@ -349,7 +349,7 @@ sub make_filter {
 
   return $self->execute(
     Dallycot::AST::Apply->new(
-      Dallycot::Value::URI->new('http://www.dallycot.net/ns/core/1.0#filter'),
+      Dallycot::Value::URI->new('http://www.dallycot.net/ns/loc/1.0#filter'),
       [ $selector, Dallycot::AST::Placeholder->new ], {}
     )
   );

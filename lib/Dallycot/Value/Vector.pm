@@ -22,6 +22,12 @@ sub is_empty {
   return @$self == 0;
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  $model -> list(map { $_ -> to_rdf($model) } @$self);
+}
+
 sub is_defined { return 1 }
 
 sub as_text {

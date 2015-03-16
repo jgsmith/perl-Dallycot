@@ -27,4 +27,6 @@ sub receive_data {
   croak "receive() is not implemented for $class";
 }
 
+__PACKAGE__ -> meta -> make_immutable;
+
 1;

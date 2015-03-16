@@ -10,6 +10,16 @@ use parent 'Dallycot::AST';
 
 use Promises qw(deferred);
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $model -> apply(
+    $model -> meta_uri('loc:consolidate'),
+    [ @$self ],
+    {}
+  );
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

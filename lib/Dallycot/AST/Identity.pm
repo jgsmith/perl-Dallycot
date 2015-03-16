@@ -16,6 +16,12 @@ sub to_string {
   return $self->[0]->to_string;
 }
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  return $self->[0]->to_rdf($model);
+}
+
 sub execute {
   my ( $self, $engine ) = @_;
 

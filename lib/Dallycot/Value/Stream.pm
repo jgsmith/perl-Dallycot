@@ -29,6 +29,24 @@ sub is_defined { return 1 }
 
 sub is_empty {return}
 
+sub to_rdf {
+  my($self, $model) = @_;
+
+  my @things;
+  my $root = $self;
+  push @things, $root -> [0]->to_rdf($model);
+  while($root -> [1]) {
+    $root = $root->[1];
+    push @things, $root->[0]->to_rdf($model);
+  }
+  if($root -> [2]) {
+    return $model -> list_with_promise(@things, $root->[2]);
+  }
+  else {
+    return $model -> list(@things);
+  }
+}
+
 sub prepend {
   my ( $self, @things ) = @_;
 
