@@ -316,7 +316,7 @@ sub apply {
   );
 
   $self -> add_list($bnode, 'loc:target',
-    map { $_ -> isa('RDF::Query::Node') ? $_ : $_ -> to_rdf($self) } @$bindings
+    map { $_ -> isa('RDF::Trine::Node') ? $_ : $_ -> to_rdf($self) } @$bindings
   ) if $bindings && @$bindings;
 
   foreach my $opt (keys %{$options||{}}) {
