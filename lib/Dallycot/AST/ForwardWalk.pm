@@ -17,9 +17,9 @@ sub step {
     sub {
       my ($prop_name) = @_;
       my $prop = $prop_name->value;
-      if ( $prop eq '@type' ) {
-        return $root->type;
-      }
+
+      return $root->type if $prop eq '@type';
+
       return $root->fetch_property( $engine, $prop )->then(
         sub {
           my (@results) = @_;

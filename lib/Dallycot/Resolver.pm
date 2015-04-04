@@ -36,31 +36,28 @@ has ua => (
 sub get {
   my ( $self, $url ) = @_;
 
-  my $deferred = deferred;
 
   my $data = $self->cache->get($url);
   if ( defined($data) ) {
+    my $deferred = deferred;
     $deferred->resolve($data);
+    return $deferred->promise;
   }
   else {
+    print STDERR "Getting $url\n";
     my $request = Dallycot::Resolver::Request->new(
       ua            => $self->ua,
       url           => $url,
       canonical_url => $url,
     );
-    $request->run->done(
+    return $request->run->then(
       sub {
         ($data) = @_;
         $self->cache->set( $url, $data );
-        $deferred->resolve($data);
-      },
-      sub {
-        $deferred->reject(@_);
+        $data;
       }
     );
   }
-
-  return $deferred->promise;
 }
 
 __PACKAGE__->meta->make_immutable;

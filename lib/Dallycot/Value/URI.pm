@@ -161,4 +161,20 @@ sub resolve {
   return $d->promise;
 }
 
+sub fetch_property {
+  my ( $self, $engine, $prop ) = @_;
+
+  if ( @$self < 2 ) {
+    print STDERR "Getting " . ($self->[0])."\n";
+    push @$self, Dallycot::Resolver->instance->get(
+      "".($self -> [0])
+    );
+  }
+ 
+  $self -> [1] -> then(sub {
+    my($tstore) = @_;
+    $tstore -> fetch_property( $engine, $prop );
+  });
+}
+
 1;
