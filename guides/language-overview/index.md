@@ -9,56 +9,140 @@ Dallycot is a linked data language designed to be useful for exploring a broad
 range of linked data types, from traditional RDF to XML-based documents using
 linked data approaches.
 
-## Reference
+## Basic Syntax
 
-### List and Expression Manipulation
+### Block
 
-`[...]` ([Stream](./types#stream))
-`<...>` ([Vector](./types#vector))
-[...](./collections)
+A **block** is a sequence of expressions. The value of the block is the value of the last expression in the sequence. Expressions in a block are separated by semicolons (`;`).
 
-### Associations and Graphs
+Blocks introduce a new child scope. Any assignments made in a block are only available in that block or enclosed blocks; never in the parent block.
 
-`{...}` ([Graph](./types#graph))
-[...](./graphs)
+```
+(
+  a := 2;
+  b := 3;
+  (
+    a := 3
+  );
+  (
+    a + b = 6
+  )
+)
+```
 
-### Functional Operations
+This block evaluates to `false` because `2 + 4` does not equal `6`. The value of `a` is `2` when evaluated at the end because the assignment of `3` to `a` is in a child scope.
 
-`@` ([map](./functional#map))
-`%` ([filter](./functional#filter))
-[`foldl`](/ns/streams/1.0#foldl)
-[...](./functional)
+### Assignment
 
-### Pattern Matching
+The **assignment** operator (`:=`) places the value of the expression to the right of the operator into a bucket identified by the name to the left of the operator. Within a scope, a bucket may be filled only once.
 
-### Rules and Transformations
+```
+a := 3
+```
 
-### Definitions and Assignments
+Places the value `3` in the bucket labeled `a`.
 
-`:=` ([assign](./definition#assign))
-[...](./definition)
+```
+foo := "A string";
+bar := "Another string";
+foo := "A different string";
+```
 
-### Logic and Tests
+Raises an error when `foo` is filled the second time.
 
-`=` ([equal](./logic-and-tests#equal))
-`<>` ([not equal](./logic-and-tests#not-equal))
-[`and`](./logic-and-tests#and)
-[`or`](./logic-and-tests#or)
-[`member?`](./streams/1.0#member?)
-[...](./logic-and-tests)
+The order in which you make assignments is not significant. Assignments may reference each other regardless of their order in the code. The only caveat is that circular references will deadlock. For example:
 
-### Scoping and Modularity
+```
+a := b * 3;
+b := a - 3;
+```
 
-`(...)` ([scope](./scoping#parens))
-[...](./scoping)
+This will compile just fine, but the system will wait on `b` to complete `a`, and wait on `a` to complete `b`.
 
-### Procedural Programming
+### Function Definition
 
-[`;`](./controls#semi)
-`(...)` ([case](./controls#cases))
-[...](./controls)
+The **function definition** operator (`:>`) associates an expression to the right of the operator with a signature to the left of the operator. If the signature is prefixed with an identifier, then the resulting anonymous function is assigned to that identifier using the assignment mechanism.
 
-### String Manipulation
+In fact, the following two expressions are equivalent.
 
-`"..."` ([String](./types#string))
-[...](./string-manipulation)
+```
+f(x) :> x * 2;
+f := (x) :> x * 2;
+```
+
+Both create a function that takes a single argument (`x`) and returns the argument doubled. This function is assigned to the bucket labeled `f`. As with the assignment operator, this code snippet would raise an error because `f` is assigned twice.
+
+Function definitions are just fancy assignments, so function definitions are run at the same time as assignments: before any expressions that aren't assignments and after any namespace prefix or usage declarations.
+
+#### Optional Arguments
+
+Function signatures may have optional arguments by giving default values. All optional arguments must come at the end of the signature.
+
+```
+f(x, y = 2)  :> x * y;
+6 = f(3);
+9 = f(3,3)
+```
+
+#### Options
+
+Function signatures may also have options: named arguments with default values. These come after any optional arguments.
+
+```
+f(x, multiplier -> 2) :> x * multiplier;
+6 = f(3);
+9 = f(3, multiplier -> 3)
+```
+
+### Function Application
+
+The function application operator (`(...)`) binds the expressions within the parentheses to the argument list of function from the expression preceeding the parentheses and then applies the definition of the function to that binding.
+
+```
+f(1, 3)
+```
+
+Binds the expressions `1` and `3` to the function stored in the bucket labeled `f` and then applies the definition of `f` to that pair of expressions.
+
+## Data Types
+
+### Scalars
+
+#### Boolean
+
+The two Boolean values `true` and `false` are the only members of this type.
+
+#### Numeric
+
+Dallycot uses arbitrary length rational numbers to represent numeric quantities. These numbers are translated into arbitrary precision floating point numbers as necessary for internal calculations (e.g., the trigonometric functions).
+
+Dallycot can also represent positive and negative inifities as well as results that are not a number (NaN). NaN is distinct from Undefined.
+
+#### Undefined
+
+#### URI
+
+
+
+
+### Collections
+
+#### Stream
+
+A stream is a linked list of values. Dallycot uses a stream to represent the RDF concept of List.
+
+A stream is a list of expressions within square brackets. If the last expression is not a literal value, it is converted into an anonymous function and considered a generator for the rest of the stream.
+
+#### String
+
+A string is a vector of characters with a language label. Note that there is no scalar character type. A character is a string with length one.
+
+A string is a list of characters within double quotes and an optional language label.
+
+#### Vector
+
+A vector is a finite sequence of values.
+
+A vector is a list of expressions within angle brackets.
+
+## Control Structures

@@ -1,7 +1,7 @@
 ---
 title: Interactive Sessions
 breadcrumbs:
-  - url: /guide/
+  - url: /guides/
     title: Guides
 ---
 

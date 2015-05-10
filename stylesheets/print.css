@@ -79,6 +79,19 @@ header h2 {
 #main_content {
   padding-top: 20px;
 }
+#navigation {
+  display: none;
+}
+#breadcrumbs {
+  display: none;
+}
+a.button {
+  display: none;
+}
+
+strong {
+  font-weight: bolder;
+}
 
 code, pre {
   margin-bottom: 30px;

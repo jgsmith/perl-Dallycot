@@ -1,11 +1,15 @@
 ---
 title: Installation
-breadcrumps:
+breadcrumbs:
   - url: /guides/
     title: Guides
 ---
 
 Dallycot is distributed as a Perl package. Installing Dallycot is straightforward.
+
+## Prerequisites
+
+In order to use the literate programming features of Dallycot, you will need to install [`tidyp`](https://github.com/petdance/tidyp) before trying to install [Markdent](http://search.cpan.org/dist/Markdent/).
 
 ## Installation with `cpanm`
 

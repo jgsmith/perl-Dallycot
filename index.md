@@ -7,6 +7,8 @@ Dallycot is designed to work with the asynchronous nature of the web. When runni
 
 *N.B.*: Almost everything about Dallycot is subject to change. For now, Dallycot provides read-only access to information.
 
+Linked code solves one of the outstanding problems in digital Humanities: recording the computational provenance of derived information. Linked code allows reasoning about how different data sets might be related via computational paths. With a proper engine, linked code is even executable.
+
 ## Writing Dallycot
 
 Dallycot provides a custom functional language designed to think the way linked data thinks. See [the W3C Linked Data Platform specification](http://www.w3.org/TR/ldp/) for an example of the kind of data services Dallycot will target.
@@ -15,16 +17,14 @@ Dallycot is not a query language. Projects like [Marmotta](http://marmotta.apach
 
 ### Example: Euclid's algorithm for GCD
 
-This uses simple recursion and the [Y-combinator](/ns/functions/1.0/#Y) to calculate the greatest common divisor.
+This uses simple recursion to calculate the greatest common divisor.
 
 ```
-gcd := Y(
-  (self, a, b) > (
-    (a = 0) : b
-    (b = 0) : a
-    (a > b) : self(self, a mod b, b)
-    (     ) : self(self, a, b mod a)
-  )
+gcd(a, b) :> (
+  (a = 0) : b
+  (b = 0) : a
+  (a > b) : gcd(a mod b, b)
+  (     ) : gcd(a, b mod a)
 )
 ```
 

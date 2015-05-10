@@ -779,6 +779,10 @@ ol {
   padding-left: 3px;
 }
 
+li > ol {
+  padding-left: 20px;
+}
+
 dl dd {
   font-style: italic;
   font-weight: 100;
