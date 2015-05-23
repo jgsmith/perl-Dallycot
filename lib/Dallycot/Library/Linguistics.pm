@@ -16,7 +16,11 @@ use Dallycot::TextResolver;
 
 use Lingua::StopWords;
 
-use Lingua::YALI::LanguageIdentifier;
+BEGIN {
+  eval {
+    require Lingua::YALI::LanguageIdentifier;
+  }
+}
 # use Lingua::ConText;
 use Lingua::Sentence;
 
@@ -213,6 +217,10 @@ define
   sub {
   my ($engine) = @_;
 
+  if(!defined $Lingua::YALI::LanguageIdentifier::VERSION) {
+    return Dallycot::Value::Vector->new();
+  }
+
   my $d = deferred;
 
   $d->resolve( Dallycot::Value::Vector->new(
@@ -249,6 +257,10 @@ define 'classify-text-language' => (
   if(!@languages) {
     croak "language-classifier's 'languages' option requires a vector of strings";
   }
+  if(!defined $Lingua::YALI::LanguageIdentifier::VERSION) {
+    return Dallycot::Value::Vector->new();
+  }
+
   my $identifier = Lingua::YALI::LanguageIdentifier->new;
   $identifier->add_language($_) for @languages;
 
