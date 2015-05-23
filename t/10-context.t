@@ -5,6 +5,8 @@ use Test::Mojo;
 
 use AnyEvent;
 
+use Scalar::Util qw(blessed);
+
 BEGIN {
   use_ok 'Dallycot::Context';
   use_ok 'Dallycot::AST';
@@ -102,6 +104,7 @@ done_testing();
 sub get_resolution {
   my($promise) = @_;
   return unless blessed $promise;
+  return $promise unless $promise -> can('done');
   my $cv = AnyEvent -> condvar;
   $promise -> done( sub {
     $cv -> send(@_);

@@ -8,6 +8,7 @@ use warnings;
 use utf8;
 use parent 'Dallycot::Value';
 
+use Carp qw(croak);
 use Promises qw(deferred);
 
 sub value {
@@ -41,6 +42,14 @@ sub predecessor {
 sub to_string {
   my ($self) = @_;
   return $self->id;
+}
+
+sub negated {
+  my($self) = @_;
+
+  my $class = ref $self || $self;
+  $class =~ /::([^:]+)$/;
+  croak "negation is not supported for $1";
 }
 
 1;

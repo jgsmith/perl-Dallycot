@@ -139,6 +139,16 @@ sub value_at {
   return $d->promise;
 }
 
+sub resolve {
+  my($self) = @_;
+
+  my $d = deferred;
+
+  $d -> resolve($self);
+
+  return $d->promise;
+}
+
 sub is_equal {
   my ( $self, $engine, $other ) = @_;
 
