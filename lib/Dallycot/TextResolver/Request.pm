@@ -12,6 +12,7 @@ use experimental qw(switch);
 
 use Promises qw(deferred);
 use URI::WithBase;
+use Dallycot::Value::String;
 
 has ua => (
   is       => 'ro',
