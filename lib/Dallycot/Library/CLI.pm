@@ -8,6 +8,7 @@ use warnings;
 use utf8;
 use Dallycot::Library;
 
+use Carp qw(croak);
 use Promises qw(deferred collect);
 
 use experimental qw(switch);
@@ -37,6 +38,23 @@ define
   $d->resolve( $engine->TRUE );
   return $d->promise;
   };
+
+define emit => (
+  hold => 0,
+  arity => 1,
+  options => {}
+), sub {
+  my ( $engine, $options, $point ) = @_;
+
+  if(!$point || !$point->isa('Dallycot::Value::Numeric') || !$point->value->is_int) {
+    croak 'emit requires an integer code point';
+  }
+
+  $engine->channel_send( '$OUTPUT',  chr($point->value->numify));
+  my $d = deferred;
+  $d -> resolve($engine -> TRUE);
+  return $d -> promise;
+};
 
 define
   'input-string' => (

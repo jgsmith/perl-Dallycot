@@ -12,8 +12,10 @@ use Scalar::Util qw(blessed);
 
 use Dallycot::Parser;
 
-
 BEGIN { use_ok 'Dallycot::Processor' };
+
+use Dallycot::Library::LOC;
+use Dallycot::Library::Core::Streams;
 
 my $processor = Dallycot::Processor -> new;
 
@@ -362,11 +364,26 @@ $result = run("(sine-wave(<<the big red fox>>) @ 1..)...'");
 
 is_deeply $result, String("  big");
 
-$result = run("0 << { #1 + #2 }/2 << [1,2,3,4,5]");
+$result = run(<<'EOD');
+(<http://www.dallycot.net/ns/streams/1.0#last>)(
+  (<http://www.dallycot.net/ns/loc/1.0#foldl>)(
+    0,
+    { #1 + #2 }/2,
+    [1,2,3,4,5]
+  )
+)
+EOD
 
 is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
 
-$result = run("((a,b) :> (a + b)) << (1..5)");
+$result = run(<<'EOD');
+(<http://www.dallycot.net/ns/streams/1.0#last>)(
+  (<http://www.dallycot.net/ns/loc/1.0#foldl1>)(
+    ((a,b) :> (a + b)),
+    1..5
+  )
+)
+EOD
 
 is_deeply $result, Numeric(1+2+3+4+5), "sum of 1..5 is 15";
 

@@ -33,7 +33,7 @@ sub execute {
 
   return $engine->execute( $self->[0], ['Numeric'] )->then(
     sub {
-      Dallycot::Value::Numeric->new( -( $_[0]->value ) );
+      return $_[0] -> negated;
     }
   );
 }

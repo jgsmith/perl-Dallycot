@@ -32,20 +32,24 @@ BEGIN {
 has 'c' => (
   is            => 'ro',
   isa           => 'Bool',
+  traits        => ['Getopt'],
   documentation => 'check syntax only (parses but does not execute)',
 );
 
 has 'o' => (
-  is => 'ro',
-  isa => 'Str',
+  is            => 'ro',
+  isa           => 'Str',
+  traits        => ['Getopt'],
   documentation => 'output RDF/XML to provided file (does not execute)',
 );
 
-#has 'O' => (
-#  is => 'ro',
-#  isa => 'Str',
-#  documentation => 'output result of execution as RDF/XML to provided file'
-#);
+has 'O' => (
+  is            => 'ro',
+  isa           => 'Str',
+  traits        => ['Getopt'],
+  documentation => 'output result of execution as RDF/XML to provided file',
+  cmd_flag      => 'O'
+);
 
 has 'S' => (
   is            => 'ro',

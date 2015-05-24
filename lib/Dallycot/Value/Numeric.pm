@@ -129,6 +129,12 @@ sub is_greater_or_equal {
   return $d->promise;
 }
 
+sub negated {
+  my($self) = @_;
+
+  return $self->new( - $self->[0] );
+}
+
 sub successor {
   my ($self) = @_;
 

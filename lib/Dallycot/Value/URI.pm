@@ -149,7 +149,27 @@ sub resolve {
   my $url = $self->[0];
 
   my $resolver = Dallycot::Resolver->instance;
-  $resolver->get($url)->done(
+  $resolver->get($url->as_string)->done(
+    sub {
+      $d->resolve(@_);
+    },
+    sub {
+      $d->reject(@_);
+    }
+  );
+
+  return $d->promise;
+}
+
+sub resolve_content {
+  my ( $self, $engine ) = @_;
+
+  my $d = deferred;
+
+  my $url = $self->[0];
+
+  my $resolver = Dallycot::TextResolver->instance;
+  $resolver->get($url->as_string)->done(
     sub {
       $d->resolve(@_);
     },

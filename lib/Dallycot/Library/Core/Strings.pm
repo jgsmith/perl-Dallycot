@@ -22,57 +22,80 @@ use Dallycot::Library::Core::Streams ();
 
 ns 'http://www.dallycot.net/ns/strings/1.0#';
 
-uses 'http://www.dallycot.net/ns/core/1.0#', 'http://www.dallycot.net/ns/streams/1.0#';
+uses 'http://www.dallycot.net/ns/loc/1.0#',
+     'http://www.dallycot.net/ns/core/1.0#',
+     'http://www.dallycot.net/ns/streams/1.0#';
 
 #====================================================================
 #
 # Basic string functions
 
 define
-  words => (
-  hold    => 0,
-  arity   => 1,
+  'string-contains?' => (
+  hold => 0,
+  arity => 2,
   options => {}
   ),
   sub {
-  my ( $engine, $options, $string ) = @_;
+  my ( $engine, $options, $string, $patt ) = @_;
+
+  if ( !$string -> isa('Dallycot::Value::String') ) {
+    croak 'The first argument of string-contains? must be a string';
+  }
+  if ( !$patt -> isa('Dallycot::Value::String') ) {
+    croak 'The pattern for string-contains? must be a string';
+  }
+
+  return Dallycot::Value::Boolean -> new(
+    index($string -> value, $patt -> value) != -1
+  );
+};
+
+define
+  'string-split' => (
+  hold    => 0,
+  arity   => [1,3],
+  options => {}
+  ),
+  sub {
+  my ( $engine, $options, $string, $patt, $max_count ) = @_;
 
   if ( !$string ) {
     return Dallycot::Value::EmptyStream->new;
   }
-  my @bits = map {
-    Dallycot::Value::String->new($_, $string->lang)
-  } split( /\s+/, $string -> value );
-
-  return Dallycot::Value::Vector->new(@bits);
-  };
-
-# define 'lines-to-words' => <<'EOD';
-#   lines-to-words(lines) :> (
-#     (?lines) : words(lines')^^Stream ::: lines-to-words(lines...)
-#     (      ) : [ ]
-#   )
-# EOD
-
-# define characters => (
-#   hold => 0,
-#   arity => 1,
-#   options => {}
-# ), sub {
-#   my ( $engine, $options, $string ) = @_;
-#
-#   if ( !$string ) {
-#     my $d = deferred;
-#     $d -> resolve( Dallycot::Value::EmptyStream -> new );
-#     return $d -> promise;
-#   }
-#
-#   my @bits = split(//, $string);
-#
-#   my $d = deferred;
-#   $d -> resolve( Dallycot::Value::Vector->new(@bits) );
-#   return $d -> promise;
-# };
+  my @bits;
+  my $source = $string -> value;
+  if(!$patt) {
+    @bits = split( /\s+/, $source );
+  }
+  else {
+    my $count;
+    if($max_count) {
+      if ( $max_count->isa('Dallycot::Value::Numeric') ) {
+        $count = $max_count->value->numify;
+      }
+      else {
+        croak 'Limit for string-split must be numeric';
+      }
+    }
+    if($patt -> isa('Dallycot::Value::String')) {
+      if($count) {
+        @bits = split($patt -> value, $source, $count);
+      }
+      else {
+        @bits = split($patt -> value, $source);
+      }
+    }
+    else {
+      croak 'Pattern for string-split must be a string';
+    }
+  }
+  return Dallycot::Value::Vector->new(
+    map {
+      Dallycot::Value::String->new($_, $string->lang)
+    } @bits
+  );
+};
 
 define
   'string-take' => (
@@ -180,11 +203,23 @@ define 'string-join' => << 'EOD';
 )
 EOD
 
+define 'ends-with?' => <<'EOD';
+(value, substr) :> (
+  string-take(value, < length(value) - length(substr) + 1, length(value) > ) = substr
+)
+EOD
+
+define 'starts-with?' => <<'EOD';
+(value, substr) :> (
+  string-take(value, < 1, length(substr) > ) = substr
+)
+EOD
+
 define
   'hash' => (
   hold    => 0,
   arity   => 1,
-  options => { type => 'MD5' }
+  options => { type => Dallycot::Value::String->new('MD5') }
   ),
   sub {
   my ( $engine, $options, $string ) = @_;

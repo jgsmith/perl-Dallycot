@@ -16,6 +16,10 @@ sub new {
   return bless \@values => $class;
 }
 
+sub values {
+  @{$_[0]};
+}
+
 sub is_empty {
   my ($self) = @_;
 
