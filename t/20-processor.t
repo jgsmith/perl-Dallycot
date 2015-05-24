@@ -445,6 +445,31 @@ if($ENV{'NETWORK_TESTS'}) {
   is $result, "Semantic Web", "We should get the resource and parse it into a node";
 }
 
+$result = run('P1Y + PT1S');
+
+ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(years => 1, seconds => 1)),
+   "P1Y + PT1S = 1 year and 1 second";
+
+$result = run('P1YT1H - PT1M');
+
+ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(years => 1, minutes => 59)),
+   "P1YT1H - PT1M = 1 year and 59 minutes";
+
+$result = run('P1Y + P15M');
+
+ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(years => 2, months => 3)),
+   "P1Y + P15M = 2 years and 3 months";
+
+$result = run('P1Y + PT15M');
+
+ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(years => 1, minutes => 15)),
+   "P1Y + PT15M = 1 year and 15 minutes";
+
+$result = run('P1Y + P366D');
+
+ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(years => 1, days => 366)),
+   "P1Y + P366D = 1 year and 366 days";
+
 done_testing();
 
 #==============================================================================

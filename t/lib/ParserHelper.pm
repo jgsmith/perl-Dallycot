@@ -20,6 +20,7 @@ our @EXPORT = qw(
   intLit
   floatLit
   stringLit
+  durationLit
   fetch
   list
   cons
@@ -123,6 +124,10 @@ sub intLit {
 
 sub floatLit {
   bless [ Math::BigRat->new(shift) ] => 'Dallycot::Value::Numeric';
+}
+
+sub durationLit {
+  Dallycot::Value::Duration -> new(@_);
 }
 
 sub stringLit {

@@ -492,6 +492,20 @@ sub uri_literal {
   );
 }
 
+sub duration_literal {
+  my ( undef, $lit ) = @_;
+
+  $lit =~ /^P(\d+Y)?(\d+M)?(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?$/;
+  my(%args);
+  @args{qw(years months days hours minutes seconds)} = map {
+    s/[^1-9]//g; $_
+  } map {
+    defined($_) ? "$_" : 0
+  } $1, $2, $3, $5, $6, $7;
+
+  return Dallycot::Value::Duration->new(%args);
+}
+
 sub uri_expression {
   my ( undef, $expression ) = @_;
 
@@ -534,6 +548,17 @@ sub relay_options {
 
 sub fetch {
   my ( undef, $ident ) = @_;
+
+  if($ident =~ /^P(\d+Y)?(\d+M)?(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?$/) {
+    my(%args);
+    @args{qw(years months days hours minutes seconds)} = map {
+      s/[^1-9]//g; $_
+    } map {
+      defined($_) ? "$_" : 0
+    } $1, $2, $3, $5, $6, $7;
+
+    return Dallycot::Value::Duration->new(%args);
+  }
 
   my @bits = split( /:/, $ident );
 
@@ -1064,6 +1089,7 @@ Expression ::=
     | Float action => float_literal
     | String action => string_literal
     | Boolean action => bool_literal
+    | Duration action => duration_literal
     | Identifier action => fetch
     | QCName action => fetch
     | LambdaArg action => fetch
@@ -1115,6 +1141,8 @@ Expression ::=
     | Identifier (LP) FunctionParameters (RP) (COLON_GT) Expression action => function_definition assoc => right
     | Identifier (LP) (RP) (COLON_GT) Expression action => function_definition_sans_args assoc => right
     | Identifier (SLASH) PositiveInteger (COLON_GT) Expression action => function_definition assoc => right
+
+Duration ~ duration
 
 Node ::=
       NodeDef
@@ -1299,10 +1327,6 @@ boolean ~ 'true' | 'false'
 
 digits ~ [_\d] | digits [_\d]
 
-identifier ~ <identifier bit> | identifier '-' <identifier bit>
-
-<identifier bit> ~ [\w]+
-
 inequality ~ '<' | '<=' | '=' | '<>' | '>=' | '>'
 
 integer ~ negativeInteger | zero | positiveInteger
@@ -1330,6 +1354,44 @@ positiveFloatSansExponent ~ <positiveFloat integer part> '.' zero
 positiveFloat ~ positiveFloatSansExponent
               | positiveFloatSansExponent <positiveFloat exponent>
               | <positiveFloat integer part> <positiveFloat exponent>
+
+duration ~ 'P' calendarDuration
+         | 'P' calendarDuration 'T' clockDuration
+         | 'P' 'T' clockDuration
+
+calendarDuration ~ yearDuration monthlyDuration
+                 | monthlyDuration
+
+monthlyDuration ~ monthDuration dayDuration
+                | dayDuration
+
+yearDuration ~ zero 'Y'
+             | positiveInteger 'Y'
+
+monthDuration ~ zero 'M'
+              | positiveInteger 'M'
+
+dayDuration ~ zero 'D'
+            | positiveInteger 'D'
+
+clockDuration ~ hourDuration minutelyDuration
+              | minutelyDuration
+
+minutelyDuration ~ minuteDuration secondDuration
+                 | secondDuration
+
+hourDuration ~ zero 'H'
+             | positiveInteger 'H'
+
+minuteDuration ~ zero 'M'
+               | positiveInteger 'M'
+
+secondDuration ~ zero 'S'
+               | positiveFloatSansExponent 'S'
+
+identifier ~ <identifier bit> | identifier '-' <identifier bit>
+
+<identifier bit> ~ [\w]+
 
 qcname ~ identifier ':' identifier
 

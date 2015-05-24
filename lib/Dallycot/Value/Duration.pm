@@ -28,7 +28,7 @@ sub new {
 
   if($options{object}) {
     return bless [
-      $duration_class->from_object(object => $options{object})
+      $options{object}->clone
     ] => $class;
   }
   else {
@@ -74,13 +74,13 @@ sub as_text {
   @amounts{qw(Y M D h m s)} = $duration -> in_units('years', 'months', 'days', 'hours', 'minutes', 'seconds');
 
   my $days = join("",
-    map { $_ . $amounts{$_} }
+    map { $amounts{$_} . $_ }
     grep { $amounts{$_} > 0 }
     qw(Y M D)
   );
 
   my $hours = join("",
-    map { upcase($_) . $amounts{$_} }
+    map { $amounts{$_} . uc($_) }
     grep { $amounts{$_} > 0 }
     qw(h m s)
   );
@@ -101,7 +101,7 @@ sub value {
 sub negated {
   my($self) = @_;
 
-  return $self->new( $self->[0] -> inverse );
+  return $self->new( object => $self->[0] -> inverse );
 }
 
 sub is_equal {

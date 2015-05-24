@@ -21,6 +21,7 @@ our @EXPORT = qw(
   String
   Vector
   Stream
+  Duration
 );
 
 my $processor = Dallycot::Processor -> new(
@@ -98,6 +99,12 @@ sub Stream {
     $stream = Dallycot::Value::Stream -> new($thing, $stream);
   }
   return $stream;
+}
+
+sub Duration {
+  my(%parts) = @_;
+
+  return Dallycot::Value::Duration->new(%parts);
 }
 
 1;
