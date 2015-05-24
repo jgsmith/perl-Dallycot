@@ -43,13 +43,13 @@ has 'o' => (
   documentation => 'output RDF/XML to provided file (does not execute)',
 );
 
-has 'O' => (
-  is            => 'ro',
-  isa           => 'Str',
-  traits        => ['Getopt'],
-  documentation => 'output result of execution as RDF/XML to provided file',
-  cmd_flag      => 'O'
-);
+#has 'O' => (
+#  is            => 'ro',
+#  isa           => 'Str',
+#  traits        => ['Getopt'],
+#  documentation => 'output result of execution as RDF/XML to provided file',
+#  cmd_flag      => 'O'
+#);
 
 has 'S' => (
   is            => 'ro',
