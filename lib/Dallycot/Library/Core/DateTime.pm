@@ -41,35 +41,43 @@ my %CALENDAR_ARGS = (
   Gregorian => {
     class => 'DateTime',
     date_names => [qw(year month day hour minute second)],
-    duration_names => [qw(years months days hours minutes seconds)]
+    duration_names => [qw(years months days hours minutes seconds)],
+    time_zone => 1
   },
   Hebrew => {
     class => 'DateTime::Calendar::Hebrew',
-    date_names => [qw(year month day)]
+    date_names => [qw(year month day)],
+    time_zone => 1
   },
   Julian => {
     class => 'DateTime::Calendar::Julian',
-    date_names => [qw(year month day)]
+    date_names => [qw(year month day hour minute second)],
+    time_zone => 1
   },
   Jewish => {
     class => 'DateTime::Calendar::Hebrew',
-    date_names => [qw(year month day)]
+    date_names => [qw(year month day)],
+    time_zone => 1
   },
   Hijri => {
     class => 'DateTime::Calendar::Hijri',
-    date_names => [qw(year month day)]
+    date_names => [qw(year month day)],
+    time_zone => 0
   },
   Islamic => {
     class => 'DateTime::Calendar::Hijri',
-    date_names => [qw(year month day)]
+    date_names => [qw(year month day)],
+    time_zone => 0
   },
   Mayan => {
     class => 'DateTime::Calendar::Mayan',
-    date_names => [qw(baktun katun tun uinal kin)]
+    date_names => [qw(baktun katun tun uinal kin)],
+    time_zone => 0
   },
   Pataphysical => {
     class => 'DateTime::Calendar::Pataphysical',
-    date_names => [qw(year month day)]
+    date_names => [qw(year month day)],
+    time_zone => 0
   },
 );
 
@@ -78,21 +86,12 @@ define
   hold => 0,
   arity => 1,
   options => {
-    # timezone => Dallycot::Value::String->new("UTC")
+    timezone => Dallycot::Value::String->new("UTC"),
     calendar => Dallycot::Value::String->new("Gregorian")
   }
   ),
   sub {
   my ( $engine, $options, $vector ) = @_;
-
-  # if( $year -> isa('Dallycot::Value::DateTime')) {
-  #   # convert to gregorian
-  #   return Dallycot::Value::DateTime -> new(
-  #     object => $year,
-  #     class => 'DateTime'
-  #   );
-  #   # return $year -> to_calendar('DateTime');
-  # }
 
   if(!$vector -> isa('Dallycot::Value::Vector')) {
     croak 'The argument for date must be a vector of numerics';
@@ -104,6 +103,9 @@ define
 
   if(!$options->{calendar}->isa('Dallycot::Value::String')) {
     croak 'The calendar option for date must be one of ' . join(', ', @valid_calendars);
+  }
+  if(!$options->{timezone}->isa('Dallycot::Value::String') && !$options->{timezone}->isa('Dallycot::Value::Undefined')) {
+    croak 'The timezone option for date must be a string or nil';
   }
 
   my $calendar = $options->{calendar}->value;
@@ -119,6 +121,10 @@ define
   my %args;
 
   @args{@arg_names} = @values;
+
+  if($options->{timezone}->isa('Dallycot::Value::String') && $CALENDAR_ARGS{$calendar}{time_zone}) {
+    $args{time_zone} = $options->{timezone}->value;
+  }
 
   return Dallycot::Value::DateTime -> new(
     object => $class -> new(%args),
