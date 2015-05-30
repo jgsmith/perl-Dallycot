@@ -38,4 +38,12 @@ ok !DateTime->compare($result->value, DateTime->new(
   second => 2
 )), "3 seconds after 31 May 2014 23:59:59 is 1 June 2014 0:0:2";
 
+$result = run('duration(date(<2014,1,1>), date(<2015,1,1>))');
+
+ok !DateTime::Duration->compare($result->value, Duration(years => 1)->value), "duration(date(<2014,1,1>), date(<2015,1,1>)) is one year";
+
+$result = run('duration(date(<2015,1,1>), date(<2014,1,1>))');
+
+ok !DateTime::Duration->compare($result->value, Duration(years => -1)->value), "duration(date(<2015,1,1>), date(<2014,1,1>)) is (negative) one year";
+
 done_testing();
