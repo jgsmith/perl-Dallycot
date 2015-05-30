@@ -40,7 +40,7 @@ ns 'http://www.dallycot.net/ns/date-time/1.0#';
 my %CALENDAR_ARGS = (
   Gregorian => {
     class => 'DateTime',
-    date_names => [qw(year month day)],
+    date_names => [qw(year month day hour minute second)],
     duration_names => [qw(years months days hours minutes seconds)]
   },
   Hebrew => {
@@ -115,7 +115,7 @@ define
   my @arg_names = @{$CALENDAR_ARGS{$calendar}{date_names}};
   my $class = $CALENDAR_ARGS{$calendar}{class};
 
-  $#arg_names = $#values;
+  $#arg_names = $#values if $#values < $#arg_names;
   my %args;
 
   @args{@arg_names} = @values;

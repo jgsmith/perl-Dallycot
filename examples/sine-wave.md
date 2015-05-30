@@ -39,7 +39,7 @@ lines(count) :>
   (
     print
     @ sine-wave(<<Digital Humanities>>)
-    @ 1..count;
+    @ 1..
   )[count];
 
 lines(1000)

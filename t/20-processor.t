@@ -470,6 +470,16 @@ $result = run('P1Y + P366D');
 ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(years => 1, days => 366)),
    "P1Y + P366D = 1 year and 366 days";
 
+$result = run('P1Y ::> PT15M');
+
+ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(years => 1, minutes => 15)),
+   "P1Y ::> PT15M = 1 year and 15 minutes";
+
+$result = run('10 ::> PT55S');
+
+ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(seconds => 65)),
+   "10 ::> PT55S = 65 seconds";
+
 done_testing();
 
 #==============================================================================
