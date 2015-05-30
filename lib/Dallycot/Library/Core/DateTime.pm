@@ -162,13 +162,22 @@ define
 define
   'duration' => (
   hold => 0,
-  arity => 1,
+  arity => [1,2],
   options => {
     calendar => Dallycot::Value::String->new("Gregorian")
     }
   ),
   sub {
-  my ( $engine, $options, $vector ) = @_;
+  my ( $engine, $options, $vector, $target ) = @_;
+
+  if(defined $target) {
+    if(!$vector->isa('Dallycot::Value::DateTime') || !$target->isa('Dallycot::Value::DateTime')) {
+      croak 'Both arguments for duration must be dates';
+    }
+    return Dallycot::Value::Duration->new(
+      object => ($target->value - $vector->value)
+    );
+  }
 
   if(!$vector -> isa('Dallycot::Value::Vector')) {
     croak 'The argument for duration must be a vector of numerics';
