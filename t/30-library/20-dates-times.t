@@ -23,4 +23,19 @@ $result = run('duration(<1>)');
 
 ok !DateTime::Duration->compare($result->value, Duration(years => 1)->value), "duration(<1>) is one year";
 
+$result = run('P1Y ::> date(<2014,5,31>)');
+
+ok !DateTime->compare($result->value, DateTime->new(year => 2015, month => 5, day => 31)), "31 May 2014 + 1 year = 31 May 2015";
+
+$result = run('1 ::> 2 ::> date(<2014,5,31,23,59,59>)');
+
+ok !DateTime->compare($result->value, DateTime->new(
+  year => 2014,
+  month => 6,
+  day => 1,
+  hour => 0,
+  minute => 0,
+  second => 2
+)), "3 seconds after 31 May 2014 23:59:59 is 1 June 2014 0:0:2";
+
 done_testing();

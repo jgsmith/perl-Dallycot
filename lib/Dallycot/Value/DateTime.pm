@@ -4,12 +4,14 @@ package Dallycot::Value::DateTime;
 
 use strict;
 use warnings;
+use experimental qw(switch);
 
 use utf8;
 use parent 'Dallycot::Value::Any';
 
+use Carp qw(croak);
 use DateTime;
-
+use List::Util qw(any);
 use Scalar::Util qw(blessed);
 use Promises qw(deferred);
 
@@ -62,7 +64,7 @@ sub to_rdf {
       $self->[0]->epoch
     ));
   }
-  
+
   return $bnode;
 }
 
@@ -151,5 +153,33 @@ sub is_greater_or_equal {
   return $d->promise;
 }
 
+sub prepend {
+  my( $self, @things ) = @_;
+
+  # if durations, we add
+  # if numeric, we add as seconds
+  # otherwise, we can't prepend
+  if(any { !$_->isa('Dallycot::Value::Numeric') && !$_->isa('Dallycot::Value::Duration') } @things) {
+    croak 'Only durations and numeric values may be added to dates and times';
+  }
+
+  my @durations = map {
+    my $v = $_;
+    given(blessed $v) {
+      when('Dallycot::Value::Numeric') {
+        DateTime::Duration->new(
+          seconds => $v->value->numify
+        );
+      }
+      when('Dallycot::Value::Duration') {
+        $v -> value;
+      }
+    }
+  } @things;
+
+  my $accumulator = $self->value;
+  $accumulator = $accumulator + $_ for @durations;
+  return $self -> new(object => $accumulator, class => blessed($accumulator));
+}
 
 1;
