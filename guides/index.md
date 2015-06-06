@@ -7,10 +7,6 @@ description: Guides to downloading and installing Dallycot as well as using the 
 
 * [Language Overview](./language-overview)
 
-## Cookbook
-
-* [Strings](./cookbook/strings)
-
 ## System Operation and Setup
 
 * [Interactive Sessions](./cli)

@@ -13,8 +13,8 @@ To start the Dallycot shell, you can type the following at your operating system
 
 ```shell
 $ dallycot
-Dallycot, version 0.150030.
-Copyright (C) 2014 James Smith.
+Dallycot, version 0.151500.
+Copyright (C) 2014-2015 James Smith.
 This is free software licensed under the same terms as Perl 5.
 There is ABSOLUTELY NO WARRANTY; not even for MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.

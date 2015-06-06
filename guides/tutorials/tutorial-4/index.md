@@ -49,4 +49,4 @@ A short way to write this would be:
 loop(sequence) :> last({ print("Say something") } @ sequence);
 ```
 
-Now you're ready for [the next tutorial](/guides/tutorials/tutorial-5/).
+<!-- Now you're ready for [the next tutorial](/guides/tutorials/tutorial-5/). -->

@@ -146,3 +146,52 @@ A vector is a finite sequence of values.
 A vector is a list of expressions within angle brackets.
 
 ## Control Structures
+
+Dallycot doesn't have loop constructs or typical control structures. Looping is accomplished with tail recursion and flow control is done through a general purpose case construct.
+
+### "if" ... "then" ... "else" and "given" ... "when"
+
+Dallycot uses the same structure for both the simple `if` and `given` (or `switch`) statements: a list of tests and expressions. The result is the value of the first expression for which its paired test yields true. If no test yields true, then any default expression is used.
+
+For example, the C expression `x % 2 == 0 ? "even" : "odd"` is written as:
+
+```
+(
+  ( x mod 2 = 0 ) : 'even'
+  (             ) : 'odd'
+)
+```
+
+A "switch" statement is the same as a sequence of "if" statements with an implied topic. In Dallycot, this is the same as above except with more tests and expressions.
+
+### "for" Loop
+
+Looping is executing the same code again with different parameters. In a purely functional language, this is no different than executing the body with the last value of the loop variable. The easiest way to accomplish this in Dallycot is to walk along a sequence representing the loop variable and execute some function for each position in the sequence. This is done using the map (`@`) operator.
+
+```
+last( f @ 1..20 )
+```
+
+### "while" loop
+
+A "while" loop is similar to a "for" loop, but rather than having a predetermined number of executions, the body is executed while (or until) some condition is met. The easiest way to accomplish this in Dallycot is to use tail-recursion (using the [`y-combinator`](/ns/loc/1.0/#y-combinator) function) until or while the condition holds.
+
+```
+while(full-sequence, condition, body) :> last(
+  y-combinator(
+    (self, sequence) :> (
+      result := body(sequence');
+      (
+        ( condition(result) ) : [ result, self(self, sequence...) ]
+        (                   ) : ( )
+      )
+    )
+  )(full-sequence)
+);
+```
+
+This can be used, for example, to find the largest prime less than 1,000:
+
+```
+while(1.., { # < 1000 }, prime);
+```
