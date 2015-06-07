@@ -12,6 +12,12 @@ test_parses(
 
   '<<this\nis two\nwords\too>>' => [vectorLit(stringLit("this\nis"), stringLit("two\nwords\too"))],
 
+  '< <1,2,3>,<4,5,6> >' => [
+    vectorLit(
+      vectorLit(intLit(1), intLit(2), intLit(3)),
+      vectorLit(intLit(4), intLit(5), intLit(6))
+    )
+  ]
 );
 
 done_testing();

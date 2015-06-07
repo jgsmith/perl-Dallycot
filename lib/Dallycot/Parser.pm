@@ -11,6 +11,9 @@ use experimental qw(switch);
 use Marpa::R2;
 use Math::BigRat;
 
+use Dallycot::Value::String;
+use Dallycot::Value::URI;
+
 use Scalar::Util qw(blessed);
 use String::Escape qw(unbackslash unquote);
 
@@ -133,6 +136,10 @@ sub ns_def {
   my ( undef, $ns, $href ) = @_;
 
   $ns =~ s{^(xml)?ns:}{}x;
+
+  if(blessed($href) && $href -> isa('Dallycot::Value::URI')) {
+    $href = Dallycot::Value::String->new($href -> value -> as_string);
+  }
 
   return bless [ $ns, $href ] => 'Dallycot::AST::XmlnsDef';
 }
@@ -568,6 +575,12 @@ sub fetch {
 sub assign {
   my ( undef, $ident, $expression ) = @_;
 
+  if($ident =~ /^(xml)?ns:/) {
+    if($expression -> isa('Dallycot::Value::String') || $expression -> isa('Dallycot::Value::URI')) {
+      return ns_def(undef, $ident, $expression);
+    }
+  }
+
   return bless [ $ident, $expression ] => 'Dallycot::AST::Assign';
 }
 
@@ -770,6 +783,55 @@ sub condition {
   my ( undef, $guard, $expression ) = @_;
 
   return [ $guard, $expression ];
+}
+
+sub json_object {
+  my ( undef, $prop_list ) = @_;
+
+  # my @props = map {
+  #   _convert_to_json_array($_)
+  # } @$prop_list;
+  my @props = @$prop_list;
+  return bless \@props => 'Dallycot::AST::JSONObject';
+}
+
+# sub _convert_to_json_array {
+#   my($ast) = @_;
+#
+#   if($ast -> isa('Dallycot::AST::Assign') && $ast->[1]->isa('Dallycot::AST::BuildList')) {
+#     bless $ast->[1] => 'Dallycot::AST::JSONArray';
+#   }
+#   return $ast;
+# }
+
+sub json_prop_list {
+  my( undef, @props ) = @_;
+
+  return \@props;
+}
+
+sub json_prop {
+  my( undef, $string, $value ) = @_;
+
+  if(blessed($value) && $value->isa('Dallycot::AST::BuildList')) {
+    $value = bless $value => 'Dallycot::AST::JSONArray';
+  }
+
+  return bless [ $string, $value ] => 'Dallycot::AST::JSONProperty';
+}
+
+sub json_prop_name {
+  my( undef, $string ) = @_;
+
+  return substr($string, 1, length($string)-2);
+}
+
+sub json_array {
+  my( undef, $values ) = @_;
+
+  $values //= [];
+
+  return bless $values => 'Dallycot::AST::JSONArray';
 }
 
 sub prop_request {
@@ -1043,8 +1105,8 @@ Block ::= Statement+ separator => STMT_SEP action => block
 
 Statement ::= NSDef
             | Uses action => add_uses
+            | FuncDef
             | Expression
-
 
 TypeSpec ::= TypeName
            | TypeSpec PIPE TypeName
@@ -1092,6 +1154,7 @@ Expression ::=
     | Duration action => duration_literal
     | Identifier action => fetch
     | QCName action => fetch
+    | JSONObject
     | LambdaArg action => fetch
     | Node
     | Lambda
@@ -1159,6 +1222,26 @@ NodeDef ::= (LC) NodePropList (RC) action => build_node
 
 NodePropList ::= NodeProp+ action => list
 
+JSONObject ::= (LC) JSONPropertyList (RC) action => json_object
+
+JSONPropertyList ::= JSONProperty+ separator => COMMA action => json_prop_list
+
+JSONProperty ::= JSONString (COLON) JSONValue action => json_prop
+               | NSDef
+               | FuncDef
+               | Assign
+
+JSONValue ::= JSONObject
+            | JSONArray
+            | Expression
+
+JSONArray ::= (LB) JSONValues (RB) action => json_array
+            | (LB) (RB) action => json_array
+
+JSONValues ::= JSONValue+ separator => COMMA action => list
+
+JSONString ::= jsonstring action => json_prop_name
+
 NodeProp ::= PropIdentifier (RIGHT_ARROW) Expression action => right_prop
            | PropIdentifier (LEFT_ARROW) Expression action => left_prop
 
@@ -1207,6 +1290,13 @@ Condition ::= (LP) Expression (RP) (COLON) Expression action => condition
 
 Otherwise ::= (LP) (RP) (COLON) Expression
 
+Assign ::= Identifier (COLON_EQUAL) Expression action => assign
+         | ControlWord (COLON_EQUAL) Expression action => assign
+
+FuncDef ::= Identifier (LP) FunctionParameters (RP) (COLON_GT) Expression action => function_definition
+          | Identifier (LP) (RP) (COLON_GT) Expression action => function_definition_sans_args
+          | Identifier (SLASH) PositiveInteger (COLON_GT) Expression action => function_definition
+
 FunctionParameters ::= IdentifiersWithPossibleDefaults action => combine_identifiers_options
           | OptionDefinitions action => relay_options
           | IdentifiersWithPossibleDefaults (COMMA) OptionDefinitions action => combine_identifiers_options
@@ -1233,13 +1323,15 @@ Option ::= Identifier (RIGHT_ARROW) Expression action => option
 
 UriLit ::= Uri action => uri_literal
 
+# String ::= StringLit action => string_literal
+
 Boolean ~ boolean
 
 Inequality ~ inequality
 
 ATIdentifier ~ '@' identifier
 
-Identifier ~ identifier | identifier '?'
+Identifier ~ identifier | identifier '?' | qcname
 
 StarIdentifier ~ '*' identifier
 
@@ -1247,6 +1339,8 @@ Identifiers ::= Identifier+ separator => COMMA action => list
 
 IdentifiersWithGlob ::= Identifiers (COMMA) StarIdentifier
                       | Identifiers
+
+ControlWord ~ controlWord
 
 NSName ~ 'xmlns:' identifier | 'ns:' identifier
 
@@ -1327,6 +1421,8 @@ boolean ~ 'true' | 'false'
 
 digits ~ [_\d] | digits [_\d]
 
+controlWord ~ '@' <identifier bit>
+
 inequality ~ '<' | '<=' | '=' | '<>' | '>=' | '>'
 
 integer ~ negativeInteger | zero | positiveInteger
@@ -1399,6 +1495,8 @@ qcname ~ identifier ':' identifier
 #
 qqstring ~ <qqstring value> | <qqstring value> '@' <qqstring lang>
 
+jsonstring ~ <qqstring value>
+
 <qqstring value> ~ DQUOTE qqstringContent DQUOTE | DQUOTE DQUOTE
 
 qqstringChar ~ [^\"] | '\' <any char>
@@ -1420,6 +1518,7 @@ stringVectorChar ~ [^>] | '>' [^>] | '\' <any char>
 uri ~ '<' uriScheme '://' uriAuthority '/' uriPath '>'
     | '<' uriScheme '://' uriAuthority '/' '>'
     | '<' uriScheme '://' uriAuthority '>'
+    | '<' identifier ':' uriPath '>'
 
 uriScheme ~ [a-z] | uriScheme [-a-z0-9+.]
 
