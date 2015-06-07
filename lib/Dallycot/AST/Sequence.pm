@@ -141,7 +141,7 @@ sub execute {
 
     if(@{$self->[1]}) {
       $assignments->done(sub{});
-      return $child_scope->execute( @{ $self->[1] } );
+      return $var_scope->execute( @{ $self->[1] } );
     }
     else {
       return $assignments->then(sub {
