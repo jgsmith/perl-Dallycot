@@ -21,6 +21,14 @@ as a set of triples. These triples will be stored as a triple-store.
 
 =cut
 
+sub new {
+  my( $class, $hash ) = @_;
+
+  $class = ref $class || $class;
+
+  return bless [ $hash ] => $class;
+}
+
 sub calculate_length {
   my ( $self, $engine ) = @_;
 
@@ -29,6 +37,18 @@ sub calculate_length {
   $d->resolve( $engine->make_numeric( $self->_object_size($self->[0]) ) );
 
   return $d->promise;
+}
+
+sub as_text {
+  my( $self ) = @_;
+
+  my @values;
+
+  while(my($k, $v) = each %{$self -> [0]}) {
+    push @values, "\"$k\": " . $v -> as_text;
+  }
+
+  return '{' . join(",", @values) . '}';
 }
 
 sub _object_size {

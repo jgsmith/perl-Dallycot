@@ -480,6 +480,16 @@ $result = run('10 ::> PT55S');
 ok !DateTime::Duration->compare($result->value, DateTime::Duration->new(seconds => 65)),
    "10 ::> PT55S = 65 seconds";
 
+$result = run (<<'EOD');
+{ "a": 123 }
+EOD
+
+isa_ok $result, 'Dallycot::Value::JSON';
+
+$result = run('{ "a": 123 } -> "a"');
+
+is_deeply $result, Numeric(123);
+
 done_testing();
 
 #==============================================================================
