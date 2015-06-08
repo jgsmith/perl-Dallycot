@@ -19,6 +19,10 @@ use DateTime::Calendar::Julian;
 use DateTime::Calendar::Pataphysical;
 use DateTime::Calendar::Hijri;
 
+# Hack to get the Islamic calendar convertable
+
+sub DateTime::Calendar::Hijri::clone { $_[0] }
+
 use DateTime::Format::Flexible;
 use List::Util qw(all any);
 use Promises qw(deferred);
@@ -315,11 +319,5 @@ define 'parse-datetime' => (
     return Dallycot::Value::Undefined->new;
   }
 };
-
-# Hack to get the Islamic calendar convertable
-
-package DateTime::Calendar::Hijri;
-
-sub clone { $_[0] }
 
 1;
