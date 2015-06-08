@@ -71,6 +71,13 @@ our @EXPORT = qw(
   Defined
   nsdef
   set
+  jsonLit
+  jsonString
+  jsonNumeric
+  jsonArray
+  jsonObject
+  jsonProperty
+  xmlns_def
 );
 
 sub test_parses {
@@ -350,6 +357,22 @@ sub Defined {
 
 sub nsdef {
   bless \@_ => 'Dallycot::AST::XmlnsDef'
+}
+
+sub jsonArray {
+  bless \@_ => 'Dallycot::AST::JSONArray'
+}
+
+sub jsonObject {
+  bless \@_ => 'Dallycot::AST::JSONObject'
+}
+
+sub jsonProperty {
+  bless \@_ => 'Dallycot::AST::JSONProperty'
+}
+
+sub xmlns_def {
+  bless \@_ => 'Dallycot::AST::XmlnsDef';
 }
 
 1;
