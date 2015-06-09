@@ -42,6 +42,12 @@ sub calculate_length {
   return Dallycot::Value::Numeric->new( $self->[2]->size() );
 }
 
+sub id {
+  my ($self) = @_;
+
+  return "<" . $self->[1]->as_string .">";
+}
+
 sub type {
   my ($self) = @_;
 

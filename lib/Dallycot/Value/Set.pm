@@ -12,12 +12,20 @@ use parent 'Dallycot::Value::Collection';
 
 use Promises qw(deferred collect);
 
+use Scalar::Util qw(blessed);
+
 sub new {
   my ( $class, @values ) = @_;
 
   @values = values %{ +{ map { $_->id => $_ } @values } };
 
   return bless \@values => __PACKAGE__;
+}
+
+sub id {
+  my ($self) = @_;
+
+  return "<|" . join("|", map { $_->id } @$self ) . "|>";
 }
 
 sub as_text {
