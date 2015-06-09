@@ -274,7 +274,9 @@ sub _simple_trig {
     when ('degrees') {
       $angle = $angle * Math::BigFloat->bpi( $accuracy + 10 ) / 180;
     }
-    when ('radians') { }
+    when ('radians') { 
+      $angle = $angle -> copy; 
+    }
     when ('gradians') {
       $angle = $angle * Math::BigFloat->bpi( $accuracy + 10 ) / 200;
     }
@@ -283,6 +285,8 @@ sub _simple_trig {
       return $d;
     }
   }
+  # Clamp angle to -2pi .. 2pi
+  $angle->bmod(2 * Math::BigFloat -> bpi($accuracy));
   my $answer = $angle->$method($accuracy);
   $d->resolve( Dallycot::Value::Numeric->new( Math::BigRat->new($answer) ) );
   return $d;

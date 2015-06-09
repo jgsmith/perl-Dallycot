@@ -14,22 +14,18 @@ uses "http://www.dallycot.net/ns/cli/1.0#";
 
 sine-wave(strings, terminal-width -> 80) :> (
   blank-line        := string-multiply(" ", terminal-width);
-  string-lengths    := length @ strings;
   max-string-length := last(max(string-lengths));
   middle            := ceil(terminal-width div 2 - max-string-length div 2);
-  string-offsets    := { middle + ceil((max-string-length - #) div 2) } @ string-lengths;
   multiplier        := floor(middle - max-string-length div 2);
   number-of-strings := length(strings);
-
-  twopi10           := 2 * pi(10);
-
-  quick-sine(angle) :> sin(angle mod twopi10, units -> "radians", accuracy -> 5);
+  string-lengths    := length @ strings;
+  string-offsets    := { middle + ceil((max-string-length - #) div 2) } @ string-lengths;
 
   (line) :> (
     index  := ((line - 1) mod number-of-strings) + 1;
     string := strings[index];
     tab    := string-offsets[index]
-              + multiplier * quick-sine(line div 4);
+              + multiplier * sin(line div 4, units -> "radians", accuracy -> 5);
 
     string-take(blank-line, tab) ::> string;
   );
