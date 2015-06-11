@@ -84,6 +84,16 @@ sub get_assignment {
   return;
 }
 
+sub get_assignments {
+  my ( $self, $namespace ) = @_;
+
+  if( $self -> namespaces -> {$namespace} ) {
+    my $ns = $self->namespaces->{$namespace};
+    return $ns -> get_definitions;
+  }
+  return ();
+}
+
 sub get_assignment_uri {
   my( $self, $namespace, $symbol ) = @_;
 

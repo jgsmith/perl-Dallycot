@@ -16,6 +16,26 @@ has term => (
   }
 );
 
+has completion_provider => (
+  is       => 'ro'
+);
+
+sub BUILD {
+  my($self) = @_;
+
+  $self->term->Attribs->{completion_function} = sub {
+    $self -> symbol_completions(@_);
+  };
+}
+
+sub symbol_completions {
+  my($self, $text, $line, $start) = @_;
+
+  if($self -> completion_provider) {
+    return $self -> completion_provider -> symbol_completions($text, $line, $start);
+  }
+}
+
 sub can_send {
   my ($self) = @_;
 
