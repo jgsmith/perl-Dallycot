@@ -215,6 +215,14 @@ sub get_definition {
   }
 }
 
+sub get_definitions {
+  my ( $class ) = @_;
+
+  $class = ref($class) || $class;
+
+  return keys %{$definitions{$class} || {}};
+}
+
 sub min_arity {
   my ( $self, $name ) = @_;
 

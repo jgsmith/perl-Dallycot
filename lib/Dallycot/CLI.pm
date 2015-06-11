@@ -126,7 +126,9 @@ sub check {
 sub run {
   my ($app) = @_;
 
-  $app->channel( Dallycot::Channel::Terminal->new );
+  $app->channel( Dallycot::Channel::Terminal->new(
+    completion_provider => $app
+  ) );
 
   if ( $app->v ) {
     $app->print_banner;
@@ -280,6 +282,23 @@ sub primary_prompt {
     }
     );
   return;
+}
+
+sub symbol_completions {
+  my($app, $text) = @_;
+
+  # gather symbols from libraries we've "used"
+  # then see which ones start with $text
+  my $registry = Dallycot::Registry->instance;
+  my($length) = length($text);
+  my @symbols = grep { $text eq substr($_, 0, $length) }
+     map { $registry -> get_assignments($_) }
+     @{$app -> engine -> get_namespace_search_path}
+  ;
+  push @symbols, grep { $text eq substr($_, 0, $length) }
+     keys %{$app -> engine -> context -> environment}
+  ;
+  return @symbols;
 }
 
 sub check_parse {
