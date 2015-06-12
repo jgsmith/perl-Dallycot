@@ -2,6 +2,12 @@
 
 ## {{$NEXT}}
 
+* Better handling of sets
+* Clamped trig functions (sin/cos) to a 2 PI range
+* CLI now allows tab-completion of known symbols
+
+## 0.151590  2015-06-07 20:34:30-07:00 America/Los_Angeles
+
 * Bug: CLI now recognizes used namespaces
 * Updated dependencies
 * Initial support for creating JSON structures and extracting values
