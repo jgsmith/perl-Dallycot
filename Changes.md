@@ -2,6 +2,8 @@
 
 ## {{$NEXT}}
 
+## 0.151630  2015-06-11 17:04:38-07:00 America/Los_Angeles
+
 * Better handling of sets
 * Clamped trig functions (sin/cos) to a 2 PI range
 * CLI now allows tab-completion of known symbols

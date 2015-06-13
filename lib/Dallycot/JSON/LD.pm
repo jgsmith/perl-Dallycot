@@ -1,5 +1,7 @@
 package Dallycot::JSON::LD;
 
+# ABSTRACT: JSON-LD management
+
 use Moose;
 
 use utf8;

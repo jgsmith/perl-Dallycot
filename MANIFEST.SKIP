@@ -1,0 +1,4 @@
+MANIFEST.SKIP
+dist.ini
+perlcritic.rc
+weaver.ini

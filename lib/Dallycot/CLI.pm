@@ -186,7 +186,7 @@ sub print_banner {
 
   my $out = $app->channel;
 
-  $Dallycot::VERSION //= 'm.xxyyyz';
+  $Dallycot::VERSION //= '0.000000';
   $out->send_data(
     "Dallycot, version $Dallycot::VERSION.\n",
     "Copyright (C) 2014-2015 James Smith.\n",

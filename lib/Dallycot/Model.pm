@@ -1,5 +1,7 @@
 package Dallycot::Model;
 
+# ABSTRACT: Execute RDF in triple-store
+
 use Moose;
 
 use RDF::Trine;
