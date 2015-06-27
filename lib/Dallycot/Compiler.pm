@@ -1,5 +1,7 @@
 package Dallycot::Compiler;
 
+# ABSTRACT: Compile Dallycot AST into RDF
+
 use Moose;
 
 use RDF::Trine;

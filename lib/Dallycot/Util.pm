@@ -1,5 +1,7 @@
 package Dallycot::Util;
 
+# ABSTRACT: Utility functions
+
 use utf8;
 use strict;
 use warnings;
