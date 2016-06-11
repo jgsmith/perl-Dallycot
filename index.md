@@ -7,7 +7,7 @@ Dallycot is designed to work with the asynchronous nature of the web. When runni
 
 *N.B.*: Almost everything about Dallycot is subject to change. For now, Dallycot provides read-only access to information.
 
-Linked code solves one of the outstanding problems in digital Humanities: recording the computational provenance of derived information. Linked code allows reasoning about how different data sets might be related via computational paths. With a proper engine, linked code is even executable.
+Linked code solves one of the outstanding problems in Digital Humanities: recording the computational provenance of derived information. Linked code allows reasoning about how different data sets might be related via computational paths. With a proper engine, linked code is even executable.
 
 ## Writing Dallycot
 
